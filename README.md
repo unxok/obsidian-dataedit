@@ -1,34 +1,77 @@
 # obsidian-dataedit
 
-This is a template repository for an [Obsidian](obsidian.com) plugin bundled with [Vitejs](https://vitejs.dev).
+A wrapper for the incredible [Dataview](https://github.com/blacksmithgu/obsidian-dataview) that makes tables editable in place.
 
-## Out of the box support
+This is a remake of my [original Dataedit](https://github.com/unxok/dataedit) except built with [ViteJs](https://vitejs.dev) for better bundling, and [SolidJs](https://solidjs.com) for more performance and better rendering predictability.
 
-- [Typescript](https://www.typescriptlang.org)
-- [React](https://react.dev) or [Solid](https://solidjs.com)
-- [Tailwindcss](https://tailwindcss.com)
+## Datacore...?
 
-## Usage
+I think of this project as a middle ground between Dataview and [Datacore](https://github.com/blacksmithgu/datacore), which is the successor to Dataview made by the same creator (blacksmithgu)
 
-> [!NOTE]
-> You must run `npm run build` to bundle and be able to use the plugin. Eventually, I would like to have a way to write to a file instead of the default dev server approach vite takes for dev builds.
+> "Work-in-progress successor to Dataview with a focus on UX and speed."
 
-- `main.js` and `styles.css` output to the root directory of the repo. Place the repo in `/yourvault/.obsidian/plugins/` to be able to test out your plugin.
-- Tailwind is scoped to children of an element with the `twcss` class. Make sure your view/codeblock/whatever has this class to enable tw utility classes for its children.
+Datacore recently has had much more work being done on it by its contributers and it is now open to contributions. Once I get this plugin to a good place, I am hoping to try and help out over there!
 
-1. Replace the following words in all files to your liking:
-   - obsidian-dataedit
-   - Obsidian Dataedit
-   - Obisidian Vite Plugin
-   - ObsidianVite
-2. Look over `/manifest.json` and adjust as needed.
-3. Look over `/tsconfig.app.json`, `/vite.config.ts`, `/src/main.tsx` and comment/uncomment depending on whether you want to use React or Solid.
+I still want to put my plugin out there as a drop-in replacement Dataview until Datacore is ready or for those who simply aren't ready to change all their queries in their vault to a new syntax.
 
-# License
+## Roadmap
 
-MIT
+### Query processing
 
-# Contributing
+- [ ] Parse for true property names and create alias object for use when updating properties
+- [ ] If `WITHOUT ID` is used and no `file.link` is included, add it to the query and hide the `file.link` column
+- [ ] Find `file.link` column index
+- [ ] Read dataview settings and use as needed
+  - [ ] date/datetime format
+  - [ ] null value display
+  - [ ] ID column display
+- [ ] dataeditjs (dataviewjs subset)
+  - [ ] provide `dv` object
+  - [ ] override `dv.table()` and `dv.markdownTable()`
+    - [ ] pass headers and data to `dataviewAPI.query()`
+    - [ ] Add third param for alias array
+    - [ ] Look into getting rendering methods like `dv.el()` and `dv.paragraph()` to work right
 
-- Open an issue for bugs and feature requests
-- PRs welcome!
+### Editable table cells by value type
+
+Each 'type' will change what type of input and how values are updated in frontmatter.
+
+- [ ] text
+- [ ] multitext
+- [ ] number
+- [ ] checkbox
+- [ ] date
+- [ ] datetime
+- [ ] inline\*
+  - [ ] These can behave like any normal 'type' but their updating process is different
+- [ ] nested\*
+  - [ ] These can behave like any normal 'type' but their updating process is different
+
+#### Autocomplete
+
+- [ ] wikilinks
+- [ ] tags
+- [ ] blocks (tried before and it might not be doable)
+- [ ] previously used
+  - [ ] text
+  - [ ] multitext
+- [ ] custom
+
+### Configuration
+
+- [ ] custom class names for table
+- [ ] lock editing
+- [ ] alignment
+  - [ ] all rows
+  - [ ] all columns
+  - [ ] specific row
+  - [ ] specific column
+- [ ] pagination
+  - [ ] page size
+  - [ ] current page
+  - [ ] page navigation
+    - [ ] first
+    - [ ] previous
+    - [ ] next
+    - [ ] last
+    - [ ] input page number
