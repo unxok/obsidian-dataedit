@@ -6,37 +6,41 @@ import { render } from "solid-js/web";
 import App from "./App.tsx";
 import "./index.css";
 import { Notice, Plugin } from "obsidian";
+import { createSignal } from "solid-js";
+import { getAPI } from "obsidian-dataview";
+import { DataviewAPI } from "./lib/types.ts";
+
+export const [plugin, setPlugin] = createSignal<ObsidianVite>();
 
 export default class ObsidianVite extends Plugin {
-  onload(): void {
+  async onload(): Promise<void> {
+    setPlugin(this as ObsidianVite);
+    // @ts-ignore
+    await app.plugins.loadPlugin("dataview");
+    const dataviewAPI = getAPI() as DataviewAPI;
+
     const str = "we out here";
     new Notice(str);
     console.log(str);
 
-    this.registerMarkdownCodeBlockProcessor(
-      "obsidian-vite",
-      (source, el, ctx) => {
-        el.empty();
-        el.classList.toggle("twcss", true);
+    this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
+      el.empty();
+      el.classList.toggle("twcss", true);
 
-        // const root = createRoot(el);
-        // root.render(
-        // 	<React.StrictMode>
-        // 		<App
-        // 			source={source}
-        // 			ctx={ctx}
-        // 		/>
-        // 	</React.StrictMode>
-        // );
+      // const root = createRoot(el);
+      // root.render(
+      // 	<React.StrictMode>
+      // 		<App
+      // 			source={source}
+      // 			ctx={ctx}
+      // 		/>
+      // 	</React.StrictMode>
+      // );
 
-        render(() => <App source={source} ctx={ctx} />, el);
-      },
-    );
+      render(
+        () => <App source={source} ctx={ctx} dataviewAPI={dataviewAPI} />,
+        el,
+      );
+    });
   }
 }
-
-// ReactDOM.createRoot(document.getElementById('root')!).render(
-//   <React.StrictMode>
-//     <App />
-//   </React.StrictMode>,
-// )

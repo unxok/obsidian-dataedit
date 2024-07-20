@@ -1,4 +1,4 @@
-# obsidian-vite
+# obsidian-dataedit
 
 This is a template repository for an [Obsidian](obsidian.com) plugin bundled with [Vitejs](https://vitejs.dev).
 
@@ -17,8 +17,8 @@ This is a template repository for an [Obsidian](obsidian.com) plugin bundled wit
 - Tailwind is scoped to children of an element with the `twcss` class. Make sure your view/codeblock/whatever has this class to enable tw utility classes for its children.
 
 1. Replace the following words in all files to your liking:
-   - obsidian-vite
-   - Obsidian Vite
+   - obsidian-dataedit
+   - Obsidian Dataedit
    - Obisidian Vite Plugin
    - ObsidianVite
 2. Look over `/manifest.json` and adjust as needed.
