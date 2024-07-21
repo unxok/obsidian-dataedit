@@ -300,12 +300,17 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
   const { plugin, ctx } = useContext(DataEditContext);
   return (
     <>
-      <Markdown
-        class="size-full"
-        app={plugin.app}
-        markdown={tryDataviewLinkToMarkdown(props.value)}
-        sourcePath={ctx.sourcePath}
-      />
+      <Show when={props.valueType === "text" || props.valueType === "number"}>
+        <Markdown
+          class="size-full"
+          app={plugin.app}
+          markdown={tryDataviewLinkToMarkdown(props.value)}
+          sourcePath={ctx.sourcePath}
+        />
+      </Show>
+      <Show when={props.valueType === "checkbox"}>
+        <CheckboxInput {...props} />
+      </Show>
     </>
   );
 };
@@ -512,5 +517,28 @@ const NumberExpressionButton = (props: NumberButtonsProps) => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+type CheckboxInputProps = TableDataProps & {
+  valueType: PropertyValueType;
+};
+const CheckboxInput = (props: CheckboxInputProps) => {
+  const { plugin } = useContext(DataEditContext);
+  return (
+    <input
+      class=""
+      type="checkbox"
+      checked={!!props.value}
+      onClick={async (e) => {
+        await updateFrontmatterProperty(
+          props.property,
+          e.currentTarget.checked,
+          props.filePath,
+          plugin,
+          props.value,
+        );
+      }}
+    />
   );
 };
