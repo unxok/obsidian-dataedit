@@ -77,6 +77,10 @@ export type DataviewQueryResult =
   | DataviewQueryResultSuccess
   | DataviewQueryResultFail;
 
+export type ModifiedDataviewQueryResult = DataviewQueryResult & {
+  truePropertyNames: string[];
+};
+
 export type DataviewAPI = {
   settings: DataviewSettings;
   query(source: string): Promise<DataviewQueryResult>;

@@ -22,10 +22,12 @@ import {
   DataviewQueryResultHeaders,
   DataviewQueryResultSuccess,
   DataviewQueryResultValues,
+  ModifiedDataviewQueryResult,
   PropertyValueType,
 } from "./lib/types";
 import { createStore } from "solid-js/store";
 import {
+  getColumnPropertyNames,
   getIdColumnIndex,
   getValueType,
   registerDataviewEvents,
@@ -57,6 +59,7 @@ import {
   DialogTrigger,
 } from "./components/ui/dialog";
 import { ExternalLink } from "./components/ui/external-link";
+import { COMPLEX_PROPERTY_PLACEHOLDER } from "./lib/constants";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -67,13 +70,14 @@ autofocus;
 //   ["[[note3]]", "not started", 0],
 // ];
 
-const defaultQueryResult: DataviewQueryResult = {
+const defaultQueryResult: ModifiedDataviewQueryResult = {
   successful: true,
   value: {
     headers: [""],
     values: [[null]],
     type: "table",
   },
+  truePropertyNames: [],
 };
 
 type AppProps = {
@@ -95,7 +99,7 @@ const DataEditContext = createContext<AppProps>({
 
 function App(props: AppProps) {
   const [queryResults, setQueryResults] =
-    createStore<DataviewQueryResult>(defaultQueryResult);
+    createStore<ModifiedDataviewQueryResult>(defaultQueryResult);
 
   // createEffect(() => {
   //   if (queryResults.successful) {
@@ -106,10 +110,11 @@ function App(props: AppProps) {
   // });
 
   const updateQueryResults = async () => {
-    // console.log("update qr called");
+    const truePropertyNames = getColumnPropertyNames(props.source);
+    console.log("true props; ", truePropertyNames);
     try {
       const result = await props.dataviewAPI.query(props.source);
-      setQueryResults(result);
+      setQueryResults({ ...result, truePropertyNames });
     } catch (e) {
       console.log(e);
     }
@@ -135,7 +140,7 @@ export default App;
 
 type TableProps = {
   ctx: MarkdownPostProcessorContext;
-  queryResults: DataviewQueryResult;
+  queryResults: ModifiedDataviewQueryResult;
 };
 const Table = (props: TableProps) => {
   //
@@ -154,6 +159,7 @@ const Table = (props: TableProps) => {
           headers={
             (props.queryResults as DataviewQueryResultSuccess).value.headers
           }
+          properties={props.queryResults.truePropertyNames}
           rows={(props.queryResults as DataviewQueryResultSuccess).value.values}
         />
       </table>
@@ -198,6 +204,7 @@ const TableHead = (props: TableHeadProps) => {
 
 type TableBodyProps = {
   headers: DataviewQueryResultHeaders;
+  properties: string[];
   rows: DataviewQueryResultValues;
 };
 const TableBody = (props: TableBodyProps) => {
@@ -217,6 +224,7 @@ const TableBody = (props: TableBodyProps) => {
                 <TableData
                   value={value}
                   header={props.headers[valueIndex()]}
+                  property={props.properties[valueIndex()]}
                   filePath={
                     (
                       row[
@@ -237,6 +245,7 @@ const TableBody = (props: TableBodyProps) => {
 type TableDataProps = {
   value: DataviewPropertyValue;
   header: string;
+  property: string;
   filePath: string;
 };
 export const TableData = (props: TableDataProps) => {
@@ -251,9 +260,10 @@ export const TableData = (props: TableDataProps) => {
   const valueType = createMemo(() => {
     return getValueType(props.value, props.header, luxon);
   });
-  const isEditableProperty = (h: string) => {
-    const str = h.toLowerCase();
-    if (str === tableIdColumnName) return false;
+  const isEditableProperty = (property: string) => {
+    const str = property.toLowerCase();
+    if (str === COMPLEX_PROPERTY_PLACEHOLDER.toLowerCase()) return false;
+    if (str === tableIdColumnName.toLowerCase()) return false;
     if (str.includes("file.")) return false;
     return true;
   };
@@ -269,7 +279,7 @@ export const TableData = (props: TableDataProps) => {
       }}
     >
       <Show
-        when={isEditing() && isEditableProperty(props.header)}
+        when={isEditing() && isEditableProperty(props.property)}
         fallback={<TableDataDisplay {...props} valueType={valueType()} />}
       >
         <TableDataEdit
@@ -333,10 +343,11 @@ const TextInput = (props: TableDataEditProps) => {
       value={props.value?.toString() ?? ""}
       onBlur={async (e) => {
         await updateFrontmatterProperty(
-          props.header,
+          props.property,
           e.target.value,
           props.filePath,
           plugin,
+          props.value,
         );
         props.setEditing(false);
       }}
@@ -361,10 +372,11 @@ const NumberInput = (props: TableDataEditProps) => {
       value={props.value?.toString() ?? ""}
       onBlur={async (e) => {
         await updateFrontmatterProperty(
-          props.header,
+          props.property,
           toNumber(e.target.value),
           props.filePath,
           plugin,
+          props.value,
         );
         props.setEditing(false);
       }}
@@ -383,10 +395,11 @@ const NumberButtons = (props: NumberButtonsProps) => (
       onClick={async (e) => {
         e.preventDefault();
         await updateFrontmatterProperty(
-          props.header,
+          props.property,
           props.value - 1,
           props.filePath,
           props.plugin,
+          props.value,
         );
       }}
     >
@@ -398,10 +411,11 @@ const NumberButtons = (props: NumberButtonsProps) => (
       onClick={async (e) => {
         e.preventDefault();
         await updateFrontmatterProperty(
-          props.header,
+          props.property,
           props.value + 1,
           props.filePath,
           props.plugin,
+          props.value,
         );
       }}
     >
@@ -419,10 +433,11 @@ const NumberExpressionButton = (props: NumberButtonsProps) => {
 
   const updateProperty = async (v: number) => {
     await updateFrontmatterProperty(
-      props.header,
+      props.property,
       v,
       props.filePath,
       props.plugin,
+      props.value,
     );
   };
 
@@ -485,7 +500,7 @@ const NumberExpressionButton = (props: NumberButtonsProps) => {
         </p>
         <DialogFooter>
           <button
-            class="bg-interactive-accent text-on-accent hover:bg-interactive-accent-hover p-button rounded-button"
+            class="rounded-button bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover"
             disabled={Number.isNaN(calculated())}
             onClick={async () => {
               await updateProperty(calculated());
