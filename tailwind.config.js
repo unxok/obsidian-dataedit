@@ -26,8 +26,10 @@ module.exports = {
         error: "var(--text-error)",
         accent: "var(--text-accent)",
         "accent-hover": "var(--text-accent-hover)",
+        "on-accent": "var(--text-on-accent)",
       },
       colors: {
+        background: "var(--background-primary)",
         primary: "var(--background-primary)",
         "primary-alt": "var(--background-primary-alt)",
         secondary: "var(---background-secondary)",
@@ -42,11 +44,25 @@ module.exports = {
         success: "var(--background-modifier-success)",
         message: "var(--background-modifier-message)",
         "form-field": "var(--background-modifier-form-field)",
+        selection: "var(--text-selection)",
+        highlight: "var(--text-highlight-bg)",
+        "interactive-normal": "var(--interactive-normal)",
+        "interactive-hover": "var(--interactive-hover)",
+        "interactive-accent": "var(--interactive-accent)",
+        "interactive-accent-hover": "var(--interactive-accent-hover)",
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        xl: "var(---radius-xl)",
+        lg: "var(--radius-l)",
+        md: "var(--radius-m)",
+        sm: "var(--radius-s)",
+        button: "var(--button-radius)",
+      },
+      padding: {
+        button: "var(--size-4-1) var(--size-4-3)",
+      },
+      borderWidth: {
+        DEFAULT: "var(--border-width)",
       },
       keyframes: {
         "accordion-down": {

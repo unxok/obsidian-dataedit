@@ -1,18 +1,50 @@
-import { TFile } from "obsidian";
+// import { TFile } from "obsidian";
+import { Link } from "obsidian-dataview";
+import luxonAPI from "luxon";
 
-export type DataviewLink = {
-  display: string | undefined;
-  embed: boolean;
-  path: string | undefined;
-  subpath: string | undefined;
-  type: "file" | "string";
-  markdown(): string;
-  fileName(): string;
-  obsidianLink(): string;
-  toFile(): TFile;
-  toEmbed(): string;
-  withPath(): string;
+export type DataviewSettings = {
+  renderNullAs: string;
+  taskCompletionTracking: boolean;
+  taskCompletionUseEmojiShorthand: boolean;
+  taskCompletionText: string;
+  taskCompletionDateFormat: string;
+  recursiveSubTaskCompletion: boolean;
+  warnOnEmptyResult: boolean;
+  refreshEnabled: boolean;
+  refreshInterval: number;
+  defaultDateFormat: string;
+  defaultDateTimeFormat: string;
+  maxRecursiveRenderDepth: number;
+  tableIdColumnName: string;
+  tableGroupColumnName: string;
+  showResultCount: boolean;
+  allowHtml: boolean;
+  inlineQueryPrefix: string;
+  inlineJsQueryPrefix: string;
+  inlineQueriesInCodeblocks: boolean;
+  enableInlineDataview: boolean;
+  enableDataviewJs: boolean;
+  enableInlineDataviewJs: boolean;
+  prettyRenderInlineFields: boolean;
+  prettyRenderInlineFieldsInLivePreview: boolean;
+  dataviewJsKeyword: string;
 };
+
+// export type DataviewLink = {
+//   display: string | undefined;
+//   embed: boolean;
+//   path: string | undefined;
+//   subpath: string | undefined;
+//   type: "file" | "string";
+//   markdown(): string;
+//   fileName(): string;
+//   obsidianLink(): string;
+//   toFile(): TFile;
+//   toEmbed(): string;
+//   withPath(): string;
+// };
+
+export type DataviewLink = Link;
 
 export type DataviewPropertyValueNotLink =
   | string
@@ -46,5 +78,21 @@ export type DataviewQueryResult =
   | DataviewQueryResultFail;
 
 export type DataviewAPI = {
+  settings: DataviewSettings;
   query(source: string): Promise<DataviewQueryResult>;
+  luxon: typeof luxonAPI;
+  evaluate(
+    source: string,
+  ): Promise<
+    { successful: true; value: unknown } | { successful: false; error: string }
+  >;
 };
+
+export type PropertyValueType =
+  | "text"
+  | "number"
+  | "multitext"
+  | "tags"
+  | "date"
+  | "datetime"
+  | "checkbox";

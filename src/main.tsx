@@ -6,19 +6,15 @@ import { render } from "solid-js/web";
 import App from "./App.tsx";
 import "./index.css";
 import { Notice, Plugin } from "obsidian";
-import { createSignal } from "solid-js";
 import { getAPI } from "obsidian-dataview";
 import { DataviewAPI } from "./lib/types.ts";
 
-export const [plugin, setPlugin] = createSignal<ObsidianVite>();
-
-export default class ObsidianVite extends Plugin {
+export default class DataEdit extends Plugin {
   async onload(): Promise<void> {
-    setPlugin(this as ObsidianVite);
     // @ts-ignore
     await app.plugins.loadPlugin("dataview");
-    const dataviewAPI = getAPI() as DataviewAPI;
-
+    const dataviewAPI = getAPI(this.app) as DataviewAPI;
+    console.log(dataviewAPI);
     const str = "we out here";
     new Notice(str);
     console.log(str);
@@ -38,7 +34,14 @@ export default class ObsidianVite extends Plugin {
       // );
 
       render(
-        () => <App source={source} ctx={ctx} dataviewAPI={dataviewAPI} />,
+        () => (
+          <App
+            plugin={this}
+            source={source}
+            ctx={ctx}
+            dataviewAPI={dataviewAPI}
+          />
+        ),
         el,
       );
     });
