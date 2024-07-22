@@ -59,6 +59,7 @@ Each 'type' will change what type of input and how values are updated in frontma
 
 ### Configuration
 
+- [x] column reordering
 - [ ] custom class names for table
 - [ ] lock editing
 - [ ] alignment

@@ -1,6 +1,4 @@
-// import { TFile } from "obsidian";
-import { Link } from "obsidian-dataview";
-import luxonAPI from "luxon";
+import { DateTime } from "luxon/src/datetime";
 
 export type DataviewSettings = {
   renderNullAs: string;
@@ -44,7 +42,62 @@ export type DataviewSettings = {
 //   withPath(): string;
 // };
 
-export type DataviewLink = Link;
+export type DataviewLink = {
+  /** The file path this link points to. */
+  path: string;
+  /** The display name associated with the link. */
+  display?: string;
+  /** The block ID or header this link points to within a file, if relevant. */
+  subpath?: string;
+  /** Is this link an embedded link (!)? */
+  embed: boolean;
+  /** The type of this link, which determines what 'subpath' refers to, if anything. */
+  type: "file" | "header" | "block";
+  /** Create a link to a specific file. */
+  file: (path: string, embed?: boolean, display?: string) => DataviewLink;
+  /** Infer link type based on path. */
+  infer: (linkpath: string, embed?: boolean, display?: string) => DataviewLink;
+  /** Create a link to a specific file and header in that file. */
+  header: (
+    path: string,
+    header: string,
+    embed?: boolean,
+    display?: string,
+  ) => DataviewLink;
+  /** Create a link to a specific file and block in that file. */
+  block: (
+    path: string,
+    blockId: string,
+    embed?: boolean,
+    display?: string,
+  ) => DataviewLink;
+  /** Create a link from an object. */
+  fromObject: (object: Record<string, any>) => DataviewLink;
+  /** Checks for link equality (i.e., that the links are pointing to the same exact location). */
+  equals: (other: DataviewLink) => boolean;
+  /** Convert this link to its markdown representation. */
+  toString: () => string;
+  /** Convert this link to a raw object which is serialization-friendly. */
+  toObject: () => Record<string, any>;
+  /** Update this link with a new path. */
+  withPath: (path: string) => DataviewLink;
+  /** Return a new link which points to the same location but with a new display value. */
+  withDisplay: (display?: string) => DataviewLink;
+  /** Convert a file link into a link to a specific header. */
+  withHeader: (header: string) => DataviewLink;
+  /** Convert any link into a link to its file. */
+  toFile: () => DataviewLink;
+  /** Convert this link into an embedded link. */
+  toEmbed: () => DataviewLink;
+  /** Convert this link into a non-embedded link. */
+  fromEmbed: () => DataviewLink;
+  /** Convert this link to markdown so it can be rendered. */
+  markdown: () => string;
+  /** Convert the inner part of the link to something that Obsidian can open / understand. */
+  obsidianLink: () => string;
+  /** The stripped name of the file this link points to. */
+  fileName: () => string;
+};
 
 export type DataviewPropertyValueNotLink =
   | string
@@ -52,12 +105,17 @@ export type DataviewPropertyValueNotLink =
   | boolean
   | null
   | undefined
-  | (string | number | boolean | null | undefined)[];
+  | DateTime;
+// | (string | number | boolean | null | undefined | DateTime)[];
+
+export type DataviewPropertyValueArray =
+  | DataviewPropertyValueNotLink[]
+  | DataviewLink[];
 
 export type DataviewPropertyValue =
   | DataviewPropertyValueNotLink
   | DataviewLink
-  | DataviewLink[];
+  | DataviewPropertyValueArray;
 
 export type DataviewQueryResultHeaders = string[];
 export type DataviewQueryResultValues = DataviewPropertyValue[][];
@@ -84,7 +142,7 @@ export type ModifiedDataviewQueryResult = DataviewQueryResult & {
 export type DataviewAPI = {
   settings: DataviewSettings;
   query(source: string): Promise<DataviewQueryResult>;
-  luxon: typeof luxonAPI;
+  luxon: { DateTime: typeof DateTime };
   evaluate(
     source: string,
   ): Promise<

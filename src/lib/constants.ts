@@ -1,3 +1,5 @@
+import { ModifiedDataviewQueryResult } from "@/lib/types";
+
 /**
  * Placeholder for complex properties from a Dataview query
  * ```
@@ -13,3 +15,13 @@
  * between functions
  */
 export const COMPLEX_PROPERTY_PLACEHOLDER = "file.complex-property";
+
+export const defaultQueryResult: ModifiedDataviewQueryResult = {
+  successful: true,
+  value: {
+    headers: [""],
+    values: [[null]],
+    type: "table",
+  },
+  truePropertyNames: [],
+};

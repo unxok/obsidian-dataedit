@@ -124,7 +124,7 @@ export const tryDataviewLinkToMarkdown = (val: unknown) => {
 export const tryDataviewArrayToArray = <T>(val: T) => {
   if (typeof val !== "object") return val;
   if (!val?.hasOwnProperty("array")) return val;
-  return ({ ...val } as unknown as DataArray<unknown>).array();
+  return ({ ...val } as unknown as DataArray<T>).array() as T;
 };
 
 /*
