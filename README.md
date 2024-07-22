@@ -18,13 +18,13 @@ I still want to put my plugin out there as a drop-in replacement Dataview until 
 
 ### Query processing
 
-- [ ] Parse for true property names and create alias object for use when updating properties
+- [x] Parse for true property names and create alias object for use when updating properties
 - [ ] If `WITHOUT ID` is used and no `file.link` is included, add it to the query and hide the `file.link` column
-- [ ] Find `file.link` column index
+- [x] Find `file.link` column index
 - [ ] Read dataview settings and use as needed
-  - [ ] date/datetime format
+  - [x] date/datetime format
   - [ ] null value display
-  - [ ] ID column display
+  - [x] ID column display
 - [ ] dataeditjs (dataviewjs subset)
   - [ ] provide `dv` object
   - [ ] override `dv.table()` and `dv.markdownTable()`
@@ -36,16 +36,16 @@ I still want to put my plugin out there as a drop-in replacement Dataview until 
 
 Each 'type' will change what type of input and how values are updated in frontmatter.
 
-- [ ] text
-- [ ] list
-- [ ] number
-- [ ] checkbox
-- [ ] date
-- [ ] datetime
-- [ ] inline\*
-  - [ ] These can behave like any normal 'type' but their updating process is different
-- [ ] nested\*
-  - [ ] These can behave like any normal 'type' but their updating process is different
+- [x] text
+- [x] list
+- [x] number
+- [x] checkbox
+- [x] date
+- [x] datetime
+- [x] inline\*
+  - [x] These can behave like any normal 'type' but their updating process is different
+- [x] nested\*
+  - [x] These can behave like any normal 'type' but their updating process is different
 
 #### Autocomplete
 
