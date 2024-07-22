@@ -37,7 +37,7 @@ I still want to put my plugin out there as a drop-in replacement Dataview until 
 Each 'type' will change what type of input and how values are updated in frontmatter.
 
 - [ ] text
-- [ ] multitext
+- [ ] list
 - [ ] number
 - [ ] checkbox
 - [ ] date
@@ -54,7 +54,7 @@ Each 'type' will change what type of input and how values are updated in frontma
 - [ ] blocks (tried before and it might not be doable)
 - [ ] previously used
   - [ ] text
-  - [ ] multitext
+  - [ ] list
 - [ ] custom
 
 ### Configuration

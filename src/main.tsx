@@ -5,7 +5,7 @@ import { render } from "solid-js/web";
 
 import App from "./App.tsx";
 import "./index.css";
-import { Notice, Plugin } from "obsidian";
+import { Plugin } from "obsidian";
 import { getAPI } from "obsidian-dataview";
 import { DataviewAPI } from "./lib/types.ts";
 
@@ -14,10 +14,7 @@ export default class DataEdit extends Plugin {
     // @ts-ignore
     await app.plugins.loadPlugin("dataview");
     const dataviewAPI = getAPI(this.app) as DataviewAPI;
-    console.log(dataviewAPI);
-    const str = "we out here";
-    new Notice(str);
-    console.log(str);
+    // console.log(dataviewAPI);
 
     this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
       el.empty();

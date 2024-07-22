@@ -1,5 +1,6 @@
 import {
   createContext,
+  createEffect,
   createMemo,
   // createEffect,
   createSignal,
@@ -27,14 +28,16 @@ import {
 } from "./lib/types";
 import { createStore } from "solid-js/store";
 import {
+  checkIfDateHasTime,
   getColumnPropertyNames,
   getIdColumnIndex,
   getValueType,
   registerDataviewEvents,
   toNumber,
+  tryDataviewArrayToArray,
   tryDataviewLinkToMarkdown,
   unregisterDataviewEvents,
-  updateFrontmatterProperty,
+  updateMetadataProperty,
 } from "./lib/util";
 import { autofocus } from "@solid-primitives/autofocus";
 // import { Minus, Plus } from "lucide-solid";
@@ -60,6 +63,7 @@ import {
 } from "./components/ui/dialog";
 import { ExternalLink } from "./components/ui/external-link";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "./lib/constants";
+import { DateTime } from "luxon";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -111,9 +115,14 @@ function App(props: AppProps) {
 
   const updateQueryResults = async () => {
     const truePropertyNames = getColumnPropertyNames(props.source);
-    console.log("true props; ", truePropertyNames);
+    // console.log("true props; ", truePropertyNames);
     try {
       const result = await props.dataviewAPI.query(props.source);
+      if (result.successful) {
+        result.value.values = result.value.values.map((v) =>
+          tryDataviewArrayToArray(v),
+        );
+      }
       setQueryResults({ ...result, truePropertyNames });
     } catch (e) {
       console.log(e);
@@ -242,8 +251,8 @@ const TableBody = (props: TableBodyProps) => {
   );
 };
 
-type TableDataProps = {
-  value: DataviewPropertyValue;
+type TableDataProps<T = DataviewPropertyValue> = {
+  value: T;
   header: string;
   property: string;
   filePath: string;
@@ -275,29 +284,50 @@ export const TableData = (props: TableDataProps) => {
         // new Notice(e.target.tagName);
         // if number buttons are clicked
         if (e.target.tagName.toLowerCase() === "button") return;
+        if (valueType() === "list") return;
         setEditing(true);
       }}
     >
       <Show
-        when={isEditing() && isEditableProperty(props.property)}
-        fallback={<TableDataDisplay {...props} valueType={valueType()} />}
+        when={valueType() !== "list"}
+        fallback={<ListTableDataWrapper {...props} />}
       >
-        <TableDataEdit
-          {...props}
-          setEditing={setEditing}
-          valueType={valueType()}
-        />
-      </Show>
-      <Show when={valueType() === "number"}>
-        <NumberButtons {...props} plugin={plugin} />
+        <Show
+          when={isEditing() && isEditableProperty(props.property)}
+          fallback={
+            <TableDataDisplay
+              {...props}
+              setEditing={setEditing}
+              valueType={valueType()}
+            />
+          }
+        >
+          <TableDataEdit
+            {...props}
+            setEditing={setEditing}
+            valueType={valueType()}
+          />
+        </Show>
+        <Show when={valueType() === "number"}>
+          <NumberButtons {...props} plugin={plugin} />
+        </Show>
       </Show>
     </td>
   );
 };
 
-type TableDataDisplayProps = TableDataProps & { valueType: PropertyValueType };
+type TableDataDisplayProps = TableDataProps & {
+  setEditing: Setter<boolean>;
+  valueType: PropertyValueType;
+};
 export const TableDataDisplay = (props: TableDataDisplayProps) => {
-  const { plugin, ctx } = useContext(DataEditContext);
+  const {
+    plugin,
+    ctx,
+    dataviewAPI: {
+      settings: { defaultDateFormat, defaultDateTimeFormat },
+    },
+  } = useContext(DataEditContext);
   return (
     <>
       <Show when={props.valueType === "text" || props.valueType === "number"}>
@@ -311,11 +341,20 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
       <Show when={props.valueType === "checkbox"}>
         <CheckboxInput {...props} />
       </Show>
+      <Show when={props.valueType === "date" || props.valueType === "datetime"}>
+        <div class="size-full">
+          {(props.value as DateTime).toFormat(
+            checkIfDateHasTime(props.value as DateTime)
+              ? defaultDateTimeFormat
+              : defaultDateFormat,
+          )}
+        </div>
+      </Show>
     </>
   );
 };
 
-type TableDataEditProps = TableDataProps & {
+type TableDataEditProps<T = unknown> = TableDataProps<T> & {
   setEditing: Setter<boolean>;
   valueType: PropertyValueType;
 };
@@ -330,11 +369,18 @@ export const TableDataEdit = (props: TableDataEditProps) => {
       <Show when={props.valueType === "number"}>
         <NumberInput {...props} />
       </Show>
+      <Show when={props.valueType === "date" || props.valueType === "datetime"}>
+        <DateDatetimeInput {...(props as TableDataEditProps<DateTime>)} />
+      </Show>
     </>
   );
 };
 
-const TextInput = (props: TableDataEditProps) => {
+const TextInput = (
+  props: TableDataEditProps & {
+    updateProperty?: (val: unknown) => Promise<void>;
+  },
+) => {
   const [size, setSize] = createSignal(props.value?.toString().length ?? 5);
   const { plugin } = useContext(DataEditContext);
   return (
@@ -347,17 +393,119 @@ const TextInput = (props: TableDataEditProps) => {
       type="text"
       value={props.value?.toString() ?? ""}
       onBlur={async (e) => {
-        await updateFrontmatterProperty(
-          props.property,
-          e.target.value,
-          props.filePath,
-          plugin,
-          props.value,
-        );
+        if (props.updateProperty) {
+          await props.updateProperty(e.target.value);
+        } else {
+          await updateMetadataProperty(
+            props.property,
+            e.target.value,
+            props.filePath,
+            plugin,
+            props.value,
+          );
+        }
         props.setEditing(false);
       }}
       onInput={(e) => {
         setSize(e.target.value.length);
+      }}
+    />
+  );
+};
+
+const ListTableDataWrapper = (props: TableDataProps<unknown[]>) => {
+  const { plugin, ctx } = useContext(DataEditContext);
+  return (
+    <ul class="m-0 flex flex-col gap-1 p-0 [&>li]:list-disc">
+      <For each={props.value}>
+        {(val, index) => (
+          <ListTableDataItem
+            {...props}
+            plugin={plugin}
+            ctx={ctx}
+            itemValue={val}
+            itemIndex={index()}
+          />
+        )}
+      </For>
+      <button
+        class="clickable-icon size-fit p-1"
+        onClick={async (e) => {
+          e.preventDefault();
+          await updateMetadataProperty(
+            props.property,
+            [...props.value, ""],
+            props.filePath,
+            plugin,
+            props.value,
+          );
+        }}
+      >
+        <Plus class="pointer-events-none size-3" />
+      </button>
+    </ul>
+  );
+};
+
+type ListTableDataItemProps = TableDataProps & {
+  plugin: DataEdit;
+  ctx: MarkdownPostProcessorContext;
+  itemValue: unknown;
+  itemIndex: number;
+};
+const ListTableDataItem = (props: ListTableDataItemProps) => {
+  const [isEditing, setEditing] = createSignal(false);
+  return (
+    <li class="m-0 ml-3">
+      <Show
+        when={isEditing()}
+        fallback={
+          <Markdown
+            class="size-full"
+            app={props.plugin.app}
+            markdown={tryDataviewLinkToMarkdown(props.itemValue)}
+            sourcePath={props.ctx.sourcePath}
+            onClick={() => setEditing(true)}
+          />
+        }
+      >
+        <ListInput {...props} setEditing={setEditing} />
+      </Show>
+    </li>
+  );
+};
+
+const ListInput = (
+  props: ListTableDataItemProps & { setEditing: Setter<boolean> },
+) => {
+  return (
+    <TextInput
+      {...props}
+      value={props.itemValue}
+      valueType="list"
+      updateProperty={async (newVal) => {
+        const value = [...props.value] as unknown[];
+        if (!newVal && newVal !== 0) {
+          const arr = value.filter((_, i) => i !== props.itemIndex);
+          await updateMetadataProperty(
+            props.property,
+            arr,
+            props.filePath,
+            props.plugin,
+            props.itemValue,
+            props.itemIndex,
+          );
+          return;
+        }
+        value[props.itemIndex] = newVal;
+        await updateMetadataProperty(
+          props.property,
+          value,
+          props.filePath,
+          props.plugin,
+          props.itemValue,
+          props.itemIndex,
+        );
       }}
     />
   );
@@ -376,7 +524,7 @@ const NumberInput = (props: TableDataEditProps) => {
       type="number"
       value={props.value?.toString() ?? ""}
       onBlur={async (e) => {
-        await updateFrontmatterProperty(
+        await updateMetadataProperty(
           props.property,
           toNumber(e.target.value),
           props.filePath,
@@ -399,7 +547,7 @@ const NumberButtons = (props: NumberButtonsProps) => (
       class="clickable-icon size-fit p-1"
       onClick={async (e) => {
         e.preventDefault();
-        await updateFrontmatterProperty(
+        await updateMetadataProperty(
           props.property,
           props.value - 1,
           props.filePath,
@@ -415,7 +563,7 @@ const NumberButtons = (props: NumberButtonsProps) => (
       class="clickable-icon size-fit p-1"
       onClick={async (e) => {
         e.preventDefault();
-        await updateFrontmatterProperty(
+        await updateMetadataProperty(
           props.property,
           props.value + 1,
           props.filePath,
@@ -437,7 +585,7 @@ const NumberExpressionButton = (props: NumberButtonsProps) => {
   const [calculated, setCalculated] = createSignal(Number(props.value));
 
   const updateProperty = async (v: number) => {
-    await updateFrontmatterProperty(
+    await updateMetadataProperty(
       props.property,
       v,
       props.filePath,
@@ -531,13 +679,67 @@ const CheckboxInput = (props: CheckboxInputProps) => {
       type="checkbox"
       checked={!!props.value}
       onClick={async (e) => {
-        await updateFrontmatterProperty(
+        await updateMetadataProperty(
           props.property,
           e.currentTarget.checked,
           props.filePath,
           plugin,
           props.value,
         );
+      }}
+    />
+  );
+};
+
+type DateDatetimeInputProps = TableDataProps<DateTime> & {
+  setEditing: Setter<boolean>;
+  valueType: PropertyValueType;
+};
+
+const DateDatetimeInput = (props: DateDatetimeInputProps) => {
+  const {
+    plugin,
+    dataviewAPI: { luxon },
+  } = useContext(DataEditContext);
+  const isTime = createMemo(() => {
+    return checkIfDateHasTime(props.value);
+  });
+
+  createEffect(() => {
+    console.log("isTime: ", isTime());
+  });
+  return (
+    <input
+      use:autofocus
+      autofocus
+      class=""
+      type={isTime() ? "datetime-local" : "date"}
+      // 2018-06-12T19:30
+      value={
+        isTime()
+          ? props.value.toFormat("yyyy-MM-dd'T'hh:mm")
+          : props.value.toFormat("yyyy-MM-dd")
+      }
+      onBlur={async (e) => {
+        const isValid = e.target.validity;
+        if (!isValid) return props.setEditing(false);
+        const format = isTime() ? "yyyy-MM-dd'T'hh:mm" : "yyyy-MM-dd";
+        // const jsDt = new Date(e.target.value);
+        // console.log("jsDt: ", jsDt);
+        console.log("etarget: ", e.target.value);
+        const dt = luxon.DateTime.fromFormat(e.target.value, format);
+        console.log("dt: ", dt);
+        const newValue = dt.toFormat(format);
+        console.log("new value: ", newValue);
+        const formattedOld = props.value.toFormat(format);
+        await updateMetadataProperty(
+          props.property,
+          newValue,
+          props.filePath,
+          plugin,
+          formattedOld,
+        );
+        props.setEditing(false);
       }}
     />
   );

@@ -1,5 +1,6 @@
-import { Plugin, TFile, Vault } from "obsidian";
+import { Notice, Plugin, TFile, Vault } from "obsidian";
 import {
+  DataArray,
   DataviewAPI,
   DataviewLink,
   DataviewPropertyValueNotLink,
@@ -35,6 +36,16 @@ export const toNumber = (
   return num;
 };
 
+/**
+ * Checks if a luxon DateTime has a non-zero time value
+ * @param dt luxon DateTime
+ * @returns `true` if time is not all zeroes, false otherwise
+ */
+export const checkIfDateHasTime = (dt: DateTime) => {
+  const isTime = dt.hour !== 0 || dt.minute !== 0 || dt.second !== 0;
+  return isTime;
+};
+
 export const getValueType: (
   value: unknown,
   property: string,
@@ -45,13 +56,14 @@ export const getValueType: (
   if (t === "number") return "number";
   if (t === "boolean") return "checkbox";
   if (t === "object") {
-    if (Array.isArray(t)) {
-      return property === "tags" ? "tags" : "multitext";
+    // console.log("object value: ", value);
+    if (Array.isArray(value)) {
+      return property === "tags" ? "tags" : "list";
     }
     if (luxon.DateTime.isDateTime(value)) {
       const dt = value as unknown as DateTime;
-      const isOnlyDate = dt.hour === 0 && dt.minute === 0 && dt.second === 0;
-      return isOnlyDate ? "date" : "datetime";
+      const isTime = checkIfDateHasTime(dt);
+      return isTime ? "datetime" : "date";
     }
     return "text";
   }
@@ -109,6 +121,12 @@ export const tryDataviewLinkToMarkdown = (val: unknown) => {
   return (val as DataviewLink).markdown();
 };
 
+export const tryDataviewArrayToArray = <T>(val: T) => {
+  if (typeof val !== "object") return val;
+  if (!val?.hasOwnProperty("array")) return val;
+  return ({ ...val } as unknown as DataArray<unknown>).array();
+};
+
 /*
   TABLE col1 as Alias1, func(col2)  ,col3.sub, col4 as "Alias 2"
   FROM "/"
@@ -159,12 +177,13 @@ export const getColumnPropertyNames = (source: string) => {
   return ["File", ...cols];
 };
 
-export const updateFrontmatterProperty = async (
+export const updateMetadataProperty = async (
   property: string,
   value: unknown,
   filePath: string,
   plugin: Plugin,
   previousValue: unknown,
+  itemIndex?: number,
 ) => {
   const {
     app: { fileManager, vault },
@@ -198,6 +217,7 @@ export const updateFrontmatterProperty = async (
     previousValue,
     file,
     vault,
+    itemIndex,
   );
   if (inlineUpdated) return;
 
@@ -283,6 +303,7 @@ const tryUpdateInlineProperty = async (
   previousValue: unknown,
   file: TFile,
   vault: Vault,
+  itemIndex?: number,
 ) => {
   const content = await vault.read(file);
   const lines: (string | null)[] = content.split("\n");
@@ -307,12 +328,26 @@ const tryUpdateInlineProperty = async (
   const foundInline = parsedFields.find(
     (f) => f.value === previousValue?.toString(),
   );
-  if (!foundInline) return false;
+  if (!foundInline) {
+    const isNameMatchedInline = parsedFields.some((f) => f.key === property);
+    if (isNameMatchedInline) {
+      // plus button was clicked for list value
+      // you can't really add a inline programmatically
+      // because they are defined arbitrarily in the note
+      new Notice(
+        "Inline fields found for property, so you can't use the plus button",
+      );
+      // so frontmatter isn't updated
+      return true;
+    }
+    return false;
+  }
+  const newValue = Array.isArray(value) ? value[itemIndex ?? 0] : value;
   lines[foundInline.line] =
     lines[foundInline.line]?.replace(
       // TODO I don't think space after colons is required
       (property + ":: " + foundInline.value) as string,
-      property + ":: " + (value ?? "").toString(),
+      property + ":: " + (newValue ?? "").toString(),
     ) ?? null;
   let finalContent = "";
   for (let m = 0; m < lines.length; m++) {
