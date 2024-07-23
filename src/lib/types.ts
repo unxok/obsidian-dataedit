@@ -157,7 +157,14 @@ export type PropertyValueType =
   | "tags"
   | "date"
   | "datetime"
-  | "checkbox";
+  | "checkbox"
+  | "unknown";
+
+export type PropertyInfo = {
+  count: number;
+  name: string;
+  type: PropertyValueType;
+};
 
 //////////////////////////////////////////////////////////////////////
 //                                                                  //

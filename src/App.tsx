@@ -1,6 +1,6 @@
 import { onCleanup } from "solid-js";
 import "@/App.css";
-import { MarkdownPostProcessorContext } from "obsidian";
+import { debounce, MarkdownPostProcessorContext } from "obsidian";
 import DataEdit from "@/main";
 import { DataviewAPI, ModifiedDataviewQueryResult } from "@/lib/types";
 import { createStore } from "solid-js/store";
@@ -32,10 +32,12 @@ export type AppProps = {
 };
 
 function App(props: AppProps) {
+  console.log("app rendered");
   const [queryResults, setQueryResults] =
     createStore<ModifiedDataviewQueryResult>(defaultQueryResult);
 
   const updateQueryResults = async () => {
+    console.log("we out here", props.source);
     const truePropertyNames = getColumnPropertyNames(props.source);
     // console.log("true props; ", truePropertyNames);
     try {
@@ -60,7 +62,7 @@ function App(props: AppProps) {
 
   return (
     <DataEditContext.Provider value={props}>
-      <div class="w-full overflow-x-scroll">
+      <div class="h-fit w-full overflow-x-scroll">
         <Table ctx={props.ctx} queryResults={queryResults} />
       </div>
       hi theree

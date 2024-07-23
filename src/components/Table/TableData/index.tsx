@@ -18,6 +18,7 @@ import { DateDatetimeInput } from "@/components/Inputs/datedatetime";
 import { ListTableDataWrapper } from "@/components/Inputs/list";
 import { NumberButtons, NumberInput } from "@/components/Inputs/number";
 import { TextInput } from "@/components/Inputs/text";
+import { Notice } from "obsidian";
 
 export type TableDataProps<T = DataviewPropertyValue> = {
   value: T;
@@ -40,7 +41,7 @@ export const TableData = (props: TableDataProps) => {
     return getValueType(props.value, props.header, luxon);
   });
   const isEditableProperty = (property: string) => {
-    const str = property.toLowerCase();
+    const str = (property ?? "").toLowerCase();
     if (str === COMPLEX_PROPERTY_PLACEHOLDER.toLowerCase()) return false;
     if (str === tableIdColumnName.toLowerCase()) return false;
     if (str.includes("file.")) return false;
@@ -71,11 +72,22 @@ export const TableData = (props: TableDataProps) => {
         <Show
           when={isEditing() && isEditableProperty(props.property)}
           fallback={
-            <TableDataDisplay
-              {...props}
-              setEditing={setEditing}
-              valueType={valueType()}
-            />
+            <div
+              onClick={
+                isEditableProperty(props.property)
+                  ? undefined
+                  : () =>
+                      new Notice(
+                        "This is a calculated property, so you can't edit it!",
+                      )
+              }
+            >
+              <TableDataDisplay
+                {...props}
+                setEditing={setEditing}
+                valueType={valueType()}
+              />
+            </div>
           }
         >
           <TableDataEdit
@@ -84,7 +96,9 @@ export const TableData = (props: TableDataProps) => {
             valueType={valueType()}
           />
         </Show>
-        <Show when={valueType() === "number"}>
+        <Show
+          when={valueType() === "number" && isEditableProperty(props.property)}
+        >
           <NumberButtons
             {...(props as TableDataProps<number>)}
             plugin={plugin}

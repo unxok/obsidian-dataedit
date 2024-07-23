@@ -1,5 +1,11 @@
 import { App, Component, MarkdownRenderer } from "obsidian";
-import { ComponentProps, onMount, splitProps } from "solid-js";
+import {
+  ComponentProps,
+  createEffect,
+  createMemo,
+  onMount,
+  splitProps,
+} from "solid-js";
 import { DataviewPropertyValueNotLink } from "../../lib/types";
 
 type MarkdownProps = ComponentProps<"div"> & {
@@ -18,20 +24,23 @@ export const Markdown = (props: MarkdownProps) => {
     "sourcePath",
   ]);
 
-  const md = (() => {
+  const md = createMemo(() => {
     const str = localProps.markdown ?? "&nbsp;";
     if (Array.isArray(str)) return str.join(", ");
     if (str === "" || typeof str === "object") return "&nbsp;";
     return str.toString();
-  })();
+  });
 
-  onMount(() => {
+  const component = new Component();
+
+  createEffect(() => {
+    ref.empty();
     MarkdownRenderer.render(
       localProps.app,
-      md,
+      md(),
       ref,
       localProps.sourcePath,
-      new Component(),
+      component,
     );
   });
 

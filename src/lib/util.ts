@@ -1,9 +1,10 @@
-import { Notice, Plugin, TFile, Vault } from "obsidian";
+import { App, Debouncer, Notice, Plugin, TFile, Vault } from "obsidian";
 import {
   DataArray,
   DataviewAPI,
   DataviewLink,
   DataviewPropertyValueNotLink,
+  PropertyInfo,
   PropertyValueType,
 } from "./types";
 import { DateTime } from "luxon";
@@ -72,7 +73,7 @@ export const getValueType: (
 
 export const registerDataviewEvents = (
   plugin: Plugin,
-  callback: () => Promise<void> | void,
+  callback: () => unknown,
 ) => {
   plugin.app.metadataCache.on("dataview:index-ready" as "changed", callback);
 
@@ -84,7 +85,7 @@ export const registerDataviewEvents = (
 
 export const unregisterDataviewEvents = (
   plugin: Plugin,
-  callback: () => Promise<void> | void,
+  callback: () => unknown,
 ) => {
   plugin.app.metadataCache.off("dataview:index-ready" as "changed", callback);
 
@@ -134,9 +135,11 @@ export const tryDataviewArrayToArray = <T>(val: T) => {
 */
 
 export const getColumnPropertyNames = (source: string) => {
+  const line = source.split("\n")[0];
+  const isWithoutId = line.toLowerCase().includes("without id");
   const cols = source
     .split("\n")[0]
-    .substring(6)
+    .substring(isWithoutId ? 17 : 6)
     .split(",")
     .map((c) => {
       const str = c.trim();
@@ -172,8 +175,8 @@ export const getColumnPropertyNames = (source: string) => {
       }
       return potential;
     });
-  // first index doesn't actually matter
-  // but we need it to make the index match to alias arr
+  if (isWithoutId) return cols;
+  // so it matches with what is returned from dataview
   return ["File", ...cols];
 };
 
@@ -357,4 +360,10 @@ const tryUpdateInlineProperty = async (
   }
   await vault.modify(file, yaml.join("\n") + finalContent);
   return true;
+};
+
+export const getExistingProperties = (app: App) => {
+  const { metadataCache } = app;
+  // @ts-expect-error
+  return metadataCache.getAllPropertyInfos() as Record<string, PropertyInfo>;
 };

@@ -1,8 +1,18 @@
+// @refresh reload
+
 import { render } from "solid-js/web";
 import App from "./App.tsx";
 import "./index.css";
-import { App as ObsidianApp, Notice, Plugin } from "obsidian";
+import {
+  App as ObsidianApp,
+  Notice,
+  Plugin,
+  MarkdownRenderChild,
+  Component,
+  MarkdownRenderer,
+} from "obsidian";
 import { DataviewAPI } from "./lib/types.ts";
+import { createRoot } from "solid-js";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -30,10 +40,15 @@ export default class DataEdit extends Plugin {
     const dataviewAPI = getDataviewAPI(this.app) as DataviewAPI;
 
     this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
+      // best practice to empty when registering
       el.empty();
+      // allows all descendents to use tw utily classes
       el.classList.toggle("twcss", true);
+      // because users will spend a lot of time hovering within
+      // I decided to remove the shadow that appears on hover
+      el.parentElement!.style.boxShadow = "none";
 
-      render(
+      const dispose = render(
         () => (
           <App
             plugin={this}
@@ -45,6 +60,15 @@ export default class DataEdit extends Plugin {
         ),
         el,
       );
+      /* 
+      the registerMarkdownCodeBlockProcessor callback is called
+      every time the code block is rendered. Doing the below
+      will cause the associated mdChild to tell solid to dispose
+      of this root and not track its context.
+      */
+      const mdChild = new MarkdownRenderChild(el);
+      mdChild.register(dispose);
+      ctx.addChild(mdChild);
     });
   }
 }

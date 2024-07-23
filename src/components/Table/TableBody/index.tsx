@@ -50,7 +50,7 @@ export const TableBody = (props: TableBodyProps) => {
   return (
     <tbody>
       <For each={props.rows}>
-        {(row, rowIndex) => (
+        {(row) => (
           <tr>
             <For each={row}>
               {(value, valueIndex) => (

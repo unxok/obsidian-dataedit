@@ -58,6 +58,14 @@ module.exports = {
         sm: "var(--radius-s)",
         button: "var(--button-radius)",
       },
+      borderWidth: {
+        prompt: "var(--prompt-border-width)",
+        modal: "var(--prompt-border-width)",
+      },
+      borderColor: {
+        prompt: "var(--prompt-border-color)",
+        modal: "var(--prompt-border-color)",
+      },
       padding: {
         button: "var(--size-4-1) var(--size-4-3)",
       },

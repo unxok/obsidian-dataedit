@@ -5,11 +5,10 @@ import { createSignal, For, onCleanup, Setter } from "solid-js";
 import GripHorizontal from "lucide-solid/icons/Grip-horizontal";
 import { draggedOverLeft, draggedOverRight } from "../TableBody";
 import { Notice } from "obsidian";
-import Plus from "lucide-solid/icons/Plus";
 
 export type TableHeadProps = {
   headers: DataviewQueryResultHeaders;
-  rowsLength: number;
+  properties: string[];
   highlightIndex: number;
   setHighlightIndex: Setter<number>;
   draggedOverIndex: number;
@@ -29,11 +28,20 @@ export const TableHead = (props: TableHeadProps) => {
   let lastMousePos = 0;
 
   const onMouseMove = (e: MouseEvent) => {
+    // console.log("mouse move called");
     if (props.highlightIndex === -1) return;
     setTranslateX(() => e.clientX - lastMousePos);
   };
 
   const onMouseUp = async () => {
+    // TODO this isn't working right
+    const isDraggingDefaultId =
+      props.highlightIndex === 0 &&
+      props.headers[props.highlightIndex] === tableIdColumnName;
+    const isDraggedOverDefaultId =
+      props.draggedOverIndex === 0 &&
+      props.headers[props.highlightIndex] === tableIdColumnName;
+    const isUsingDefaultId = isDraggingDefaultId || isDraggedOverDefaultId;
     if (
       props.draggedOverIndex !== -1 &&
       props.draggedOverIndex !== props.highlightIndex
@@ -52,15 +60,25 @@ export const TableHead = (props: TableHeadProps) => {
       }
       const content = await vault.read(file);
       const lines = content.split("\n");
-      const tableLine = lines[lineStart + 1];
-      const isWithoutId = tableLine.toLowerCase().includes("without id");
+      const preTableLine = lines[lineStart + 1];
+      const preIsWithoutId = preTableLine.toLowerCase().includes("without id");
+      const tableLine =
+        !preIsWithoutId && isUsingDefaultId
+          ? preTableLine.replace(/table/i, "TABLE WITHOUT ID")
+          : preTableLine;
+      let isWithoutId = !preIsWithoutId && isUsingDefaultId;
       const tableKeyword = tableLine.slice(0, isWithoutId ? 16 : 5).trim();
-      const cols = tableLine
+      const preCols = tableLine
         .slice(isWithoutId ? 17 : 6)
         .split(",")
         .map((c) => c.trim());
       console.log(tableKeyword);
-      console.log(cols);
+      const cols = isDraggingDefaultId
+        ? ["file.link AS " + tableIdColumnName, ...preCols]
+        : preCols;
+      if (isDraggedOverDefaultId) {
+        cols[props.draggedOverIndex] = "file.link AS " + tableIdColumnName;
+      }
       const newCols = [...cols];
       const highlightIndex = props.highlightIndex - (isWithoutId ? 0 : 1);
       const draggedIndex = props.draggedOverIndex - (isWithoutId ? 0 : 1);
@@ -69,7 +87,7 @@ export const TableHead = (props: TableHeadProps) => {
       console.log("new cols: ", newCols);
       lines[lineStart + 1] = tableKeyword + " " + newCols.join(", ");
       const newContent = lines.join("\n");
-      vault.modify(file, newContent);
+      await vault.modify(file, newContent);
     }
 
     props.setHighlightIndex(-1);
@@ -91,26 +109,24 @@ export const TableHead = (props: TableHeadProps) => {
     <thead>
       <tr>
         <For each={props.headers}>
-          {(_, index) => (
+          {(h, index) => (
             <th
               onMouseDown={(e) => {
-                if (props.headers[index()] === tableIdColumnName) {
-                  new Notice(
-                    "Can't reorder default ID column. Specify 'WIHOUT ID' to be able to drag it.",
-                  );
-                  return;
-                }
                 props.setHighlightIndex(index());
                 setTranslateX(0);
                 lastMousePos = e.clientX;
                 window.addEventListener("mousemove", onMouseMove);
               }}
               onMouseMove={() => {
+                if (props.highlightIndex === -1) return;
                 if (
-                  props.highlightIndex === -1 ||
-                  props.headers[index()] === tableIdColumnName
-                )
+                  index() === 0 &&
+                  (h === tableIdColumnName ||
+                    props.properties[index()] === tableIdColumnName)
+                ) {
+                  props.setDraggedOverIndex(-2);
                   return;
+                }
                 props.setDraggedOverIndex(index());
               }}
               // onMouseUp={() => {
@@ -125,6 +141,7 @@ export const TableHead = (props: TableHeadProps) => {
               class={`relative m-0 cursor-grab overflow-visible border-x-transparent border-t-transparent p-0 text-muted active:cursor-grabbing ${index() === props.highlightIndex ? "opacity-100" : "opacity-0"} ${props.highlightIndex === -1 ? "hover:opacity-100" : ""}`}
             >
               <div
+                aria-roledescription="column-drag-handle"
                 class={`flex size-full items-end justify-center`}
                 style={
                   index() === props.highlightIndex
@@ -133,8 +150,13 @@ export const TableHead = (props: TableHeadProps) => {
                           "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
                         "border-radius": "var(--radius-s) var(--radius-s) 0 0",
                         translate: translateX() + "px 0",
+                        "pointer-events": "none",
                       }
-                    : {}
+                    : props.highlightIndex !== -1
+                      ? {
+                          cursor: "grabbing",
+                        }
+                      : {}
                 }
               >
                 <GripHorizontal size="1rem" />
@@ -183,16 +205,6 @@ export const TableHead = (props: TableHeadProps) => {
             </th>
           )}
         </For>
-        <th
-          aria-label="Add column after"
-          // TODO idk why this doesn't work
-          rowspan={props.rowsLength}
-          class="w-6 border-transparent p-0 opacity-0 hover:border-border hover:opacity-100"
-        >
-          <div class="flex size-full items-center justify-center">
-            <Plus size="1rem" />
-          </div>
-        </th>
       </tr>
     </thead>
   );
