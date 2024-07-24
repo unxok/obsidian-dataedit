@@ -5,7 +5,7 @@ import {
   DataviewQueryResultFail,
 } from "@/lib/types";
 import { MarkdownPostProcessorContext } from "obsidian";
-import { createSignal, For, Show, createMemo } from "solid-js";
+import { createSignal, For, Show, createMemo, Setter } from "solid-js";
 import { TableBody } from "./TableBody";
 import { TableHead } from "./TableHead";
 import Plus from "lucide-solid/icons/Plus";
@@ -29,6 +29,7 @@ type TableProps = {
 export const Table = (props: TableProps) => {
   const [highlightIndex, setHighlightIndex] = createSignal(-1);
   const [draggedOverIndex, setDraggedOverIndex] = createSignal(-1);
+  const [isAddColumnDialogOpen, setAddColumnDialogOpen] = createSignal(false);
   return (
     <Show
       when={props.queryResults.successful}
@@ -72,7 +73,10 @@ export const Table = (props: TableProps) => {
             setDraggedOverIndex={setDraggedOverIndex}
           />
         </table>
-        <AddColumnButton />
+        <AddColumnButton
+          open={isAddColumnDialogOpen()}
+          setOpen={setAddColumnDialogOpen}
+        />
         <span
           aria-label="Add row after"
           class="absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-border opacity-0 hover:opacity-50"
@@ -95,12 +99,15 @@ const TableFallback = (props: TableFallbackProps) => {
   );
 };
 
-const AddColumnButton = () => {
+const AddColumnButton = (props: {
+  open: boolean;
+  setOpen: Setter<boolean>;
+}) => {
   const {
     plugin: { app },
     ctx,
     el,
-    source,
+    query,
   } = useDataEdit();
 
   const sectionInfo = ctx.getSectionInfo(el);
@@ -109,20 +116,18 @@ const AddColumnButton = () => {
   }
   const { lineStart, text } = sectionInfo;
 
-  const [isOpen, setOpen] = createSignal(false);
   const [propertyValue, setPropertyValue] = createSignal("");
   const [aliasValue, setAliasValue] = createSignal("");
 
   const markdown = createMemo(() => {
-    console.log("mk memo");
     const prop = propertyValue().trim();
-    const lines = ("```dataview\n" + source + "\n```").split("\n");
+    const lines = ("```dataview\n" + query + "\n```").split("\n");
     if (!prop) return lines.join("\n");
     const alias = aliasValue();
     const aliasStr = alias
       ? " AS " + (alias.includes(" ") ? '"' + alias + '"' : alias)
       : "";
-    const { index } = getTableLine(source);
+    const { index } = getTableLine(query);
     // offset by 1 since source doesn't include backticks we added to lines
     lines[index + 1] += ", " + prop + aliasStr;
     return lines.join("\n");
@@ -145,7 +150,7 @@ const AddColumnButton = () => {
   const properties = getExistingProperties(app);
   const propertyNames = Object.keys(properties).sort();
   return (
-    <Dialog open={isOpen()} onOpenChange={(b) => setOpen(b)}>
+    <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
       <DialogTrigger
         aria-label="Add column after"
         class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] m-0 flex size-fit h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center rounded-none border border-l-0 border-border bg-transparent p-0 opacity-0 shadow-none hover:opacity-50"
@@ -192,7 +197,7 @@ const AddColumnButton = () => {
             disabled={!propertyValue()}
             onClick={async () => {
               await addCol(markdown());
-              setOpen(false);
+              props.setOpen(false);
             }}
             class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"
           >

@@ -1,5 +1,6 @@
 import { AppProps } from "@/App";
 import { DataviewAPI } from "@/lib/types";
+import { DataEditBlockConfig } from "@/lib/util";
 import DataEdit from "@/main";
 import { MarkdownPostProcessorContext } from "obsidian";
 import { createContext, useContext } from "solid-js";
@@ -11,6 +12,8 @@ export const DataEditContext = createContext<AppProps>({
   plugin: {} as DataEdit,
   el: {} as HTMLElement,
   source: "",
+  query: "",
+  config: {} as DataEditBlockConfig,
   ctx: {} as MarkdownPostProcessorContext,
   dataviewAPI: {} as DataviewAPI,
 });

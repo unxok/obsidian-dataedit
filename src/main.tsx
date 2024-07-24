@@ -13,6 +13,7 @@ import {
 } from "obsidian";
 import { DataviewAPI } from "./lib/types.ts";
 import { createRoot } from "solid-js";
+import { splitQueryOnConfig } from "./lib/util.ts";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -47,6 +48,9 @@ export default class DataEdit extends Plugin {
       // because users will spend a lot of time hovering within
       // I decided to remove the shadow that appears on hover
       el.parentElement!.style.boxShadow = "none";
+      // const { text } = ctx.getSectionInfo(el)!;
+      const { query, config } = splitQueryOnConfig(source);
+      console.log("config: ", config);
 
       const dispose = render(
         () => (
@@ -54,6 +58,8 @@ export default class DataEdit extends Plugin {
             plugin={this}
             el={el}
             source={source}
+            query={query}
+            config={config}
             ctx={ctx}
             dataviewAPI={dataviewAPI}
           />

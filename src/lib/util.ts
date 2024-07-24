@@ -1,4 +1,13 @@
-import { App, Debouncer, Notice, Plugin, TFile, Vault } from "obsidian";
+import {
+  App,
+  Debouncer,
+  Notice,
+  parseYaml,
+  Plugin,
+  stringifyYaml,
+  TFile,
+  Vault,
+} from "obsidian";
 import {
   DataArray,
   DataviewAPI,
@@ -9,6 +18,8 @@ import {
 } from "./types";
 import { DateTime } from "luxon";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "./constants";
+import { AppProps } from "@/App";
+import { useDataEdit } from "@/hooks/useDataEdit";
 
 export const clampNumber = (n: number, min: number, max: number) => {
   if (n < min) return min;
@@ -382,4 +393,63 @@ export const getTableLine = (codeBlockText: string) => {
   throw new Error(
     "Unable to find table line from codeBlockText. This should be impossible.",
   );
+};
+
+export type DataEditBlockConfig = {
+  lockEditing: boolean;
+};
+
+export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
+
+export const defaultDataEditBlockConfig: DataEditBlockConfig = {
+  lockEditing: false,
+};
+
+export const splitQueryOnConfig = (codeBlockText: string) => {
+  const [query, configStr] = codeBlockText.split(/^---$/gim);
+  try {
+    const config = parseYaml(configStr);
+    if (typeof config !== "object") throw new Error();
+    return { query, config: { ...defaultDataEditBlockConfig, ...config } };
+  } catch (e) {
+    const msg = "invalid YAML detected in config";
+    console.error(msg);
+    new Notice(msg);
+    return { query, config: defaultDataEditBlockConfig };
+  }
+};
+
+// this is a 'dirty' function since it does depend on being able to use context
+export const updateBlockConfig = async (
+  key: DataEditBlockConfigKey,
+  value: DataEditBlockConfig[typeof key],
+  dataEditInfos: AppProps,
+) => {
+  const {
+    config,
+    ctx,
+    el,
+    plugin: {
+      app: { vault },
+    },
+    query,
+  } = dataEditInfos;
+  const queryLines = query.split("\n");
+  const newConfig = { ...config, [key]: value };
+  const newConfigStr = stringifyYaml(newConfig);
+  const newConfigLines = newConfigStr.split("\n");
+  const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
+  const lines = text.split("\n");
+  const newLines = lines.toSpliced(
+    lineStart + 1,
+    lineEnd - lineStart - 1,
+    ...queryLines,
+    "---",
+    ...newConfigLines,
+  );
+  const file = vault.getFileByPath(ctx.sourcePath);
+  if (!file) {
+    throw new Error("This should be impossible");
+  }
+  await vault.modify(file, newLines.join("\n"));
 };

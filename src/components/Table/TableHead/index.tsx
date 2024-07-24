@@ -18,7 +18,7 @@ export const TableHead = (props: TableHeadProps) => {
   const {
     plugin,
     ctx,
-    source,
+    query,
     el,
     dataviewAPI: {
       settings: { tableIdColumnName },
@@ -55,7 +55,7 @@ export const TableHead = (props: TableHeadProps) => {
         throw new Error("This should be impossible");
       }
       const lines = content.split("\n");
-      const { line: preTableLine, index } = getTableLine(source);
+      const { line: preTableLine, index } = getTableLine(query);
       // index is relative to the provided source, so this offsets to an index of the whole note
       // add one because `source` doesn't include backticks, but lineStart is the first backticks
       const tableLineIndex = lineStart + index + 1;
@@ -89,7 +89,6 @@ export const TableHead = (props: TableHeadProps) => {
         // split on comma unless surrounded by double quotes
         .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
         .map((c) => c.trim());
-      console.log(tableKeyword);
       const cols = isRelatingToDefaultId
         ? // this is how we allow the default id col to be 'moved'
           ["file.link AS " + tableIdColumnName, ...preCols]
@@ -108,7 +107,6 @@ export const TableHead = (props: TableHeadProps) => {
       );
       // reconstruct the query line
       lines[tableLineIndex] = tableKeyword + " " + newCols.join(", ");
-      console.log(lines[tableLineIndex]);
       const newContent = lines.join("\n");
       // update the file with new line
       await vault.modify(file, newContent);

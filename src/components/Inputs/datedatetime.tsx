@@ -24,9 +24,6 @@ export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
     return checkIfDateHasTime(props.value);
   });
 
-  createEffect(() => {
-    console.log("isTime: ", isTime());
-  });
   return (
     <input
       use:autofocus
@@ -43,13 +40,8 @@ export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
         const isValid = e.target.validity;
         if (!isValid) return props.setEditing(false);
         const format = isTime() ? "yyyy-MM-dd'T'hh:mm" : "yyyy-MM-dd";
-        // const jsDt = new Date(e.target.value);
-        // console.log("jsDt: ", jsDt);
-        console.log("etarget: ", e.target.value);
         const dt = DateTime.fromFormat(e.target.value, format);
-        console.log("dt: ", dt);
         const newValue = dt.toFormat(format);
-        console.log("new value: ", newValue);
         const formattedOld = props.value.toFormat(format);
         await updateMetadataProperty(
           props.property,
