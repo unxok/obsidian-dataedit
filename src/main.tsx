@@ -50,7 +50,7 @@ export default class DataEdit extends Plugin {
       el.parentElement!.style.boxShadow = "none";
       // const { text } = ctx.getSectionInfo(el)!;
       const { query, config } = splitQueryOnConfig(source);
-      console.log("config: ", config);
+      // console.log("config: ", config);
 
       const dispose = render(
         () => (

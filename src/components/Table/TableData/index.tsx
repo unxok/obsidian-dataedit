@@ -41,6 +41,7 @@ export const TableData = (props: TableDataProps) => {
     return getValueType(props.value, props.header, luxon);
   });
   const isEditableProperty = (property: string) => {
+    console.log("property: ", property);
     const str = (property ?? "").toLowerCase();
     if (str === COMPLEX_PROPERTY_PLACEHOLDER.toLowerCase()) return false;
     if (str === tableIdColumnName.toLowerCase()) return false;

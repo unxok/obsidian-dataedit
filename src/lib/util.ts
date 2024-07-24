@@ -163,7 +163,7 @@ export const getColumnPropertyNames = (source: string) => {
         "{",
         "}",
         "+",
-        "-",
+        // "-", dashes are pretty common in property names
         "*",
         "/",
         "%",
@@ -405,8 +405,9 @@ export const defaultDataEditBlockConfig: DataEditBlockConfig = {
   lockEditing: false,
 };
 
+// TODO adds one extra line of space (not incrementally) which doesn't break anything but looks weird
 export const splitQueryOnConfig = (codeBlockText: string) => {
-  const [query, configStr] = codeBlockText.split(/^---$/gim);
+  const [query, configStr] = codeBlockText.split(/\n^---$\n/gim);
   try {
     const config = parseYaml(configStr);
     if (typeof config !== "object") throw new Error();
@@ -414,7 +415,6 @@ export const splitQueryOnConfig = (codeBlockText: string) => {
   } catch (e) {
     const msg = "invalid YAML detected in config";
     console.error(msg);
-    new Notice(msg);
     return { query, config: defaultDataEditBlockConfig };
   }
 };
