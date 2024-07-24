@@ -4,7 +4,7 @@ import { DataviewQueryResultHeaders } from "@/lib/types";
 import { createSignal, For, onCleanup, Setter } from "solid-js";
 import GripHorizontal from "lucide-solid/icons/Grip-horizontal";
 import { draggedOverLeft, draggedOverRight } from "../TableBody";
-import { Notice } from "obsidian";
+import { getTableLine } from "@/lib/util";
 
 export type TableHeadProps = {
   headers: DataviewQueryResultHeaders;
@@ -18,6 +18,7 @@ export const TableHead = (props: TableHeadProps) => {
   const {
     plugin,
     ctx,
+    source,
     el,
     dataviewAPI: {
       settings: { tableIdColumnName },
@@ -47,19 +48,20 @@ export const TableHead = (props: TableHeadProps) => {
       if (!sectionInfo) {
         throw new Error("This should be impossible");
       }
-      const { lineStart } = sectionInfo;
+      const { lineStart, text: content } = sectionInfo;
       const file = vault.getFileByPath(ctx.sourcePath);
       // you shouldn't be able to get to this point if it's null
       if (!file) {
         throw new Error("This should be impossible");
       }
-      // since we are modifying soon after use `read()` instead of `cachedRead()`
-      const content = await vault.read(file);
       const lines = content.split("\n");
-      // TODO technically you can have empty lines before the first line and dataview will accept it
-      const preTableLine = lines[lineStart + 1];
-      // TODO technically you can use "without id" as a column alias, which would cause a false positive
-      const isWithoutId = preTableLine.toLowerCase().includes("without id");
+      const { line: preTableLine, index } = getTableLine(source);
+      // index is relative to the provided source, so this offsets to an index of the whole note
+      // add one because `source` doesn't include backticks, but lineStart is the first backticks
+      const tableLineIndex = lineStart + index + 1;
+      const isWithoutId = new RegExp(/TABLE\s+WITHOUT\s+ID/gim).test(
+        preTableLine,
+      );
       const isDraggingDefaultId =
         // if query has 'WITHOUT ID' we don't care
         !isWithoutId &&
@@ -84,9 +86,8 @@ export const TableHead = (props: TableHeadProps) => {
         .trim();
       const preCols = tableLine
         .slice(isWithoutId || isRelatingToDefaultId ? 17 : 6)
-        // TODO technically you can have a comma as a column alias if you surround in double quotes
-        // probably better to use a regexp to split in that case
-        .split(",")
+        // split on comma unless surrounded by double quotes
+        .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
         .map((c) => c.trim());
       console.log(tableKeyword);
       const cols = isRelatingToDefaultId
@@ -106,7 +107,8 @@ export const TableHead = (props: TableHeadProps) => {
         cols[highlightIndex],
       );
       // reconstruct the query line
-      lines[lineStart + 1] = tableKeyword + " " + newCols.join(", ");
+      lines[tableLineIndex] = tableKeyword + " " + newCols.join(", ");
+      console.log(lines[tableLineIndex]);
       const newContent = lines.join("\n");
       // update the file with new line
       await vault.modify(file, newContent);

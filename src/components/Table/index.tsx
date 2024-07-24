@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { getExistingProperties } from "@/lib/util";
+import { getExistingProperties, getTableLine } from "@/lib/util";
 import { Markdown } from "../Markdown";
 // prevents from being tree-shaken by TS
 autofocus;
@@ -100,14 +100,14 @@ const AddColumnButton = () => {
     plugin: { app },
     ctx,
     el,
-    // source,
+    source,
   } = useDataEdit();
 
   const sectionInfo = ctx.getSectionInfo(el);
   if (!sectionInfo) {
     throw new Error("This should be impossible");
   }
-  const { lineStart, lineEnd, text } = sectionInfo;
+  const { lineStart, text } = sectionInfo;
 
   const [isOpen, setOpen] = createSignal(false);
   const [propertyValue, setPropertyValue] = createSignal("");
@@ -116,14 +116,15 @@ const AddColumnButton = () => {
   const markdown = createMemo(() => {
     console.log("mk memo");
     const prop = propertyValue().trim();
-    const lines = text.split("\n").slice(lineStart, lineEnd + 1);
-    lines[0] = "```dataview";
+    const lines = ("```dataview\n" + source + "\n```").split("\n");
     if (!prop) return lines.join("\n");
     const alias = aliasValue();
     const aliasStr = alias
       ? " AS " + (alias.includes(" ") ? '"' + alias + '"' : alias)
       : "";
-    lines[1] += ", " + prop + aliasStr;
+    const { index } = getTableLine(source);
+    // offset by 1 since source doesn't include backticks we added to lines
+    lines[index + 1] += ", " + prop + aliasStr;
     return lines.join("\n");
   });
 
@@ -133,7 +134,8 @@ const AddColumnButton = () => {
     if (!file) {
       throw new Error("This should be impossible");
     }
-    const content = await vault.cachedRead(file);
+    // const content = await vault.cachedRead(file);
+    const content = text;
     const lines = content.split("\n");
     lines[lineStart + 1] = markdown.split("\n")[1];
     const newContent = lines.join("\n");

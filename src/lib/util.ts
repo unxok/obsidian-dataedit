@@ -367,3 +367,19 @@ export const getExistingProperties = (app: App) => {
   // @ts-expect-error
   return metadataCache.getAllPropertyInfos() as Record<string, PropertyInfo>;
 };
+
+export const getTableLine = (codeBlockText: string) => {
+  const lines = codeBlockText.split("\n");
+  let index = 0;
+  for (index; index < lines.length; index++) {
+    const line = lines[index];
+    if (!line.toLowerCase().startsWith("table")) continue;
+    return {
+      line,
+      index,
+    };
+  }
+  throw new Error(
+    "Unable to find table line from codeBlockText. This should be impossible.",
+  );
+};
