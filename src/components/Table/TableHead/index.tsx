@@ -34,14 +34,7 @@ export const TableHead = (props: TableHeadProps) => {
   };
 
   const onMouseUp = async () => {
-    // TODO this isn't working right
-    const isDraggingDefaultId =
-      props.highlightIndex === 0 &&
-      props.headers[props.highlightIndex] === tableIdColumnName;
-    const isDraggedOverDefaultId =
-      props.draggedOverIndex === 0 &&
-      props.headers[props.highlightIndex] === tableIdColumnName;
-    const isUsingDefaultId = isDraggingDefaultId || isDraggedOverDefaultId;
+    // if dragged over a column other than the highlighted (dragging) one
     if (
       props.draggedOverIndex !== -1 &&
       props.draggedOverIndex !== props.highlightIndex
@@ -50,43 +43,72 @@ export const TableHead = (props: TableHeadProps) => {
         app: { vault },
       } = plugin;
       const sectionInfo = ctx.getSectionInfo(el);
+      // you shouldn't be able to get to this point if it's null
       if (!sectionInfo) {
         throw new Error("This should be impossible");
       }
       const { lineStart } = sectionInfo;
       const file = vault.getFileByPath(ctx.sourcePath);
+      // you shouldn't be able to get to this point if it's null
       if (!file) {
         throw new Error("This should be impossible");
       }
+      // since we are modifying soon after use `read()` instead of `cachedRead()`
       const content = await vault.read(file);
       const lines = content.split("\n");
+      // TODO technically you can have empty lines before the first line and dataview will accept it
       const preTableLine = lines[lineStart + 1];
-      const preIsWithoutId = preTableLine.toLowerCase().includes("without id");
-      const tableLine =
-        !preIsWithoutId && isUsingDefaultId
-          ? preTableLine.replace(/table/i, "TABLE WITHOUT ID")
-          : preTableLine;
-      let isWithoutId = !preIsWithoutId && isUsingDefaultId;
-      const tableKeyword = tableLine.slice(0, isWithoutId ? 16 : 5).trim();
+      // TODO technically you can use "without id" as a column alias, which would cause a false positive
+      const isWithoutId = preTableLine.toLowerCase().includes("without id");
+      const isDraggingDefaultId =
+        // if query has 'WITHOUT ID' we don't care
+        !isWithoutId &&
+        // default id col is always first
+        props.highlightIndex === 0 &&
+        // the header will always be the name from dataview settings
+        props.headers[props.highlightIndex] === tableIdColumnName;
+      // need to check separately for dragged over because it will change how we adjust the headers
+      const isDraggedOverDefaultId =
+        !isWithoutId &&
+        props.draggedOverIndex === 0 &&
+        props.headers[props.draggedOverIndex] === tableIdColumnName;
+      const isRelatingToDefaultId =
+        isDraggingDefaultId || isDraggedOverDefaultId;
+      const tableLine = isRelatingToDefaultId
+        ? // to 'move' the default id col, we have to modify the query to have this and a file.link col
+          preTableLine.replace(/table/i, "TABLE WITHOUT ID")
+        : preTableLine;
+      // TABLE vs TABLE WITHOUT ID
+      const tableKeyword = tableLine
+        .slice(0, isWithoutId || isRelatingToDefaultId ? 16 : 5)
+        .trim();
       const preCols = tableLine
-        .slice(isWithoutId ? 17 : 6)
+        .slice(isWithoutId || isRelatingToDefaultId ? 17 : 6)
+        // TODO technically you can have a comma as a column alias if you surround in double quotes
+        // probably better to use a regexp to split in that case
         .split(",")
         .map((c) => c.trim());
       console.log(tableKeyword);
-      const cols = isDraggingDefaultId
-        ? ["file.link AS " + tableIdColumnName, ...preCols]
+      const cols = isRelatingToDefaultId
+        ? // this is how we allow the default id col to be 'moved'
+          ["file.link AS " + tableIdColumnName, ...preCols]
         : preCols;
-      if (isDraggedOverDefaultId) {
-        cols[props.draggedOverIndex] = "file.link AS " + tableIdColumnName;
-      }
-      const newCols = [...cols];
-      const highlightIndex = props.highlightIndex - (isWithoutId ? 0 : 1);
-      const draggedIndex = props.draggedOverIndex - (isWithoutId ? 0 : 1);
-      newCols[highlightIndex] = cols[draggedIndex];
-      newCols[draggedIndex] = cols[highlightIndex];
-      console.log("new cols: ", newCols);
+      // need to offset both by 1 because if query doesn't have 'WITHOUT ID' then the first column is the default id col
+      const highlightIndex =
+        props.highlightIndex - (isWithoutId || isRelatingToDefaultId ? 0 : 1);
+      const draggedIndex =
+        props.draggedOverIndex - (isWithoutId || isRelatingToDefaultId ? 0 : 1);
+      const colsWithoutHighlight = cols.toSpliced(highlightIndex, 1);
+      // insert the highlight col where the indicator is
+      const newCols = colsWithoutHighlight.toSpliced(
+        draggedIndex,
+        0,
+        cols[highlightIndex],
+      );
+      // reconstruct the query line
       lines[lineStart + 1] = tableKeyword + " " + newCols.join(", ");
       const newContent = lines.join("\n");
+      // update the file with new line
       await vault.modify(file, newContent);
     }
 
@@ -119,14 +141,6 @@ export const TableHead = (props: TableHeadProps) => {
               }}
               onMouseMove={() => {
                 if (props.highlightIndex === -1) return;
-                if (
-                  index() === 0 &&
-                  (h === tableIdColumnName ||
-                    props.properties[index()] === tableIdColumnName)
-                ) {
-                  props.setDraggedOverIndex(-2);
-                  return;
-                }
                 props.setDraggedOverIndex(index());
               }}
               // onMouseUp={() => {
@@ -170,8 +184,7 @@ export const TableHead = (props: TableHeadProps) => {
           {(h, index) => (
             <th
               onMouseMove={() => {
-                if (props.highlightIndex === -1 || h === tableIdColumnName)
-                  return;
+                if (props.highlightIndex === -1) return;
                 props.setDraggedOverIndex(index());
               }}
               class="relative text-nowrap"

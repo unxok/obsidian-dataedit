@@ -49,7 +49,7 @@ export const TableData = (props: TableDataProps) => {
   };
   return (
     <td
-      class="whitespace-normal text-nowrap hover:bg-hover"
+      class="whitespace-normal text-nowrap"
       tabIndex={0}
       onClick={(e) => {
         // new Notice(e.target.tagName);

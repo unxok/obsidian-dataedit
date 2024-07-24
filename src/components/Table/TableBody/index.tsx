@@ -50,7 +50,7 @@ export const TableBody = (props: TableBodyProps) => {
   return (
     <tbody>
       <For each={props.rows}>
-        {(row) => (
+        {(row, rowIndex) => (
           <tr>
             <For each={row}>
               {(value, valueIndex) => (
@@ -71,11 +71,10 @@ export const TableBody = (props: TableBodyProps) => {
                   }}
                   style={
                     valueIndex() === props.highlightIndex
-                      ? valueIndex() === props.rows.length - 1
+                      ? rowIndex() === props.rows.length - 1
                         ? { ...highlightStyle, ...lastCellHighlight }
                         : highlightStyle
-                      : props.highlightIndex !== -1 &&
-                          valueIndex() === props.draggedOverIndex
+                      : valueIndex() === props.draggedOverIndex
                         ? props.highlightIndex < valueIndex()
                           ? draggedOverRight
                           : draggedOverLeft
