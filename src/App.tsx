@@ -1,9 +1,7 @@
 import {
   Accessor,
-  createEffect,
   createMemo,
   createSignal,
-  createUniqueId,
   For,
   JSXElement,
   Match,
@@ -16,7 +14,7 @@ import "@/App.css";
 import { MarkdownPostProcessorContext } from "obsidian";
 import DataEdit from "@/main";
 import { DataviewAPI, ModifiedDataviewQueryResult } from "@/lib/types";
-import { createStore, SetStoreFunction, StoreSetter } from "solid-js/store";
+import { createStore, SetStoreFunction } from "solid-js/store";
 import {
   DataEditBlockConfig,
   DataEditBlockConfigKey,
@@ -74,26 +72,13 @@ export type AppProps = CodeBlockInfo & {
 };
 
 function App(props: AppProps) {
-  console.log("got source: ", props.source);
+  // console.log("got source: ", props.source);
   // console.log("app rendered");
   // const [queryResults, setQueryResults] =
   //   createStore<ModifiedDataviewQueryResult>(defaultQueryResult);
   const queryResults: Accessor<ModifiedDataviewQueryResult> = createMemo(() => {
-    const _ = props.queryResultStore[0];
-    _;
-    return (
-      props.queryResultStore[props.uid] ?? { successful: false, error: "init" }
-    );
-  });
-  createEffect(() => {
-    console.log("eff source: ", props.source);
-    console.log("eff: query results: ", queryResults());
-  });
-
-  createEffect(() => {
-    props.queryResultStore[0];
-    console.log("queryResultStore changed: ", props.queryResultStore);
-  });
+    return props.queryResultStore[props.uid] ?? defaultQueryResult;
+  }, defaultQueryResult);
 
   const updateQueryResults = async () => {
     // console.log("we out here", props.query);
@@ -101,25 +86,12 @@ function App(props: AppProps) {
     // console.log("true props; ", truePropertyNames);
     const result = await props.dataviewAPI.query(props.query);
     if (!result.successful) {
-      console.log("dv result unsuccessful");
-      // setQueryResultStore((prev) => ({
-      //   ...prev,
-      //   [props.uid]: result as ModifiedDataviewQueryResult,
-      // }));
       props.setQueryResultStore(props.uid, { ...result, truePropertyNames });
       return;
     }
     result.value.values = result.value.values.map((arr) =>
       arr.map((v) => tryDataviewArrayToArray(v)),
     );
-    console.log(performance.now());
-    console.log(props.source);
-    console.log("result: ", result);
-    // setQueryResults({ ...result, truePropertyNames });
-    // setQueryResultStore((prev) => ({
-    //   ...prev,
-    //   [props.uid]: result as ModifiedDataviewQueryResult,
-    // }));
     props.setQueryResultStore(props.uid, { ...result, truePropertyNames });
   };
 

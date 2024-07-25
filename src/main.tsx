@@ -47,7 +47,6 @@ export default class DataEdit extends Plugin {
       // because users will spend a lot of time hovering within
       // I decided to remove the shadow that appears on hover
       el.parentElement!.style.boxShadow = "none";
-      // const { text } = ctx.getSectionInfo(el)!;
       const { query, config } = splitQueryOnConfig(source);
       const uid = createUniqueId();
       // for some reason, doing this as a signal inside each <App /> causes glitches when updating from dataview events

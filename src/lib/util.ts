@@ -427,7 +427,7 @@ export const updateBlockConfig = async (
     ctx,
     el,
     plugin: {
-      app: { vault },
+      app: { vault, workspace },
     },
     query,
   } = dataEditInfos;
@@ -459,6 +459,7 @@ export const updateBlockConfig = async (
   }
   // update file with the new config
   await vault.modify(file, newLines.join("\n"));
+  // workspace.activeEditor.editor?.
 };
 
 // TODO could probably combine this with the updater func since it's literally just one line difference

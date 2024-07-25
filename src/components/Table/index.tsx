@@ -18,6 +18,7 @@ import {
 } from "../ui/dialog";
 import { getExistingProperties, getTableLine } from "@/lib/util";
 import { Markdown } from "../Markdown";
+import { MarkdownView } from "obsidian";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -113,11 +114,19 @@ const AddColumnButton = (props: {
     query,
   } = props.codeBlockInfo;
 
+  const view = app.workspace.getActiveViewOfType(MarkdownView);
+
+  if (!view) {
+    // throw new Error("This should be impossible");
+    return;
+  }
+
   const sectionInfo = ctx.getSectionInfo(el);
   if (!sectionInfo) {
-    throw new Error("This should be impossible");
+    // throw new Error("This should be impossible");
+    return;
   }
-  const { lineStart, text } = sectionInfo;
+  const { lineStart } = sectionInfo;
 
   const [propertyValue, setPropertyValue] = createSignal("");
   const [aliasValue, setAliasValue] = createSignal("");
@@ -136,18 +145,31 @@ const AddColumnButton = (props: {
     return lines.join("\n");
   });
 
-  const addCol = async (markdown: string) => {
-    const { vault } = app;
-    const file = vault.getFileByPath(ctx.sourcePath);
-    if (!file) {
-      throw new Error("This should be impossible");
-    }
-    // const content = await vault.cachedRead(file);
-    const content = text;
-    const lines = content.split("\n");
-    lines[lineStart + 1] = markdown.split("\n")[1];
-    const newContent = lines.join("\n");
-    await vault.modify(file, newContent);
+  // const addCol = async (markdown: string) => {
+  //   const { vault } = app;
+  //   const file = vault.getFileByPath(ctx.sourcePath);
+  //   if (!file) {
+  //     throw new Error("This should be impossible");
+  //   }
+  //   // const content = await vault.cachedRead(file);
+  //   const content = text;
+  //   const lines = content.split("\n");
+  //   lines[lineStart + 1] = markdown.split("\n")[1];
+  //   const newContent = lines.join("\n");
+  //   await vault.modify(file, newContent);
+  // };
+
+  const addCol = () => {
+    const prop = propertyValue().trim();
+    const alias = aliasValue();
+    const aliasStr = alias
+      ? " AS " + (alias.includes(" ") ? '"' + alias + '"' : alias)
+      : "";
+    const { line, index } = getTableLine(query);
+    // offset by 1 since lineStart is with backticks but query is without
+    const relativeIndex = lineStart + index + 1;
+    view.editor.setLine(relativeIndex, line + ", " + prop + aliasStr);
+    // lines[index + 1] += ", " + prop + aliasStr;
   };
 
   const properties = getExistingProperties(app);
@@ -199,7 +221,81 @@ const AddColumnButton = (props: {
           <button
             disabled={!propertyValue()}
             onClick={async () => {
-              await addCol(markdown());
+              addCol();
+              props.setOpen(false);
+            }}
+            class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"
+          >
+            add
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const AddRowButton = (props: {
+  open: boolean;
+  setOpen: Setter<boolean>;
+  codeBlockInfo: CodeBlockInfo;
+}) => {
+  const {
+    plugin: { app },
+  } = props.codeBlockInfo;
+
+  const [titleValue, setTitleValue] = createSignal("");
+  const [templateValue, setTemplateValue] = createSignal("");
+
+  const properties = getExistingProperties(app);
+  const propertyNames = Object.keys(properties).sort();
+  return (
+    <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
+      <DialogTrigger
+        aria-label="Add column after"
+        class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] m-0 flex size-fit h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center rounded-none border border-l-0 border-border bg-transparent p-0 opacity-0 shadow-none hover:opacity-50"
+      >
+        {/* <span
+          class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] flex h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center border border-l-0 border-border opacity-0 hover:opacity-50"
+        > */}
+        <Plus size="1rem" />
+        {/* </span> */}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogTitle>Add column</DialogTitle>
+        <div class="flex w-full items-center justify-between">
+          <label for="property-input">Property: </label>
+          <input
+            use:autofocus
+            autofocus
+            name="property-input"
+            id="property-input"
+            type="text"
+            list="properties-datalist"
+            value={titleValue()}
+            onInput={(e) => setTitleValue(e.target.value)}
+          />
+          <datalist id="properties-datalist">
+            <For each={propertyNames}>
+              {(prop) => <option value={prop}>{properties[prop].type}</option>}
+            </For>
+          </datalist>
+        </div>
+        <div class="flex w-full items-center justify-between">
+          <label for="alias-input">Alias (optional): </label>
+          <input
+            name="alias-input"
+            id="alias-input"
+            type="text"
+            value={templateValue()}
+            onInput={(e) => setTemplateValue(e.target.value)}
+          />
+        </div>
+        {/* <Markdown app={app} markdown={markdown()} sourcePath={ctx.sourcePath} /> */}
+        <div class="w-full">
+          <button
+            disabled={!titleValue()}
+            onClick={async () => {
+              // await addCol(markdown());
               props.setOpen(false);
             }}
             class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"
