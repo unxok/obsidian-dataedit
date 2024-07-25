@@ -4,13 +4,12 @@ import {
   DataviewQueryResult,
   DataviewQueryResultFail,
 } from "@/lib/types";
-import { MarkdownPostProcessorContext } from "obsidian";
 import { createSignal, For, Show, createMemo, Setter } from "solid-js";
 import { TableBody } from "./TableBody";
 import { TableHead } from "./TableHead";
 import Plus from "lucide-solid/icons/Plus";
 import { autofocus } from "@solid-primitives/autofocus";
-import { useDataEdit } from "@/hooks/useDataEdit";
+import { CodeBlockInfo } from "@/App";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +22,7 @@ import { Markdown } from "../Markdown";
 autofocus;
 
 type TableProps = {
-  ctx: MarkdownPostProcessorContext;
+  codeBlockInfo: CodeBlockInfo;
   queryResults: ModifiedDataviewQueryResult;
 };
 export const Table = (props: TableProps) => {
@@ -58,6 +57,7 @@ export const Table = (props: TableProps) => {
             setHighlightIndex={setHighlightIndex}
             draggedOverIndex={draggedOverIndex()}
             setDraggedOverIndex={setDraggedOverIndex}
+            codeBlockInfo={props.codeBlockInfo}
           />
           <TableBody
             headers={
@@ -71,11 +71,13 @@ export const Table = (props: TableProps) => {
             setHighlightIndex={setHighlightIndex}
             draggedOverIndex={draggedOverIndex()}
             setDraggedOverIndex={setDraggedOverIndex}
+            codeBlockInfo={props.codeBlockInfo}
           />
         </table>
         <AddColumnButton
           open={isAddColumnDialogOpen()}
           setOpen={setAddColumnDialogOpen}
+          codeBlockInfo={props.codeBlockInfo}
         />
         <span
           aria-label="Add row after"
@@ -102,13 +104,14 @@ const TableFallback = (props: TableFallbackProps) => {
 const AddColumnButton = (props: {
   open: boolean;
   setOpen: Setter<boolean>;
+  codeBlockInfo: CodeBlockInfo;
 }) => {
   const {
     plugin: { app },
     ctx,
     el,
     query,
-  } = useDataEdit();
+  } = props.codeBlockInfo;
 
   const sectionInfo = ctx.getSectionInfo(el);
   if (!sectionInfo) {

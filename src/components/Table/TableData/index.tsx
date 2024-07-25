@@ -1,4 +1,4 @@
-import { useDataEdit } from "@/hooks/useDataEdit";
+import { CodeBlockInfo } from "@/App";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
 import {
   DataviewPropertyValue,
@@ -27,6 +27,7 @@ export type TableDataProps<T = DataviewPropertyValue> = {
   filePath: string;
   style: string | JSX.CSSProperties | undefined;
   onMouseMove: (e: MouseEvent) => void;
+  codeBlockInfo: CodeBlockInfo;
 };
 export const TableData = (props: TableDataProps) => {
   const [isEditing, setEditing] = createSignal(false);
@@ -36,12 +37,13 @@ export const TableData = (props: TableDataProps) => {
       settings: { tableIdColumnName },
       luxon,
     },
-  } = useDataEdit();
+    config,
+  } = props.codeBlockInfo;
   const valueType = createMemo(() => {
     return getValueType(props.value, props.header, luxon);
   });
   const isEditableProperty = (property: string) => {
-    console.log("property: ", property);
+    // console.log("property: ", property);
     const str = (property ?? "").toLowerCase();
     if (str === COMPLEX_PROPERTY_PLACEHOLDER.toLowerCase()) return false;
     if (str === tableIdColumnName.toLowerCase()) return false;
@@ -71,16 +73,22 @@ export const TableData = (props: TableDataProps) => {
         }
       >
         <Show
-          when={isEditing() && isEditableProperty(props.property)}
+          when={
+            !config.lockEditing &&
+            isEditing() &&
+            isEditableProperty(props.property)
+          }
           fallback={
             <div
               onClick={
                 isEditableProperty(props.property)
                   ? undefined
-                  : () =>
-                      new Notice(
-                        "This is a calculated property, so you can't edit it!",
-                      )
+                  : config.lockEditing
+                    ? undefined
+                    : () =>
+                        new Notice(
+                          "This is a calculated property, so you can't edit it!",
+                        )
               }
             >
               <TableDataDisplay
@@ -98,7 +106,11 @@ export const TableData = (props: TableDataProps) => {
           />
         </Show>
         <Show
-          when={valueType() === "number" && isEditableProperty(props.property)}
+          when={
+            valueType() === "number" &&
+            isEditableProperty(props.property) &&
+            !config.lockEditing
+          }
         >
           <NumberButtons
             {...(props as TableDataProps<number>)}
@@ -121,7 +133,7 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
     dataviewAPI: {
       settings: { defaultDateFormat, defaultDateTimeFormat },
     },
-  } = useDataEdit();
+  } = props.codeBlockInfo;
   return (
     <>
       <Show when={props.valueType === "text" || props.valueType === "number"}>

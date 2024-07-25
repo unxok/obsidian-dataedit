@@ -1,4 +1,3 @@
-import { useDataEdit } from "@/hooks/useDataEdit";
 import { PropertyValueType } from "@/lib/types";
 import { updateMetadataProperty } from "@/lib/util";
 import { TableDataProps } from "../Table/TableData";
@@ -7,10 +6,11 @@ type CheckboxInputProps = TableDataProps & {
   valueType: PropertyValueType;
 };
 export const CheckboxInput = (props: CheckboxInputProps) => {
-  const { plugin } = useDataEdit();
+  const { plugin, config } = props.codeBlockInfo;
   return (
     <input
       class=""
+      disabled={config.lockEditing}
       type="checkbox"
       checked={!!props.value}
       onClick={async (e) => {

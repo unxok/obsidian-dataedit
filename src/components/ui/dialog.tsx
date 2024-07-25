@@ -3,14 +3,46 @@ import type {
   DialogContentProps,
   DialogDescriptionProps,
   DialogTitleProps,
+  DialogCloseButtonProps,
 } from "@kobalte/core/dialog";
 import { Dialog as DialogPrimitive } from "@kobalte/core/dialog";
 import type { PolymorphicProps } from "@kobalte/core/polymorphic";
 import type { ComponentProps, ParentProps, ValidComponent } from "solid-js";
 import { splitProps } from "solid-js";
+import { buttonVariants } from "./button";
 
 export const Dialog = DialogPrimitive;
 export const DialogTrigger = DialogPrimitive.Trigger;
+
+type dialogCloseProps<T extends ValidComponent = "button"> = PolymorphicProps<
+  T,
+  DialogCloseButtonProps<T>
+>;
+
+export const DialogClose = (props: dialogCloseProps) => {
+  const [local, rest] = splitProps(props, ["class"]);
+  return (
+    <DialogPrimitive.CloseButton
+      {...rest}
+      class={cn(buttonVariants.default, local.class)}
+    />
+  );
+};
+export const DialogCloseX = () => (
+  <DialogPrimitive.CloseButton class="clickable-icon absolute right-4 top-4 rounded-sm p-1 opacity-70 ring-offset-background transition-[opacity,box-shadow] hover:opacity-100 focus:outline-none focus:ring-[1.5px] focus:ring-selection focus:ring-offset-2 disabled:pointer-events-none">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-4 w-4">
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M18 6L6 18M6 6l12 12"
+      />
+      {/* <title>Close</title> */}
+    </svg>
+  </DialogPrimitive.CloseButton>
+);
 
 // obsidian natively doesn't use animations for dialogs
 // but I might want to use this at some point
@@ -42,29 +74,13 @@ export const DialogContent = <T extends ValidComponent = "div">(
         />
         <DialogPrimitive.Content
           class={cn(
-            "prompt border-modal left-1/2 z-50 w-full -translate-x-1/2 gap-4 border-[length:var(--prompt-border-width)] p-6",
+            "prompt left-1/2 z-50 w-full -translate-x-1/2 gap-4 border-[length:var(--prompt-border-width)] border-modal p-6",
             local.class,
           )}
           {...rest}
         >
           {local.children}
-          <DialogPrimitive.CloseButton class="clickable-icon absolute right-4 top-4 rounded-sm p-1 opacity-70 ring-offset-background transition-[opacity,box-shadow] hover:opacity-100 focus:outline-none focus:ring-[1.5px] focus:ring-selection focus:ring-offset-2 disabled:pointer-events-none">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="h-4 w-4"
-            >
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M18 6L6 18M6 6l12 12"
-              />
-              {/* <title>Close</title> */}
-            </svg>
-          </DialogPrimitive.CloseButton>
+          <DialogCloseX />
         </DialogPrimitive.Content>
       </div>
     </DialogPrimitive.Portal>

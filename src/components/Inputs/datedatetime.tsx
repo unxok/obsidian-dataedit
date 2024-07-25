@@ -1,8 +1,7 @@
-import { useDataEdit } from "@/hooks/useDataEdit";
 import { PropertyValueType } from "@/lib/types";
 import { checkIfDateHasTime, updateMetadataProperty } from "@/lib/util";
 import { DateTime } from "luxon";
-import { Setter, createMemo, createEffect } from "solid-js";
+import { Setter, createMemo } from "solid-js";
 import { TableDataProps } from "../Table/TableData";
 import { autofocus } from "@solid-primitives/autofocus";
 // To prevent treeshaking
@@ -19,7 +18,7 @@ export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
     dataviewAPI: {
       luxon: { DateTime },
     },
-  } = useDataEdit();
+  } = props.codeBlockInfo;
   const isTime = createMemo(() => {
     return checkIfDateHasTime(props.value);
   });

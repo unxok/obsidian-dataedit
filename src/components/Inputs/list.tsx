@@ -1,6 +1,9 @@
-import { useDataEdit } from "@/hooks/useDataEdit";
 import { DataviewPropertyValueArray } from "@/lib/types";
-import { updateMetadataProperty, tryDataviewLinkToMarkdown } from "@/lib/util";
+import {
+  updateMetadataProperty,
+  tryDataviewLinkToMarkdown,
+  DataEditBlockConfig,
+} from "@/lib/util";
 import DataEdit from "@/main";
 import Plus from "lucide-solid/icons/Plus";
 import { MarkdownPostProcessorContext } from "obsidian";
@@ -12,7 +15,7 @@ import { TextInput } from "./text";
 export const ListTableDataWrapper = (
   props: TableDataProps<DataviewPropertyValueArray>,
 ) => {
-  const { plugin, ctx } = useDataEdit();
+  const { plugin, ctx, config } = props.codeBlockInfo;
   return (
     <ul class="m-0 flex flex-col gap-1 p-0 [&>li]:list-disc">
       <For each={props.value}>
@@ -23,11 +26,13 @@ export const ListTableDataWrapper = (
             ctx={ctx}
             itemValue={val}
             itemIndex={index()}
+            config={config}
           />
         )}
       </For>
       <button
         class="clickable-icon size-fit p-1"
+        disabled={config.lockEditing}
         onClick={async (e) => {
           e.preventDefault();
           await updateMetadataProperty(
@@ -52,19 +57,23 @@ export type ListTableDataItemProps =
     itemValue: unknown;
     itemIndex: number;
   };
-export const ListTableDataItem = (props: ListTableDataItemProps) => {
+export const ListTableDataItem = (
+  props: ListTableDataItemProps & { config: DataEditBlockConfig },
+) => {
   const [isEditing, setEditing] = createSignal(false);
   return (
     <li class="m-0 ml-3">
       <Show
-        when={isEditing()}
+        when={!props.config.lockEditing && isEditing()}
         fallback={
           <Markdown
             class="size-full"
             app={props.plugin.app}
             markdown={tryDataviewLinkToMarkdown(props.itemValue)}
             sourcePath={props.ctx.sourcePath}
-            onClick={() => setEditing(true)}
+            onClick={
+              props.config.lockEditing ? undefined : () => setEditing(true)
+            }
           />
         }
       >

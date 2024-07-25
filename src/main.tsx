@@ -8,12 +8,11 @@ import {
   Notice,
   Plugin,
   MarkdownRenderChild,
-  Component,
-  MarkdownRenderer,
 } from "obsidian";
-import { DataviewAPI } from "./lib/types.ts";
-import { createRoot } from "solid-js";
+import { DataviewAPI, ModifiedDataviewQueryResult } from "./lib/types.ts";
 import { splitQueryOnConfig } from "./lib/util.ts";
+import { createStore } from "solid-js/store";
+import { createUniqueId } from "solid-js";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -38,9 +37,9 @@ export default class DataEdit extends Plugin {
     // @ts-ignore
     await app.plugins.loadPlugin("dataview");
     // const dataviewAPI = getAPI(this.app) as DataviewAPI;
-    const dataviewAPI = getDataviewAPI(this.app) as DataviewAPI;
 
     this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
+      const dataviewAPI = getDataviewAPI(this.app) as DataviewAPI;
       // best practice to empty when registering
       el.empty();
       // allows all descendents to use tw utily classes
@@ -50,10 +49,14 @@ export default class DataEdit extends Plugin {
       el.parentElement!.style.boxShadow = "none";
       // const { text } = ctx.getSectionInfo(el)!;
       const { query, config } = splitQueryOnConfig(source);
-      // console.log("config: ", config);
-
-      const dispose = render(
-        () => (
+      const uid = createUniqueId();
+      // for some reason, doing this as a signal inside each <App /> causes glitches when updating from dataview events
+      // but this works just fine
+      const [queryResultStore, setQueryResultStore] = createStore<
+        Record<string, ModifiedDataviewQueryResult>
+      >({});
+      const dispose = render(() => {
+        return (
           <App
             plugin={this}
             el={el}
@@ -62,10 +65,12 @@ export default class DataEdit extends Plugin {
             config={config}
             ctx={ctx}
             dataviewAPI={dataviewAPI}
+            uid={uid}
+            queryResultStore={queryResultStore}
+            setQueryResultStore={setQueryResultStore}
           />
-        ),
-        el,
-      );
+        );
+      }, el);
       /* 
       the registerMarkdownCodeBlockProcessor callback is called
       every time the code block is rendered. Doing the below
@@ -73,7 +78,13 @@ export default class DataEdit extends Plugin {
       of this root and not track its context.
       */
       const mdChild = new MarkdownRenderChild(el);
-      mdChild.register(dispose);
+      mdChild.register(() => {
+        dispose();
+        setQueryResultStore((prev) => {
+          delete prev[uid];
+          return prev;
+        });
+      });
       ctx.addChild(mdChild);
     });
   }

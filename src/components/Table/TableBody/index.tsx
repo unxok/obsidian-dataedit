@@ -1,4 +1,4 @@
-import { useDataEdit } from "@/hooks/useDataEdit";
+import { CodeBlockInfo } from "@/App";
 import {
   DataviewQueryResultHeaders,
   DataviewQueryResultValues,
@@ -39,13 +39,14 @@ type TableBodyProps = {
   setHighlightIndex: Setter<number>;
   draggedOverIndex: number;
   setDraggedOverIndex: Setter<number>;
+  codeBlockInfo: CodeBlockInfo;
 };
 export const TableBody = (props: TableBodyProps) => {
   const {
     dataviewAPI: {
       settings: { tableIdColumnName },
     },
-  } = useDataEdit();
+  } = props.codeBlockInfo;
 
   return (
     <tbody>
@@ -80,6 +81,7 @@ export const TableBody = (props: TableBodyProps) => {
                           : draggedOverLeft
                         : {}
                   }
+                  codeBlockInfo={props.codeBlockInfo}
                 />
               )}
             </For>

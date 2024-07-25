@@ -1,6 +1,5 @@
 import {
   App,
-  Debouncer,
   Notice,
   parseYaml,
   Plugin,
@@ -18,8 +17,7 @@ import {
 } from "./types";
 import { DateTime } from "luxon";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "./constants";
-import { AppProps } from "@/App";
-import { useDataEdit } from "@/hooks/useDataEdit";
+import { CodeBlockInfo } from "@/App";
 
 export const clampNumber = (n: number, min: number, max: number) => {
   if (n < min) return min;
@@ -419,11 +417,10 @@ export const splitQueryOnConfig = (codeBlockText: string) => {
   }
 };
 
-// this is a 'dirty' function since it does depend on being able to use context
 export const updateBlockConfig = async (
   key: DataEditBlockConfigKey,
   value: DataEditBlockConfig[typeof key],
-  dataEditInfos: AppProps,
+  dataEditInfos: CodeBlockInfo,
 ) => {
   const {
     config,
@@ -434,15 +431,24 @@ export const updateBlockConfig = async (
     },
     query,
   } = dataEditInfos;
+  // break down the query text into lines
   const queryLines = query.split("\n");
+  // update the old config
   const newConfig = { ...config, [key]: value };
+  // turn into yaml text
   const newConfigStr = stringifyYaml(newConfig);
   const newConfigLines = newConfigStr.split("\n");
+  // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
+  newConfigLines.pop();
+  // text is the entire notes text and is essentially a synchronous read
   const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
   const lines = text.split("\n");
   const newLines = lines.toSpliced(
+    // start at where the code block text starts
     lineStart + 1,
+    // delete existing lines up to end of code block text
     lineEnd - lineStart - 1,
+    // reconstruct the code block text with new config
     ...queryLines,
     "---",
     ...newConfigLines,
@@ -451,5 +457,48 @@ export const updateBlockConfig = async (
   if (!file) {
     throw new Error("This should be impossible");
   }
+  // update file with the new config
+  await vault.modify(file, newLines.join("\n"));
+};
+
+// TODO could probably combine this with the updater func since it's literally just one line difference
+// but typing the overloads is seeming more difficult than I thought
+export const setBlockConfig = async (
+  config: DataEditBlockConfig,
+  dataEditInfos: CodeBlockInfo,
+) => {
+  const {
+    ctx,
+    el,
+    plugin: {
+      app: { vault },
+    },
+    query,
+  } = dataEditInfos;
+  // break down the query text into lines
+  const queryLines = query.split("\n");
+  // turn into yaml text
+  const newConfigStr = stringifyYaml(config);
+  const newConfigLines = newConfigStr.split("\n");
+  // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
+  newConfigLines.pop();
+  // text is the entire notes text and is essentially a synchronous read
+  const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
+  const lines = text.split("\n");
+  const newLines = lines.toSpliced(
+    // start at where the code block text starts
+    lineStart + 1,
+    // delete existing lines up to end of code block text
+    lineEnd - lineStart - 1,
+    // reconstruct the code block text with new config
+    ...queryLines,
+    "---",
+    ...newConfigLines,
+  );
+  const file = vault.getFileByPath(ctx.sourcePath);
+  if (!file) {
+    throw new Error("This should be impossible");
+  }
+  // update file with the new config
   await vault.modify(file, newLines.join("\n"));
 };

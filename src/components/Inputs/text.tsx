@@ -1,4 +1,3 @@
-import { useDataEdit } from "@/hooks/useDataEdit";
 import { updateMetadataProperty } from "@/lib/util";
 import { createSignal } from "solid-js";
 import { TableDataEditProps } from "../Table/TableData";
@@ -12,7 +11,7 @@ export const TextInput = (
   },
 ) => {
   const [size, setSize] = createSignal(props.value?.toString().length ?? 5);
-  const { plugin } = useDataEdit();
+  const { plugin } = props.codeBlockInfo;
   return (
     <input
       use:autofocus

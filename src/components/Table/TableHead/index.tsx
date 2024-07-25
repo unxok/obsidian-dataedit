@@ -1,5 +1,5 @@
 import { Markdown } from "@/components/Markdown";
-import { useDataEdit } from "@/hooks/useDataEdit";
+import { CodeBlockInfo, useDataEdit } from "@/App";
 import { DataviewQueryResultHeaders } from "@/lib/types";
 import { createSignal, For, onCleanup, Setter } from "solid-js";
 import GripHorizontal from "lucide-solid/icons/Grip-horizontal";
@@ -13,18 +13,9 @@ export type TableHeadProps = {
   setHighlightIndex: Setter<number>;
   draggedOverIndex: number;
   setDraggedOverIndex: Setter<number>;
+  codeBlockInfo: CodeBlockInfo;
 };
 export const TableHead = (props: TableHeadProps) => {
-  const {
-    plugin,
-    ctx,
-    query,
-    el,
-    dataviewAPI: {
-      settings: { tableIdColumnName },
-    },
-  } = useDataEdit();
-
   const [translateX, setTranslateX] = createSignal(0);
   let lastMousePos = 0;
 
@@ -40,6 +31,15 @@ export const TableHead = (props: TableHeadProps) => {
       props.draggedOverIndex !== -1 &&
       props.draggedOverIndex !== props.highlightIndex
     ) {
+      const {
+        plugin,
+        ctx,
+        el,
+        query,
+        dataviewAPI: {
+          settings: { tableIdColumnName },
+        },
+      } = props.codeBlockInfo;
       const {
         app: { vault },
       } = plugin;
@@ -131,7 +131,7 @@ export const TableHead = (props: TableHeadProps) => {
     <thead>
       <tr>
         <For each={props.headers}>
-          {(h, index) => (
+          {(_, index) => (
             <th
               onMouseDown={(e) => {
                 props.setHighlightIndex(index());
@@ -211,9 +211,9 @@ export const TableHead = (props: TableHeadProps) => {
               }
             >
               <Markdown
-                app={plugin.app}
+                app={props.codeBlockInfo.plugin.app}
                 markdown={h}
-                sourcePath={ctx.sourcePath}
+                sourcePath={props.codeBlockInfo.ctx.sourcePath}
               />
             </th>
           )}
