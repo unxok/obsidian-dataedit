@@ -1,4 +1,3 @@
-import { CodeBlockInfo } from "@/App";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
 import {
   DataviewPropertyValue,
@@ -18,7 +17,9 @@ import { DateDatetimeInput } from "@/components/Inputs/datedatetime";
 import { ListTableDataWrapper } from "@/components/Inputs/list";
 import { NumberButtons, NumberInput } from "@/components/Inputs/number";
 import { TextInput } from "@/components/Inputs/text";
-import { Notice } from "obsidian";
+import { MarkdownPostProcessorContext, Notice } from "obsidian";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
+import DataEdit from "@/main";
 
 export type TableDataProps<T = DataviewPropertyValue> = {
   value: T;
@@ -27,18 +28,18 @@ export type TableDataProps<T = DataviewPropertyValue> = {
   filePath: string;
   style: string | JSX.CSSProperties | undefined;
   onMouseMove: (e: MouseEvent) => void;
-  codeBlockInfo: CodeBlockInfo;
 };
 export const TableData = (props: TableDataProps) => {
   const [isEditing, setEditing] = createSignal(false);
   const {
     plugin,
     dataviewAPI: {
-      settings: { tableIdColumnName },
+      settings: { tableIdColumnName, defaultDateFormat, defaultDateTimeFormat },
       luxon,
     },
     config,
-  } = props.codeBlockInfo;
+    ctx,
+  } = uesCodeBlock();
   const valueType = createMemo(() => {
     return getValueType(props.value, props.header, luxon);
   });
@@ -95,6 +96,10 @@ export const TableData = (props: TableDataProps) => {
                 {...props}
                 setEditing={setEditing}
                 valueType={valueType()}
+                plugin={plugin}
+                ctx={ctx}
+                defaultDateFormat={defaultDateFormat}
+                defaultDateTimeFormat={defaultDateTimeFormat}
               />
             </div>
           }
@@ -125,23 +130,20 @@ export const TableData = (props: TableDataProps) => {
 export type TableDataDisplayProps = TableDataProps & {
   setEditing: Setter<boolean>;
   valueType: PropertyValueType;
+  plugin: DataEdit;
+  ctx: MarkdownPostProcessorContext;
+  defaultDateFormat: string;
+  defaultDateTimeFormat: string;
 };
 export const TableDataDisplay = (props: TableDataDisplayProps) => {
-  const {
-    plugin,
-    ctx,
-    dataviewAPI: {
-      settings: { defaultDateFormat, defaultDateTimeFormat },
-    },
-  } = props.codeBlockInfo;
   return (
     <>
       <Show when={props.valueType === "text" || props.valueType === "number"}>
         <Markdown
           class="size-full"
-          app={plugin.app}
+          app={props.plugin.app}
           markdown={tryDataviewLinkToMarkdown(props.value)}
-          sourcePath={ctx.sourcePath}
+          sourcePath={props.ctx.sourcePath}
         />
       </Show>
       <Show when={props.valueType === "checkbox"}>
@@ -151,8 +153,8 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
         <div class="size-full">
           {(props.value as DateTime).toFormat(
             checkIfDateHasTime(props.value as DateTime)
-              ? defaultDateTimeFormat
-              : defaultDateFormat,
+              ? props.defaultDateTimeFormat
+              : props.defaultDateFormat,
           )}
         </div>
       </Show>

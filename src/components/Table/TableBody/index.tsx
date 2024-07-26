@@ -1,4 +1,3 @@
-import { CodeBlockInfo } from "@/App";
 import {
   DataviewQueryResultHeaders,
   DataviewQueryResultValues,
@@ -7,6 +6,7 @@ import {
 import { getIdColumnIndex } from "@/lib/util";
 import { For, Setter } from "solid-js";
 import { TableData } from "../TableData";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 
 const highlightStyle = {
   "border-left-width": "2px",
@@ -39,14 +39,13 @@ type TableBodyProps = {
   setHighlightIndex: Setter<number>;
   draggedOverIndex: number;
   setDraggedOverIndex: Setter<number>;
-  codeBlockInfo: CodeBlockInfo;
 };
 export const TableBody = (props: TableBodyProps) => {
   const {
     dataviewAPI: {
       settings: { tableIdColumnName },
     },
-  } = props.codeBlockInfo;
+  } = uesCodeBlock();
 
   return (
     <tbody>
@@ -81,7 +80,6 @@ export const TableBody = (props: TableBodyProps) => {
                           : draggedOverLeft
                         : {}
                   }
-                  codeBlockInfo={props.codeBlockInfo}
                 />
               )}
             </For>

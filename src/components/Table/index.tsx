@@ -9,7 +9,6 @@ import { TableBody } from "./TableBody";
 import { TableHead } from "./TableHead";
 import Plus from "lucide-solid/icons/Plus";
 import { autofocus } from "@solid-primitives/autofocus";
-import { CodeBlockInfo } from "@/App";
 import {
   Dialog,
   DialogContent,
@@ -19,11 +18,11 @@ import {
 import { getExistingProperties, getTableLine } from "@/lib/util";
 import { Markdown } from "../Markdown";
 import { MarkdownView } from "obsidian";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 // prevents from being tree-shaken by TS
 autofocus;
 
 type TableProps = {
-  codeBlockInfo: CodeBlockInfo;
   queryResults: ModifiedDataviewQueryResult;
 };
 export const Table = (props: TableProps) => {
@@ -58,7 +57,6 @@ export const Table = (props: TableProps) => {
             setHighlightIndex={setHighlightIndex}
             draggedOverIndex={draggedOverIndex()}
             setDraggedOverIndex={setDraggedOverIndex}
-            codeBlockInfo={props.codeBlockInfo}
           />
           <TableBody
             headers={
@@ -72,13 +70,11 @@ export const Table = (props: TableProps) => {
             setHighlightIndex={setHighlightIndex}
             draggedOverIndex={draggedOverIndex()}
             setDraggedOverIndex={setDraggedOverIndex}
-            codeBlockInfo={props.codeBlockInfo}
           />
         </table>
         <AddColumnButton
           open={isAddColumnDialogOpen()}
           setOpen={setAddColumnDialogOpen}
-          codeBlockInfo={props.codeBlockInfo}
         />
         <span
           aria-label="Add row after"
@@ -105,14 +101,13 @@ const TableFallback = (props: TableFallbackProps) => {
 const AddColumnButton = (props: {
   open: boolean;
   setOpen: Setter<boolean>;
-  codeBlockInfo: CodeBlockInfo;
 }) => {
   const {
     plugin: { app },
     ctx,
     el,
     query,
-  } = props.codeBlockInfo;
+  } = uesCodeBlock();
 
   const view = app.workspace.getActiveViewOfType(MarkdownView);
 
@@ -234,14 +229,10 @@ const AddColumnButton = (props: {
   );
 };
 
-const AddRowButton = (props: {
-  open: boolean;
-  setOpen: Setter<boolean>;
-  codeBlockInfo: CodeBlockInfo;
-}) => {
+const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
   const {
     plugin: { app },
-  } = props.codeBlockInfo;
+  } = uesCodeBlock();
 
   const [titleValue, setTitleValue] = createSignal("");
   const [templateValue, setTemplateValue] = createSignal("");

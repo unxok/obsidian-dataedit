@@ -6,14 +6,14 @@ import {
   JSXElement,
   Match,
   onCleanup,
+  onMount,
   Setter,
   Show,
+  splitProps,
   Switch,
 } from "solid-js";
 import "@/App.css";
-import { MarkdownPostProcessorContext } from "obsidian";
-import DataEdit from "@/main";
-import { DataviewAPI, ModifiedDataviewQueryResult } from "@/lib/types";
+import { ModifiedDataviewQueryResult } from "@/lib/types";
 import { createStore, SetStoreFunction } from "solid-js/store";
 import {
   DataEditBlockConfig,
@@ -52,16 +52,12 @@ import {
 import { ExternalLink } from "./components/ui/external-link";
 import { buttonVariants } from "./components/ui/button";
 import { Toggle } from "./components/ui/toggle";
-
-export type CodeBlockInfo = {
-  plugin: DataEdit;
-  el: HTMLElement;
-  source: string;
-  query: string;
-  config: DataEditBlockConfig;
-  ctx: MarkdownPostProcessorContext;
-  dataviewAPI: DataviewAPI;
-};
+import {
+  CodeBlockContext,
+  CodeBlockInfo,
+  uesCodeBlock,
+} from "./hooks/useDataEdit";
+import { MarkdownView } from "obsidian";
 
 export type AppProps = CodeBlockInfo & {
   uid: string;
@@ -72,67 +68,91 @@ export type AppProps = CodeBlockInfo & {
 };
 
 function App(props: AppProps) {
-  // console.log("got source: ", props.source);
-  // console.log("app rendered");
-  // const [queryResults, setQueryResults] =
-  //   createStore<ModifiedDataviewQueryResult>(defaultQueryResult);
+  const [local, codeBlockInfo] = splitProps(props, [
+    "uid",
+    "queryResultStore",
+    "setQueryResultStore",
+  ]);
+  const { plugin, query, config, dataviewAPI } = codeBlockInfo;
   const queryResults: Accessor<ModifiedDataviewQueryResult> = createMemo(() => {
     return props.queryResultStore[props.uid] ?? defaultQueryResult;
   }, defaultQueryResult);
 
   const updateQueryResults = async () => {
     // console.log("we out here", props.query);
-    const truePropertyNames = getColumnPropertyNames(props.query);
+    const truePropertyNames = getColumnPropertyNames(query);
     // console.log("true props; ", truePropertyNames);
-    const result = await props.dataviewAPI.query(props.query);
+    const result = await dataviewAPI.query(query);
     if (!result.successful) {
-      props.setQueryResultStore(props.uid, { ...result, truePropertyNames });
+      local.setQueryResultStore(local.uid, { ...result, truePropertyNames });
       return;
     }
     result.value.values = result.value.values.map((arr) =>
       arr.map((v) => tryDataviewArrayToArray(v)),
     );
-    props.setQueryResultStore(props.uid, { ...result, truePropertyNames });
+    local.setQueryResultStore(local.uid, { ...result, truePropertyNames });
   };
 
   updateQueryResults();
-  registerDataviewEvents(props.plugin, updateQueryResults);
+  registerDataviewEvents(plugin, updateQueryResults);
+
+  /*
+    TODO I would like to lock editing when in reading mode
+    Doing below does correctly identify the leaf a code block is currently in
+    And getMode() does get the mode correctly 'preview' || 'source'
+    If the note is opened in editing mode, then switching to reading mode *will* rerender and cause this to run again (which is good)
+    However is opened in reading mode, switching to edit mode will *not* caues this to run again (bad)
+    Ideally we need this to run every time the matched leafs view mode is changed, but I don't think this is possible
+  */
+  // onMount(() => {
+  //   (async () => {
+  //     await new Promise<void>((res) => setTimeout(res, 500));
+  //     codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
+  //       if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
+  //       console.log("does contain");
+  //       if (!(leaf.view instanceof MarkdownView)) return;
+  //       console.log("is markdown");
+  //       console.log("editor: ", leaf.view.getMode());
+  //       if (leaf.view.editor) return;
+  //       console.log("no editor");
+  //       // isReadingMode = true;
+  //       updateBlockConfig("lockEditing", true, codeBlockInfo);
+  //     });
+  //   })();
+  // });
 
   onCleanup(() => {
-    unregisterDataviewEvents(props.plugin, updateQueryResults);
+    unregisterDataviewEvents(plugin, updateQueryResults);
   });
 
   return (
-    <>
+    <CodeBlockContext.Provider value={codeBlockInfo}>
       <div class="h-fit w-full overflow-x-scroll">
-        <Table queryResults={queryResults()} codeBlockInfo={props} />
+        <Table queryResults={queryResults()} />
       </div>
       <div class="flex items-center gap-2">
-        <Toolbar config={props.config} codeBlockInfo={props} />
+        <Toolbar config={config} />
       </div>
-    </>
+    </CodeBlockContext.Provider>
   );
 }
 
 export default App;
 
-export const Toolbar = (props: {
-  config: DataEditBlockConfig;
-  codeBlockInfo: CodeBlockInfo;
-}) => {
-  const dataEditInfos = props.codeBlockInfo;
+export const Toolbar = (props: { config: DataEditBlockConfig }) => {
+  const codeBlockInfo = uesCodeBlock();
   const [isConfigOpen, setConfigOpen] = createSignal(false);
   const updateConfig = async (
     key: DataEditBlockConfigKey,
     value: DataEditBlockConfig[typeof key],
   ) => {
-    await updateBlockConfig(key, value, dataEditInfos);
+    await updateBlockConfig(key, value, codeBlockInfo);
   };
   return (
     <>
       <BlockConfigModal
         config={props.config}
-        codeBlockInfo={props.codeBlockInfo}
+        codeBlockInfo={codeBlockInfo}
         open={isConfigOpen()}
         setOpen={setConfigOpen}
       />

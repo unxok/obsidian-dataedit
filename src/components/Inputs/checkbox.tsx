@@ -1,12 +1,13 @@
 import { PropertyValueType } from "@/lib/types";
 import { updateMetadataProperty } from "@/lib/util";
 import { TableDataProps } from "../Table/TableData";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 
 type CheckboxInputProps = TableDataProps & {
   valueType: PropertyValueType;
 };
 export const CheckboxInput = (props: CheckboxInputProps) => {
-  const { plugin, config } = props.codeBlockInfo;
+  const { plugin, config } = uesCodeBlock();
   return (
     <input
       class=""

@@ -1,11 +1,11 @@
 import { Markdown } from "@/components/Markdown";
-import { CodeBlockInfo } from "@/App";
 import { DataviewQueryResultHeaders } from "@/lib/types";
 import { createSignal, For, onCleanup, Setter } from "solid-js";
 import GripHorizontal from "lucide-solid/icons/Grip-horizontal";
 import { draggedOverLeft, draggedOverRight } from "../TableBody";
 import { getTableLine } from "@/lib/util";
 import { MarkdownView } from "obsidian";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 
 export type TableHeadProps = {
   headers: DataviewQueryResultHeaders;
@@ -14,9 +14,17 @@ export type TableHeadProps = {
   setHighlightIndex: Setter<number>;
   draggedOverIndex: number;
   setDraggedOverIndex: Setter<number>;
-  codeBlockInfo: CodeBlockInfo;
 };
 export const TableHead = (props: TableHeadProps) => {
+  const {
+    plugin,
+    ctx,
+    el,
+    query,
+    dataviewAPI: {
+      settings: { tableIdColumnName },
+    },
+  } = uesCodeBlock();
   const [translateX, setTranslateX] = createSignal(0);
   let lastMousePos = 0;
 
@@ -129,15 +137,6 @@ export const TableHead = (props: TableHeadProps) => {
       props.draggedOverIndex !== -1 &&
       props.draggedOverIndex !== props.highlightIndex
     ) {
-      const {
-        plugin,
-        ctx,
-        el,
-        query,
-        dataviewAPI: {
-          settings: { tableIdColumnName },
-        },
-      } = props.codeBlockInfo;
       const {
         app: { workspace },
       } = plugin;
@@ -315,9 +314,9 @@ export const TableHead = (props: TableHeadProps) => {
               }
             >
               <Markdown
-                app={props.codeBlockInfo.plugin.app}
+                app={plugin.app}
                 markdown={h}
-                sourcePath={props.codeBlockInfo.ctx.sourcePath}
+                sourcePath={ctx.sourcePath}
               />
             </th>
           )}

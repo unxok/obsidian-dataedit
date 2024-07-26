@@ -17,7 +17,7 @@ import {
 } from "./types";
 import { DateTime } from "luxon";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "./constants";
-import { CodeBlockInfo } from "@/App";
+import { CodeBlockInfo } from "@/hooks/useDataEdit";
 
 export const clampNumber = (n: number, min: number, max: number) => {
   if (n < min) return min;
@@ -409,10 +409,16 @@ export const splitQueryOnConfig = (codeBlockText: string) => {
   try {
     const config = parseYaml(configStr);
     if (typeof config !== "object") throw new Error();
-    return { query, config: { ...defaultDataEditBlockConfig, ...config } };
+    return {
+      query,
+      config: {
+        ...defaultDataEditBlockConfig,
+        ...(config as DataEditBlockConfig),
+      },
+    };
   } catch (e) {
-    const msg = "invalid YAML detected in config";
-    console.error(msg);
+    // const msg = "invalid YAML detected in config";
+    // console.error(msg);
     return { query, config: defaultDataEditBlockConfig };
   }
 };
@@ -420,7 +426,7 @@ export const splitQueryOnConfig = (codeBlockText: string) => {
 export const updateBlockConfig = async (
   key: DataEditBlockConfigKey,
   value: DataEditBlockConfig[typeof key],
-  dataEditInfos: CodeBlockInfo,
+  codeBlockInfo: CodeBlockInfo,
 ) => {
   const {
     config,
@@ -430,7 +436,7 @@ export const updateBlockConfig = async (
       app: { vault, workspace },
     },
     query,
-  } = dataEditInfos;
+  } = codeBlockInfo;
   // break down the query text into lines
   const queryLines = query.split("\n");
   // update the old config
@@ -458,7 +464,61 @@ export const updateBlockConfig = async (
     throw new Error("This should be impossible");
   }
   // update file with the new config
+  const before = performance.now();
   await vault.modify(file, newLines.join("\n"));
+  console.log("time to modify: ", performance.now() - before);
+  // workspace.activeEditor.editor?.
+};
+
+export const updateBlockConfig2 = async (
+  key: DataEditBlockConfigKey,
+  value: DataEditBlockConfig[typeof key],
+  codeBlockInfo: CodeBlockInfo,
+) => {
+  const {
+    config,
+    ctx,
+    el,
+    source,
+    plugin: {
+      app: { vault, workspace },
+    },
+    query,
+  } = codeBlockInfo;
+  // break down the query text into lines
+  const queryLines = query.split("\n");
+  // update the old config
+  const newConfig = { ...config, [key]: value };
+  // turn into yaml text
+  const newConfigStr = stringifyYaml(newConfig);
+  const newConfigLines = newConfigStr.split("\n");
+  // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
+  newConfigLines.pop();
+  // text is the entire notes text and is essentially a synchronous read
+  const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
+  // const lines = text.split("\n");
+  const lines = source.split("\n");
+  const newCodeBlockText =
+    source.split(/\n^---$\n/im)[0] + "\n---\n" + newConfigLines.join("\n");
+
+  const newLines = lines.toSpliced(
+    // start at where the code block text starts
+    lineStart + 1,
+    // delete existing lines up to end of code block text
+    lineEnd - lineStart - 1,
+    // reconstruct the code block text with new config
+    ...queryLines,
+    "---",
+    ...newConfigLines,
+  );
+  const file = vault.getFileByPath(ctx.sourcePath);
+  if (!file) {
+    throw new Error("This should be impossible");
+  }
+  // update file with the new config
+  const before = performance.now();
+  await vault.modify(file, newLines.join("\n"));
+  console.log("time to modify: ", performance.now() - before);
   // workspace.activeEditor.editor?.
 };
 

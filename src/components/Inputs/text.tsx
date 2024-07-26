@@ -2,6 +2,7 @@ import { updateMetadataProperty } from "@/lib/util";
 import { createSignal } from "solid-js";
 import { TableDataEditProps } from "../Table/TableData";
 import { autofocus } from "@solid-primitives/autofocus";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 // To prevent treeshaking
 autofocus;
 
@@ -11,7 +12,7 @@ export const TextInput = (
   },
 ) => {
   const [size, setSize] = createSignal(props.value?.toString().length ?? 5);
-  const { plugin } = props.codeBlockInfo;
+  const { plugin } = uesCodeBlock();
   return (
     <input
       use:autofocus

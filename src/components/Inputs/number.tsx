@@ -16,12 +16,13 @@ import Minus from "lucide-solid/icons/Minus";
 import Parentheses from "lucide-solid/icons/Parentheses";
 import Plus from "lucide-solid/icons/Plus";
 import { autofocus } from "@solid-primitives/autofocus";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 // To prevent treeshaking
 autofocus;
 
 export const NumberInput = (props: TableDataEditProps) => {
   const [size, setSize] = createSignal(props.value?.toString().length ?? 5);
-  const { plugin } = props.codeBlockInfo;
+  const { plugin } = uesCodeBlock();
   return (
     <input
       use:autofocus

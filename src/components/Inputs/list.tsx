@@ -11,11 +11,12 @@ import { For, createSignal, Show, Setter } from "solid-js";
 import { Markdown } from "../Markdown";
 import { TableDataProps } from "../Table/TableData";
 import { TextInput } from "./text";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 
 export const ListTableDataWrapper = (
   props: TableDataProps<DataviewPropertyValueArray>,
 ) => {
-  const { plugin, ctx, config } = props.codeBlockInfo;
+  const { plugin, ctx, config } = uesCodeBlock();
   return (
     <ul class="m-0 flex flex-col gap-1 p-0 [&>li]:list-disc">
       <For each={props.value}>

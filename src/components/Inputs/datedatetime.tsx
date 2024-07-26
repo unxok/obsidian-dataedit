@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import { Setter, createMemo } from "solid-js";
 import { TableDataProps } from "../Table/TableData";
 import { autofocus } from "@solid-primitives/autofocus";
+import { uesCodeBlock } from "@/hooks/useDataEdit";
 // To prevent treeshaking
 autofocus;
 
@@ -18,7 +19,7 @@ export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
     dataviewAPI: {
       luxon: { DateTime },
     },
-  } = props.codeBlockInfo;
+  } = uesCodeBlock();
   const isTime = createMemo(() => {
     return checkIfDateHasTime(props.value);
   });
