@@ -15,10 +15,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { getExistingProperties, getTableLine } from "@/lib/util";
+import {
+  getExistingProperties,
+  getTableLine,
+  getTemplateFiles,
+} from "@/lib/util";
 import { Markdown } from "../Markdown";
-import { MarkdownView } from "obsidian";
+import { MarkdownView, Notice, TFile } from "obsidian";
 import { uesCodeBlock } from "@/hooks/useDataEdit";
+import { createStore } from "solid-js/store";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -29,6 +34,7 @@ export const Table = (props: TableProps) => {
   const [highlightIndex, setHighlightIndex] = createSignal(-1);
   const [draggedOverIndex, setDraggedOverIndex] = createSignal(-1);
   const [isAddColumnDialogOpen, setAddColumnDialogOpen] = createSignal(false);
+  const [isAddRowDialogOpen, setAddRowDialogOpen] = createSignal(false);
   return (
     <Show
       when={props.queryResults.successful}
@@ -77,11 +83,16 @@ export const Table = (props: TableProps) => {
           setOpen={setAddColumnDialogOpen}
         />
         <span
+          onClick={() => setAddRowDialogOpen(true)}
           aria-label="Add row after"
           class="absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-border opacity-0 hover:opacity-50"
         >
           <Plus size="1rem" />
         </span>
+        <AddRowButton
+          open={isAddRowDialogOpen()}
+          setOpen={setAddRowDialogOpen}
+        />
       </div>
     </Show>
   );
@@ -236,57 +247,73 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
 
   const [titleValue, setTitleValue] = createSignal("");
   const [templateValue, setTemplateValue] = createSignal("");
+  const templates = getTemplateFiles(app);
 
-  const properties = getExistingProperties(app);
-  const propertyNames = Object.keys(properties).sort();
   return (
     <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
-      <DialogTrigger
-        aria-label="Add column after"
-        class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] m-0 flex size-fit h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center rounded-none border border-l-0 border-border bg-transparent p-0 opacity-0 shadow-none hover:opacity-50"
-      >
-        {/* <span
-          class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] flex h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center border border-l-0 border-border opacity-0 hover:opacity-50"
-        > */}
-        <Plus size="1rem" />
-        {/* </span> */}
-      </DialogTrigger>
       <DialogContent>
-        <DialogTitle>Add column</DialogTitle>
+        <DialogTitle>Create new note</DialogTitle>
         <div class="flex w-full items-center justify-between">
-          <label for="property-input">Property: </label>
+          <label for="title-input">Title: </label>
           <input
             use:autofocus
             autofocus
-            name="property-input"
-            id="property-input"
+            name="title-input"
+            id="title-input"
             type="text"
-            list="properties-datalist"
             value={titleValue()}
             onInput={(e) => setTitleValue(e.target.value)}
           />
-          <datalist id="properties-datalist">
-            <For each={propertyNames}>
-              {(prop) => <option value={prop}>{properties[prop].type}</option>}
-            </For>
-          </datalist>
         </div>
         <div class="flex w-full items-center justify-between">
-          <label for="alias-input">Alias (optional): </label>
+          <label for="template-input">Template (optional): </label>
           <input
-            name="alias-input"
-            id="alias-input"
+            disabled={!templates}
+            name="template-input"
+            id="template-input"
             type="text"
+            list="template-datalist"
             value={templateValue()}
             onInput={(e) => setTemplateValue(e.target.value)}
           />
+          <Show when={templates}>
+            <datalist id="template-datalist">
+              <For each={templates}>
+                {(file) => (
+                  <option value={file.name.slice(0, -3)}>{file.path}</option>
+                )}
+              </For>
+            </datalist>
+          </Show>
         </div>
         {/* <Markdown app={app} markdown={markdown()} sourcePath={ctx.sourcePath} /> */}
         <div class="w-full">
           <button
             disabled={!titleValue()}
             onClick={async () => {
-              // await addCol(markdown());
+              // todo technically you could have something like 'Note.md.sdflkj.sdf'
+              const title = titleValue().includes(".md")
+                ? titleValue()
+                : titleValue() + ".md";
+              if (!templates) {
+                try {
+                  return await app.vault.create(title, "");
+                } catch (_) {
+                  new Notice("Note already exists, choose a different name");
+                  return;
+                }
+              }
+              const templateFile = templates.find(
+                (t) => t.name === templateValue() + ".md",
+              );
+              const content = await app.vault.cachedRead(templateFile!);
+              try {
+                await app.vault.create(title, content);
+              } catch (_) {
+                new Notice("Note already exists, choose a different name");
+                return;
+              }
+
               props.setOpen(false);
             }}
             class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"

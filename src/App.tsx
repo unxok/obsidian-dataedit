@@ -105,6 +105,7 @@ function App(props: AppProps) {
     console.log("mode: ", mode);
     if (mode === "preview") {
       e.stopPropagation();
+      e.preventDefault();
     }
   };
 
@@ -114,7 +115,6 @@ function App(props: AppProps) {
       await new Promise<void>((res) => setTimeout(res, 0));
       codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
         if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
-        console.log("does contain");
         view = leaf.view as MarkdownView;
         leaf.view.containerEl.addEventListener("click", onContainerClick);
       });
@@ -150,11 +150,11 @@ export default App;
 export const Toolbar = (props: { config: DataEditBlockConfig }) => {
   const codeBlockInfo = uesCodeBlock();
   const [isConfigOpen, setConfigOpen] = createSignal(false);
-  const updateConfig = async (
+  const updateConfig = (
     key: DataEditBlockConfigKey,
     value: DataEditBlockConfig[typeof key],
   ) => {
-    await updateBlockConfig(key, value, codeBlockInfo);
+    updateBlockConfig(key, value, codeBlockInfo);
   };
   return (
     <>
@@ -178,7 +178,7 @@ export const Toolbar = (props: { config: DataEditBlockConfig }) => {
               <Match when={key === "lockEditing"}>
                 <div
                   class="clickable-icon"
-                  onClick={async () => await updateConfig(key, !value)}
+                  onClick={async () => updateConfig(key, !value)}
                 >
                   <Show
                     when={value === true}
@@ -243,10 +243,7 @@ export const BlockConfigModal = (props: {
             // variant="outline"
             class={buttonVariants.outline}
             onClick={async () => {
-              await setBlockConfig(
-                defaultDataEditBlockConfig,
-                props.codeBlockInfo,
-              );
+              setBlockConfig(defaultDataEditBlockConfig, props.codeBlockInfo);
             }}
           >
             reset

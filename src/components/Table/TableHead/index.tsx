@@ -3,7 +3,7 @@ import { DataviewQueryResultHeaders } from "@/lib/types";
 import { createSignal, For, onCleanup, Setter } from "solid-js";
 import GripHorizontal from "lucide-solid/icons/Grip-horizontal";
 import { draggedOverLeft, draggedOverRight } from "../TableBody";
-import { getTableLine } from "@/lib/util";
+import { getScroller, getTableLine } from "@/lib/util";
 import { MarkdownView } from "obsidian";
 import { uesCodeBlock } from "@/hooks/useDataEdit";
 
@@ -197,11 +197,7 @@ export const TableHead = (props: TableHeadProps) => {
         0,
         cols[highlightIndex],
       );
-      // TODO this is definitely not the right way to do this
-      const scrollEls = Array.from(document.querySelectorAll(".cm-scroller"));
-      // TODO the find() never works
-      const scroller =
-        scrollEls.find((el) => el.contains(view.contentEl)) ?? scrollEls[0];
+      const scroller = getScroller(view);
       const prevScroll = scroller.scrollTop;
 
       view.editor.setLine(

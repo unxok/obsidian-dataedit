@@ -1,5 +1,6 @@
 import {
   App,
+  MarkdownView,
   Notice,
   parseYaml,
   Plugin,
@@ -423,54 +424,64 @@ export const splitQueryOnConfig = (codeBlockText: string) => {
   }
 };
 
-export const updateBlockConfig1 = async (
-  key: DataEditBlockConfigKey,
-  value: DataEditBlockConfig[typeof key],
-  codeBlockInfo: CodeBlockInfo,
-) => {
-  const {
-    config,
-    ctx,
-    el,
-    plugin: {
-      app: { vault, workspace },
-    },
-    query,
-  } = codeBlockInfo;
-  // break down the query text into lines
-  const queryLines = query.split("\n");
-  // update the old config
-  const newConfig = { ...config, [key]: value };
-  // turn into yaml text
-  const newConfigStr = stringifyYaml(newConfig);
-  const newConfigLines = newConfigStr.split("\n");
-  // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
-  newConfigLines.pop();
-  // text is the entire notes text and is essentially a synchronous read
-  const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
-  const lines = text.split("\n");
-  const newLines = lines.toSpliced(
-    // start at where the code block text starts
-    lineStart + 1,
-    // delete existing lines up to end of code block text
-    lineEnd - lineStart - 1,
-    // reconstruct the code block text with new config
-    ...queryLines,
-    "---",
-    ...newConfigLines,
-  );
-  const file = vault.getFileByPath(ctx.sourcePath);
-  if (!file) {
-    throw new Error("This should be impossible");
-  }
-  // update file with the new config
-  const before = performance.now();
-  await vault.modify(file, newLines.join("\n"));
-  console.log("time to modify: ", performance.now() - before);
-  // workspace.activeEditor.editor?.
+export const getScroller = (view: MarkdownView) => {
+  // TODO this is definitely not the right way to do this
+  const scrollEls = Array.from(document.querySelectorAll(".cm-scroller"));
+  // TODO the find() never works
+  const scroller =
+    scrollEls.find((el) => el.contains(view.contentEl)) ?? scrollEls[0];
+  return scroller;
 };
 
-export const updateBlockConfig = async (
+// export const updateBlockConfig1 = async (
+//   key: DataEditBlockConfigKey,
+//   value: DataEditBlockConfig[typeof key],
+//   codeBlockInfo: CodeBlockInfo,
+// ) => {
+//   const {
+//     config,
+//     ctx,
+//     el,
+//     plugin: {
+//       app: { vault, workspace },
+//     },
+//     query,
+//   } = codeBlockInfo;
+//   // break down the query text into lines
+//   const queryLines = query.split("\n");
+//   // update the old config
+//   const newConfig = { ...config, [key]: value };
+//   // turn into yaml text
+//   const newConfigStr = stringifyYaml(newConfig);
+//   const newConfigLines = newConfigStr.split("\n");
+//   // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
+//   newConfigLines.pop();
+//   // text is the entire notes text and is essentially a synchronous read
+//   const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
+//   const lines = text.split("\n");
+//   const newLines = lines.toSpliced(
+//     // start at where the code block text starts
+//     lineStart + 1,
+//     // delete existing lines up to end of code block text
+//     lineEnd - lineStart - 1,
+//     // reconstruct the code block text with new config
+//     ...queryLines,
+//     "---",
+//     ...newConfigLines,
+//   );
+//   const file = vault.getFileByPath(ctx.sourcePath);
+//   if (!file) {
+//     throw new Error("This should be impossible");
+//   }
+//   // update file with the new config
+//   const before = performance.now();
+//   await vault.modify(file, newLines.join("\n"));
+//   console.log("time to modify: ", performance.now() - before);
+//   // workspace.activeEditor.editor?.
+// };
+
+// TODO fix scroll issue
+export const updateBlockConfig = (
   key: DataEditBlockConfigKey,
   value: DataEditBlockConfig[typeof key],
   codeBlockInfo: CodeBlockInfo,
@@ -507,42 +518,45 @@ export const updateBlockConfig = async (
 
 // TODO could probably combine this with the updater func since it's literally just one line difference
 // but typing the overloads is seeming more difficult than I thought
-export const setBlockConfig = async (
+// TODO fix scroll issue
+export const setBlockConfig = (
   config: DataEditBlockConfig,
-  dataEditInfos: CodeBlockInfo,
+  codeBlockInfo: CodeBlockInfo,
 ) => {
   const {
     ctx,
     el,
     plugin: {
-      app: { vault },
+      app: { workspace },
     },
     query,
-  } = dataEditInfos;
-  // break down the query text into lines
-  const queryLines = query.split("\n");
-  // turn into yaml text
+  } = codeBlockInfo;
+  // turn into yaml text. Always includes a newline character at the end
   const newConfigStr = stringifyYaml(config);
-  const newConfigLines = newConfigStr.split("\n");
-  // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
-  newConfigLines.pop();
   // text is the entire notes text and is essentially a synchronous read
-  const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
-  const lines = text.split("\n");
-  const newLines = lines.toSpliced(
-    // start at where the code block text starts
-    lineStart + 1,
-    // delete existing lines up to end of code block text
-    lineEnd - lineStart - 1,
-    // reconstruct the code block text with new config
-    ...queryLines,
-    "---",
-    ...newConfigLines,
-  );
-  const file = vault.getFileByPath(ctx.sourcePath);
-  if (!file) {
-    throw new Error("This should be impossible");
+  const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
+  const newCodeBlockText =
+    "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
+  const editor = workspace.activeEditor?.editor;
+  if (!editor) {
+    return;
   }
-  // update file with the new config
-  await vault.modify(file, newLines.join("\n"));
+  const last = performance.now();
+  editor.replaceRange(
+    newCodeBlockText,
+    { line: lineStart, ch: 0 },
+    { line: lineEnd, ch: NaN },
+  );
+  console.log("time to modify: ", performance.now() - last);
+};
+
+export const getTemplateFiles = (app: App) => {
+  const folderPath =
+    // @ts-expect-error
+    app.internalPlugins.plugins.templates.instance.options.folder;
+  if (!folderPath) return;
+  const folder = app.vault.getFolderByPath(folderPath);
+  if (!folder) return;
+  if (!folder.children.length) return;
+  return folder.children.filter((t) => t instanceof TFile);
 };
