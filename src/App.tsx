@@ -96,33 +96,41 @@ function App(props: AppProps) {
   updateQueryResults();
   registerDataviewEvents(plugin, updateQueryResults);
 
-  /*
-    TODO I would like to lock editing when in reading mode
-    Doing below does correctly identify the leaf a code block is currently in
-    And getMode() does get the mode correctly 'preview' || 'source'
-    If the note is opened in editing mode, then switching to reading mode *will* rerender and cause this to run again (which is good)
-    However is opened in reading mode, switching to edit mode will *not* caues this to run again (bad)
-    Ideally we need this to run every time the matched leafs view mode is changed, but I don't think this is possible
-  */
-  // onMount(() => {
-  //   (async () => {
-  //     await new Promise<void>((res) => setTimeout(res, 500));
-  //     codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
-  //       if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
-  //       console.log("does contain");
-  //       if (!(leaf.view instanceof MarkdownView)) return;
-  //       console.log("is markdown");
-  //       console.log("editor: ", leaf.view.getMode());
-  //       if (leaf.view.editor) return;
-  //       console.log("no editor");
-  //       // isReadingMode = true;
-  //       updateBlockConfig("lockEditing", true, codeBlockInfo);
-  //     });
-  //   })();
-  // });
+  let view: MarkdownView;
+  // TODO this probably isn't the best way to do it, but it works
+  const onContainerClick = (e: Event) => {
+    console.log("container focused");
+    // Not properly typed in the API
+    const mode = view.getMode() as "source" | "preview";
+    console.log("mode: ", mode);
+    if (mode === "preview") {
+      e.stopPropagation();
+    }
+  };
+
+  onMount(() => {
+    (async () => {
+      // for some reason this only works with this timeout
+      await new Promise<void>((res) => setTimeout(res, 0));
+      codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
+        if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
+        console.log("does contain");
+        view = leaf.view as MarkdownView;
+        leaf.view.containerEl.addEventListener("click", onContainerClick);
+      });
+    })();
+  });
 
   onCleanup(() => {
     unregisterDataviewEvents(plugin, updateQueryResults);
+    (async () => {
+      await new Promise<void>((res) => setTimeout(res, 0));
+      codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
+        if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
+        console.log("does contain");
+        leaf.view.containerEl.removeEventListener("click", onContainerClick);
+      });
+    })();
   });
 
   return (

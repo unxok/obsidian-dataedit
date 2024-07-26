@@ -423,7 +423,7 @@ export const splitQueryOnConfig = (codeBlockText: string) => {
   }
 };
 
-export const updateBlockConfig = async (
+export const updateBlockConfig1 = async (
   key: DataEditBlockConfigKey,
   value: DataEditBlockConfig[typeof key],
   codeBlockInfo: CodeBlockInfo,
@@ -470,7 +470,7 @@ export const updateBlockConfig = async (
   // workspace.activeEditor.editor?.
 };
 
-export const updateBlockConfig2 = async (
+export const updateBlockConfig = async (
   key: DataEditBlockConfigKey,
   value: DataEditBlockConfig[typeof key],
   codeBlockInfo: CodeBlockInfo,
@@ -479,47 +479,30 @@ export const updateBlockConfig2 = async (
     config,
     ctx,
     el,
-    source,
     plugin: {
-      app: { vault, workspace },
+      app: { workspace },
     },
     query,
   } = codeBlockInfo;
-  // break down the query text into lines
-  const queryLines = query.split("\n");
   // update the old config
   const newConfig = { ...config, [key]: value };
-  // turn into yaml text
+  // turn into yaml text. Always includes a newline character at the end
   const newConfigStr = stringifyYaml(newConfig);
-  const newConfigLines = newConfigStr.split("\n");
-  // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
-  newConfigLines.pop();
   // text is the entire notes text and is essentially a synchronous read
-  const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
-  // const lines = text.split("\n");
-  const lines = source.split("\n");
+  const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
   const newCodeBlockText =
-    source.split(/\n^---$\n/im)[0] + "\n---\n" + newConfigLines.join("\n");
-
-  const newLines = lines.toSpliced(
-    // start at where the code block text starts
-    lineStart + 1,
-    // delete existing lines up to end of code block text
-    lineEnd - lineStart - 1,
-    // reconstruct the code block text with new config
-    ...queryLines,
-    "---",
-    ...newConfigLines,
-  );
-  const file = vault.getFileByPath(ctx.sourcePath);
-  if (!file) {
-    throw new Error("This should be impossible");
+    "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
+  const editor = workspace.activeEditor?.editor;
+  if (!editor) {
+    return;
   }
-  // update file with the new config
-  const before = performance.now();
-  await vault.modify(file, newLines.join("\n"));
-  console.log("time to modify: ", performance.now() - before);
-  // workspace.activeEditor.editor?.
+  const last = performance.now();
+  editor.replaceRange(
+    newCodeBlockText,
+    { line: lineStart, ch: 0 },
+    { line: lineEnd, ch: NaN },
+  );
+  console.log("time to modify: ", performance.now() - last);
 };
 
 // TODO could probably combine this with the updater func since it's literally just one line difference
