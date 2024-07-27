@@ -25,3 +25,5 @@ export const defaultQueryResult: ModifiedDataviewQueryResult = {
   },
   truePropertyNames: [],
 };
+
+export const NO_MATCH_FOUND = "No match found";

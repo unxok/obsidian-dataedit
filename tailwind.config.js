@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  corePlugins: {
+    preflight: false,
+  },
   darkMode: ["class", ".theme-dark"],
   content: [
     "./pages/**/*.{ts,tsx}",
@@ -20,7 +23,7 @@ module.exports = {
         normal: "var(--text-normal)",
         muted: "var(--text-muted)",
         faint: "var(--text-faint)",
-        "accent-foreground": "vars(--text-on-accent)",
+        "accent-foreground": "var(--text-on-accent)",
         success: "var(--text-success)",
         warning: "var(--text-warning)",
         error: "var(--text-error)",

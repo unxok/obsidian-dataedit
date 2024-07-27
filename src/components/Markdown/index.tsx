@@ -7,6 +7,7 @@ import {
   splitProps,
 } from "solid-js";
 import { DataviewPropertyValueNotLink } from "../../lib/types";
+import { twMerge } from "tailwind-merge";
 
 type MarkdownProps = ComponentProps<"div"> & {
   // containerEl: HTMLElement;
@@ -22,6 +23,7 @@ export const Markdown = (props: MarkdownProps) => {
     "app",
     "markdown",
     "sourcePath",
+    "class",
   ]);
 
   const md = createMemo(() => {
@@ -44,5 +46,12 @@ export const Markdown = (props: MarkdownProps) => {
     );
   });
 
-  return <div {...divProps} ref={(r) => (ref = r)}></div>;
+  return (
+    <div
+      {...divProps}
+      // Always renders a paragraph that default has weird margins
+      class={twMerge("[&>p]:m-0", localProps.class)}
+      ref={(r) => (ref = r)}
+    ></div>
+  );
 };

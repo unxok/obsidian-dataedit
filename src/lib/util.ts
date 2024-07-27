@@ -396,12 +396,14 @@ export const getTableLine = (codeBlockText: string) => {
 
 export type DataEditBlockConfig = {
   lockEditing: boolean;
+  newNoteTemplatePath: string;
 };
 
 export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
 
 export const defaultDataEditBlockConfig: DataEditBlockConfig = {
   lockEditing: false,
+  newNoteTemplatePath: "",
 };
 
 // TODO adds one extra line of space (not incrementally) which doesn't break anything but looks weird
@@ -432,53 +434,6 @@ export const getScroller = (view: MarkdownView) => {
     scrollEls.find((el) => el.contains(view.contentEl)) ?? scrollEls[0];
   return scroller;
 };
-
-// export const updateBlockConfig1 = async (
-//   key: DataEditBlockConfigKey,
-//   value: DataEditBlockConfig[typeof key],
-//   codeBlockInfo: CodeBlockInfo,
-// ) => {
-//   const {
-//     config,
-//     ctx,
-//     el,
-//     plugin: {
-//       app: { vault, workspace },
-//     },
-//     query,
-//   } = codeBlockInfo;
-//   // break down the query text into lines
-//   const queryLines = query.split("\n");
-//   // update the old config
-//   const newConfig = { ...config, [key]: value };
-//   // turn into yaml text
-//   const newConfigStr = stringifyYaml(newConfig);
-//   const newConfigLines = newConfigStr.split("\n");
-//   // stringifyYaml() always adds a new line character at the end, resulting in an extra item in the lines array
-//   newConfigLines.pop();
-//   // text is the entire notes text and is essentially a synchronous read
-//   const { lineStart, lineEnd, text } = ctx.getSectionInfo(el)!;
-//   const lines = text.split("\n");
-//   const newLines = lines.toSpliced(
-//     // start at where the code block text starts
-//     lineStart + 1,
-//     // delete existing lines up to end of code block text
-//     lineEnd - lineStart - 1,
-//     // reconstruct the code block text with new config
-//     ...queryLines,
-//     "---",
-//     ...newConfigLines,
-//   );
-//   const file = vault.getFileByPath(ctx.sourcePath);
-//   if (!file) {
-//     throw new Error("This should be impossible");
-//   }
-//   // update file with the new config
-//   const before = performance.now();
-//   await vault.modify(file, newLines.join("\n"));
-//   console.log("time to modify: ", performance.now() - before);
-//   // workspace.activeEditor.editor?.
-// };
 
 // TODO fix scroll issue
 export const updateBlockConfig = (

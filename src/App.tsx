@@ -58,6 +58,14 @@ import {
   uesCodeBlock,
 } from "./hooks/useDataEdit";
 import { MarkdownView } from "obsidian";
+import { Combobox } from "@kobalte/core/combobox";
+import {
+  ComboboxContent,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxTrigger,
+  PromptComboBox,
+} from "./components/ui/combo-box";
 
 export type AppProps = CodeBlockInfo & {
   uid: string;
@@ -102,7 +110,7 @@ function App(props: AppProps) {
     console.log("container focused");
     // Not properly typed in the API
     const mode = view.getMode() as "source" | "preview";
-    console.log("mode: ", mode);
+    // console.log("mode: ", mode);
     if (mode === "preview") {
       e.stopPropagation();
       e.preventDefault();
@@ -127,7 +135,7 @@ function App(props: AppProps) {
       await new Promise<void>((res) => setTimeout(res, 0));
       codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
         if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
-        console.log("does contain");
+        // console.log("does contain");
         leaf.view.containerEl.removeEventListener("click", onContainerClick);
       });
     })();
@@ -192,6 +200,12 @@ export const Toolbar = (props: { config: DataEditBlockConfig }) => {
           );
         }}
       </For>
+      <div>
+        <PromptComboBox
+          app={codeBlockInfo.plugin.app}
+          defaultOptions={["option a", "option b", "option c"]}
+        />
+      </div>
     </>
   );
 };

@@ -19,6 +19,7 @@ import {
   getExistingProperties,
   getTableLine,
   getTemplateFiles,
+  updateBlockConfig,
 } from "@/lib/util";
 import { Markdown } from "../Markdown";
 import { MarkdownView, Notice, TFile } from "obsidian";
@@ -85,7 +86,7 @@ export const Table = (props: TableProps) => {
         <span
           onClick={() => setAddRowDialogOpen(true)}
           aria-label="Add row after"
-          class="absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-border opacity-0 hover:opacity-50"
+          class="absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-solid border-border opacity-0 hover:opacity-50"
         >
           <Plus size="1rem" />
         </span>
@@ -184,7 +185,7 @@ const AddColumnButton = (props: {
     <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
       <DialogTrigger
         aria-label="Add column after"
-        class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] m-0 flex size-fit h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center rounded-none border border-l-0 border-border bg-transparent p-0 opacity-0 shadow-none hover:opacity-50"
+        class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] m-0 flex size-fit h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center rounded-none border border-l-0 border-solid border-border bg-transparent p-0 opacity-0 shadow-none hover:opacity-50"
       >
         {/* <span
           class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] flex h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center border border-l-0 border-border opacity-0 hover:opacity-50"
@@ -194,7 +195,7 @@ const AddColumnButton = (props: {
       </DialogTrigger>
       <DialogContent>
         <DialogTitle>Add column</DialogTitle>
-        <div class="flex w-full items-center justify-between">
+        <div class="flex w-full flex-wrap items-center justify-between">
           <label for="property-input">Property: </label>
           <input
             use:autofocus
@@ -212,7 +213,7 @@ const AddColumnButton = (props: {
             </For>
           </datalist>
         </div>
-        <div class="flex w-full items-center justify-between">
+        <div class="flex w-full flex-wrap items-center justify-between">
           <label for="alias-input">Alias (optional): </label>
           <input
             name="alias-input"
@@ -222,7 +223,12 @@ const AddColumnButton = (props: {
             onInput={(e) => setAliasValue(e.target.value)}
           />
         </div>
-        <Markdown app={app} markdown={markdown()} sourcePath={ctx.sourcePath} />
+        <Markdown
+          app={app}
+          markdown={markdown()}
+          sourcePath={ctx.sourcePath}
+          class="max-h-[50%] overflow-y-auto"
+        />
         <div class="w-full">
           <button
             disabled={!propertyValue()}
@@ -241,13 +247,25 @@ const AddColumnButton = (props: {
 };
 
 const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
+  const codeBlockInfo = uesCodeBlock();
   const {
     plugin: { app },
-  } = uesCodeBlock();
+    config,
+  } = codeBlockInfo;
 
   const [titleValue, setTitleValue] = createSignal("");
   const [templateValue, setTemplateValue] = createSignal("");
+  const [isSaveDefault, setSaveDefault] = createSignal(false);
   const templates = getTemplateFiles(app);
+
+  const handleHasDefault = () => {
+    if (!config.newNoteTemplatePath) return;
+    const found = templates?.find((f) => f.path === config.newNoteTemplatePath);
+    if (!found) return;
+    setTemplateValue(found.name.slice(0, -3));
+  };
+
+  handleHasDefault();
 
   return (
     <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
@@ -286,7 +304,18 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
             </datalist>
           </Show>
         </div>
-        {/* <Markdown app={app} markdown={markdown()} sourcePath={ctx.sourcePath} /> */}
+        <div class="flex items-center gap-1">
+          <input
+            type="checkbox"
+            id="save-as-default-template"
+            name="save-as-default-template"
+            checked={isSaveDefault()}
+            onClick={() => setSaveDefault((prev) => !prev)}
+          />
+          <label for="save-as-default-template">
+            Save as default for this block
+          </label>
+        </div>
         <div class="w-full">
           <button
             disabled={!titleValue()}
@@ -297,7 +326,9 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
                 : titleValue() + ".md";
               if (!templates) {
                 try {
-                  return await app.vault.create(title, "");
+                  await app.vault.create(title, "");
+                  props.setOpen(false);
+                  return;
                 } catch (_) {
                   new Notice("Note already exists, choose a different name");
                   return;
@@ -312,6 +343,13 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
               } catch (_) {
                 new Notice("Note already exists, choose a different name");
                 return;
+              }
+
+              if (isSaveDefault()) {
+                const path = templates.find(
+                  (f) => f.name === templateValue() + ".md",
+                )!.path;
+                updateBlockConfig("newNoteTemplatePath", path, codeBlockInfo);
               }
 
               props.setOpen(false);
