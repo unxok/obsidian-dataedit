@@ -397,6 +397,7 @@ export const getTableLine = (codeBlockText: string) => {
 export type DataEditBlockConfig = {
   lockEditing: boolean;
   newNoteTemplatePath: string;
+  tableClassName: string;
 };
 
 export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
@@ -404,6 +405,7 @@ export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
 export const defaultDataEditBlockConfig: DataEditBlockConfig = {
   lockEditing: false,
   newNoteTemplatePath: "",
+  tableClassName: "",
 };
 
 // TODO adds one extra line of space (not incrementally) which doesn't break anything but looks weird

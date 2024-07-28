@@ -116,7 +116,7 @@ export const DialogDescription = <T extends ValidComponent = "p">(
 
   return (
     <DialogPrimitive.Description
-      class={cn("text-muted-foreground text-sm", local.class)}
+      class={cn("text-muted-foreground m-0 text-sm", local.class)}
       {...rest}
     />
   );

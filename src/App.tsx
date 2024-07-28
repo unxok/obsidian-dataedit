@@ -20,6 +20,7 @@ import {
   DataEditBlockConfigKey,
   defaultDataEditBlockConfig,
   getColumnPropertyNames,
+  getTemplateFiles,
   registerDataviewEvents,
   setBlockConfig,
   tryDataviewArrayToArray,
@@ -218,6 +219,7 @@ export const BlockConfigModal = (props: {
   trigger?: JSXElement;
 }) => {
   const [form, setForm] = createStore(props.config);
+  const templates = getTemplateFiles(props.codeBlockInfo.plugin.app);
 
   const updateForm = (
     key: keyof DataEditBlockConfig,
@@ -243,12 +245,52 @@ export const BlockConfigModal = (props: {
         <div class="flex size-full max-h-[90%] flex-col gap-2 overflow-y-auto pr-2">
           <Setting
             title="Lock editing"
-            description="prevents editing in all cells which makes links and tags
+            description="Prevents editing in all cells which makes links and tags
                 clickable."
+            labelFor="lock-editing-toggle"
           >
             <Toggle
+              id="lock-editing-toggle"
+              name="lock-editing-toggle"
               checked={form.lockEditing}
               onCheckedChange={(b) => updateForm("lockEditing", b)}
+            />
+          </Setting>
+          <Setting
+            title="New note template"
+            description="Path to the template file to use by default for notes created view the 'add row' button. Must be within the template folder configured in core plugin setting."
+            labelFor="new-note-template"
+          >
+            {/* TODO make this a combobox */}
+            <input
+              type="text"
+              id="new-note-template"
+              name="new-note-template"
+              list="template-list"
+              value={form.newNoteTemplatePath}
+              onInput={(e) =>
+                updateForm("newNoteTemplatePath", e.currentTarget.value)
+              }
+            />
+            <datalist id="template-list">
+              <For each={templates}>
+                {(f) => <option value={f.path}>{f.basename}</option>}
+              </For>
+            </datalist>
+          </Setting>
+          <Setting
+            title="Table CSS class"
+            description="Class name to attach to the table element. Do spaces to separate multiple if desired."
+            labelFor="table-class-name"
+          >
+            <input
+              type="text"
+              id="table-class-name"
+              name="table-class-name"
+              value={form.tableClassName}
+              onInput={(e) =>
+                updateForm("tableClassName", e.currentTarget.value)
+              }
             />
           </Setting>
         </div>
@@ -273,7 +315,7 @@ export const BlockConfigModal = (props: {
             // variant="accent"
             class={buttonVariants.accent}
             onClick={async () => {
-              await setBlockConfig(form, props.codeBlockInfo);
+              setBlockConfig(form, props.codeBlockInfo);
               if (!props.setOpen) return;
               props.setOpen(false);
             }}
@@ -290,12 +332,13 @@ export const Setting = (props: {
   title: string;
   description: string;
   children: JSXElement;
+  labelFor: string;
 }) => (
   <div class="flex w-full items-center justify-between border-0 border-t-[1px] border-solid border-t-[var(--background-modifier-border)] pt-2">
-    <div>
+    <label for={props.labelFor}>
       <div class="setting-item-name">{props.title}</div>
       <div class="setting-item-description">{props.description}</div>
-    </div>
+    </label>
     {props.children}
   </div>
 );

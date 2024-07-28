@@ -24,7 +24,6 @@ import {
 import { Markdown } from "../Markdown";
 import { MarkdownView, Notice, TFile } from "obsidian";
 import { uesCodeBlock } from "@/hooks/useDataEdit";
-import { createStore } from "solid-js/store";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -32,6 +31,9 @@ type TableProps = {
   queryResults: ModifiedDataviewQueryResult;
 };
 export const Table = (props: TableProps) => {
+  const {
+    config: { tableClassName },
+  } = uesCodeBlock();
   const [highlightIndex, setHighlightIndex] = createSignal(-1);
   const [draggedOverIndex, setDraggedOverIndex] = createSignal(-1);
   const [isAddColumnDialogOpen, setAddColumnDialogOpen] = createSignal(false);
@@ -46,7 +48,7 @@ export const Table = (props: TableProps) => {
         // style={{ "overflow-y": "visible" }}
       >
         <table
-          // class="h-fit overflow-y-visible"
+          class={tableClassName}
           style={
             highlightIndex() !== -1
               ? {

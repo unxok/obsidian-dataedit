@@ -9,7 +9,7 @@ import type {
 } from "@kobalte/core/combobox";
 import { Combobox as ComboboxPrimitive } from "@kobalte/core/combobox";
 import type { PolymorphicProps } from "@kobalte/core/polymorphic";
-import { App } from "obsidian";
+import { App, HeadingCache, SectionCache, TFile } from "obsidian";
 import type {
   JSXElement,
   ParentProps,
@@ -97,10 +97,12 @@ export const ComboboxTrigger = <T extends ValidComponent = "button">(
   );
 };
 
+type PromptInstructions = [command: string, text: string][] | string[][];
+
 type comboboxContentProps<T extends ValidComponent = "div"> =
   ComboboxContentProps<T> & {
     class?: string;
-    promptInstructions?: [command: string, text: string][];
+    promptInstructions?: PromptInstructions;
   };
 
 export const ComboboxContent = <T extends ValidComponent = "div">(
@@ -128,7 +130,9 @@ export const ComboboxContent = <T extends ValidComponent = "div">(
             class="suggestion m-0"
           />
           {/* </div> */}
-          <Show when={local.promptInstructions}>
+          <Show
+            when={local.promptInstructions && local.promptInstructions.length}
+          >
             <div class="prompt-instructions">
               <Index each={local.promptInstructions}>
                 {(arr) => (
@@ -199,6 +203,19 @@ export const ComboboxItem = <T extends ValidComponent = "li">(
   );
 };
 
+const defaultInstructions = [
+  ["Type [[", "to link note"],
+  ["Type #", "to choose tag"],
+];
+const linkInstructions = [
+  ["Type #", "to link heading"],
+  ["Type ^", "to link blocks"],
+  ["Type |", "to change display text"],
+];
+const subLinkInstructions = [["↵", "to accept"]];
+
+const filter = createFilter({ sensitivity: "base" });
+
 export type PromptComboBoxProps = {
   app: App;
   defaultOptions: string[];
@@ -209,132 +226,159 @@ export type PromptComboBoxProps = {
 export const PromptComboBox = (props: PromptComboBoxProps) => {
   const [inputValue, setInputValue] = createSignal("");
   const [options, setOptions] = createStore(props.defaultOptions);
-  const [isLinking, setLinking] = createSignal(false);
   const [labels, setLabels] = createStore<string[]>([]);
   const [aux, setAux] = createStore<string[]>([]);
+  const [promptInstructions, setPromptInstructions] =
+    createStore<PromptInstructions>(defaultInstructions);
+  // will be checked when needed, so no need for reactivity
+  let isSubLink = false;
 
   // for some reason props.defaultOptions is getting reasigned behind the scenes, so this stops that
   const defaultOptions = [...props.defaultOptions];
   const defaultOnInputChange = (value: string) => {
+    const val = value.toLowerCase();
     const filtered = defaultOptions.filter((option) => {
-      const b = option.includes(value);
+      const b = filter.contains(option, val);
       if (!b) return b;
       labels.push();
       return b;
     });
-    setLinking(false);
+    setPromptInstructions(defaultInstructions);
     setOptions(filtered);
   };
 
   const handleNoMatchFound = () => {
     setOptions([NO_MATCH_FOUND]);
     setLabels([]);
+    setAux([]);
   };
 
   const getLinkOptions = (value: string) => {
-    const searchName = value.slice(2);
-    // TODO users may want to be able to link to non-md files
-    const files = props.app.vault.getMarkdownFiles();
-    // console.log("search name: ", searchName.length);
-    // console.log("files: ", files);
+    const searchName = value.slice(2).toLowerCase();
+    const files = props.app.vault
+      .getAllLoadedFiles()
+      .filter((f) => f instanceof TFile);
     const newLabels: string[] = [];
     const filtered = files
-      .filter((f) => f.path.includes(searchName))
+      .filter((f) => filter.contains(f.path, searchName))
       .map((f) => {
         newLabels.push(f.path);
         return f.basename;
       });
-    // console.log("filtered: ", filtered);
     setLabels(newLabels);
     setOptions(filtered);
-    setLinking(true);
+    setPromptInstructions(linkInstructions);
   };
 
   const getTagOptions = (value: string) => {
     // remove the '#' at the beginning
-    const searchTag = value.slice(1);
+    const searchTag = value.slice(1).toLowerCase();
     // @ts-expect-error
     const tags = Object.keys(props.app.metadataCache.getTags());
     // get rid of '#' that will always be in start of tag
-    const opts = tags.map((t) => t.slice(1));
-    const filtered = opts.filter((t) => t.includes(searchTag));
+    const opts = tags.map((t) => t.slice(1).toLowerCase());
+    const filtered = opts.filter((t) => filter.contains(t, searchTag));
     setOptions(filtered);
     setLabels([]);
-    setLinking(false);
+    setPromptInstructions([]);
   };
 
-  // TODO
-  const getHeaderOptions = (value: string) => {
-    setLinking(true);
-    // extracts title between '[[' and '#', and header after hastag but before ']]' (if present)
-    const match = /\[\[(?<title>\S|[^\[|\]|\]\]]+)#(?<header>.*[^\]]|)/gm.exec(
-      value,
-    );
-    const preTitle = match?.groups?.title;
-    const header = match?.groups?.header ?? "";
-    console.log(match);
-    if (!preTitle) return handleNoMatchFound();
-    console.log("header options called");
-    const title = preTitle.endsWith(".md") ? preTitle : preTitle + ".md";
-    const f = props.app.vault.getFileByPath(title);
-    if (!f) return getLinkOptions(value);
-    const cache = props.app.metadataCache.getFileCache(f);
-    if (!cache) return handleNoMatchFound();
-    const { headings } = cache;
-    if (!headings) return handleNoMatchFound();
-    setLabels([]);
+  const getHeaderOptions = (header: string, headings: HeadingCache[]) => {
     const newAux: string[] = [];
-    console.log(header);
     const filtered = headings
       .filter((h) => {
-        const b = h.heading.includes(header);
-        console.log(h.heading);
+        const b = filter.contains(h.heading, header);
         if (!b) return b;
         newAux.push("H" + h.level);
         return b;
       })
       .map((h) => h.heading);
-    console.log("filtered: ", filtered);
+    if (!filtered.length) return handleNoMatchFound();
     setAux(newAux);
     setOptions(filtered);
   };
 
+  /*
+    TODO
+    As is, this only will return sections that have a block id.
+    In Obsidian's native suggester, *all* sections will be shown, and if one is clicked without a block id, one will be inserted into the document. As well, they show all the text in the section in the popover, which would require async reading many files on every input. 
+    I'm assuming there's a way to get the options and generate an id in the private api, but I haven't found it yet.
+  */
+  const getSectionOptions = (blockId: string, sections: SectionCache[]) => {
+    const filtered = sections
+      .filter((s) => s.id && filter.contains(s.id, blockId))
+      .map((s) => s.id!);
+    console.log("filtered: ", filtered);
+    if (!filtered.length) return handleNoMatchFound();
+    setOptions(filtered);
+  };
+
+  const getLinkSubOptions = (value: string) => {
+    isSubLink = true;
+    setLabels([]);
+    setAux([]);
+    setPromptInstructions(subLinkInstructions);
+    // extracts title between '[[' and '#', and header after hastag but before ']]' (if present)
+    const match =
+      /\[\[(?<title>\S|[^\[|\]|\]\]]+)(?:#|\^)(?<sub>.*[^\]]|)/gm.exec(value);
+    const preTitle = match?.groups?.title;
+    const sub = match?.groups?.sub ?? "";
+    if (!preTitle) return handleNoMatchFound();
+    const title = preTitle.endsWith(".md") ? preTitle : preTitle + ".md";
+    const f = props.app.vault.getFileByPath(title);
+    if (!f) return handleNoMatchFound();
+    const cache = props.app.metadataCache.getFileCache(f);
+    if (!cache) return handleNoMatchFound();
+    const { sections, headings } = cache;
+    if (value.includes("#")) {
+      if (!headings) return handleNoMatchFound();
+      return getHeaderOptions(sub, headings);
+    }
+    if (!sections) return handleNoMatchFound();
+    getSectionOptions(sub, sections);
+  };
+
   const onInputChange = (value: string) => {
+    isSubLink = false;
     setAux([]);
     if (value[0] === "#") return getTagOptions(value);
     // regex looks for '[[' with a '#' after it, where there's no ']]' before the '#'
-    if (/\[\[\S|[^\]\]]+#/i.test(value)) return getHeaderOptions(value);
+    if (/\[\[.*#|\^/.test(value)) return getLinkSubOptions(value);
     if (value.startsWith("[[")) return getLinkOptions(value);
     return defaultOnInputChange(value);
   };
 
   return (
     <Combobox
-      //   open={true}
       triggerMode="input"
       value={inputValue()}
+      /// this runs when an option is clicked
       onChange={(val) => {
         if (val === NO_MATCH_FOUND) {
-          setInputValue("");
-          return;
+          return setInputValue("");
+        }
+        if (isSubLink) {
+          const inp = inputValue();
+          const hashIndex = inp.indexOf("#");
+          const index = hashIndex !== -1 ? hashIndex : inp.indexOf("^");
+          if (index === -1) throw new Error("This shouldn't happen");
+          return setInputValue(
+            inp.slice(0, index + 1) + val + inp.slice(index + 1),
+          );
         }
         if (inputValue().includes("[[")) {
-          setInputValue(inputValue() + val + "]]");
-          return;
+          return setInputValue("[[" + val + "]]");
         }
         if (inputValue().startsWith("#")) {
-          setInputValue("#" + val);
-          return;
+          return setInputValue("#" + val);
         }
         setInputValue(val);
       }}
       options={options}
+      // this runs when the input is typed in
       onInputChange={onInputChange}
-      defaultFilter={(option, inputValue) =>
-        option.includes(inputValue) ||
-        option.includes(inputValue.slice(2)) ||
-        typeof aux[0] === "string"
-      }
+      // already filtering the options on input, so this isn't needed
+      defaultFilter={() => true}
       itemComponent={(iProps) => (
         <ComboboxItem
           {...props.itemProps}
@@ -350,25 +394,17 @@ export const PromptComboBox = (props: PromptComboBoxProps) => {
         <ComboboxInput
           {...props.inputProps}
           value={inputValue()}
+          // without doing this, default options will always be shown on focus, even if input value is not empty
+          onFocus={(e) => {
+            onInputChange(e.currentTarget.value);
+            const { onFocus } = props.inputProps ?? {};
+            if (!onFocus || typeof onFocus !== "function") return;
+            onFocus(e);
+          }}
           onInput={(e) => setInputValue(e.currentTarget.value)}
         />
       </ComboboxTrigger>
-      <ComboboxContent
-        promptInstructions={
-          isLinking()
-            ? [
-                ["Type #", "to link heading"],
-                ["Type ^", "to link blocks"],
-                ["Type |", "to change display text"],
-              ]
-            : [
-                ["Type [[", "to link a note"],
-                ["Type #", "to link a tag"],
-              ]
-        }
-      >
-        content
-      </ComboboxContent>
+      <ComboboxContent promptInstructions={promptInstructions} />
     </Combobox>
   );
 };

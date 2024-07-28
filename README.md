@@ -49,19 +49,31 @@ Each 'type' will change what type of input and how values are updated in frontma
 
 #### Autocomplete
 
-- [ ] wikilinks
-- [ ] tags
-- [ ] blocks (tried before and it might not be doable)
-- [ ] previously used
+- [ ] combox prompt component
+  - [x] wikilinks
+  - [x] tags
+  - [x] blocks
+    - done for now. Will only link blocks with explicit ids
+- [ ] replace inputs with comboxbox
   - [ ] text
   - [ ] list
-- [ ] custom
+- [ ] allow
+  - [ ] custom
+  - [ ] previously used
 
 ### Configuration
 
 - [x] column reordering
-- [ ] custom class names for table
-- [ ] lock editing
+- [x] custom class names for table
+- [x] lock editing
+- [ ] custom options for column
+- [ ] column options
+  - [ ] alignment
+    - I think this would have to be the same for repeats in the table
+  - [ ] set/change alias
+  - [ ] set/change property type
+  - [ ] rename property
+  - [ ] remove column
 - [ ] alignment
   - [ ] all rows
   - [ ] all columns
