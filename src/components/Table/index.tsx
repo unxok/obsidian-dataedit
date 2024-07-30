@@ -31,9 +31,10 @@ type TableProps = {
   queryResults: ModifiedDataviewQueryResult;
 };
 export const Table = (props: TableProps) => {
+  const codeBlockInfo = uesCodeBlock();
   const {
     config: { tableClassName },
-  } = uesCodeBlock();
+  } = codeBlockInfo;
   const [highlightIndex, setHighlightIndex] = createSignal(-1);
   const [draggedOverIndex, setDraggedOverIndex] = createSignal(-1);
   const [isAddColumnDialogOpen, setAddColumnDialogOpen] = createSignal(false);
@@ -81,21 +82,23 @@ export const Table = (props: TableProps) => {
             setDraggedOverIndex={setDraggedOverIndex}
           />
         </table>
-        <AddColumnButton
-          open={isAddColumnDialogOpen()}
-          setOpen={setAddColumnDialogOpen}
-        />
-        <span
-          onClick={() => setAddRowDialogOpen(true)}
-          aria-label="Add row after"
-          class="absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-solid border-border opacity-0 hover:opacity-50"
-        >
-          <Plus size="1rem" />
-        </span>
-        <AddRowButton
-          open={isAddRowDialogOpen()}
-          setOpen={setAddRowDialogOpen}
-        />
+        <Show when={!codeBlockInfo.config.lockEditing}>
+          <AddColumnButton
+            open={isAddColumnDialogOpen()}
+            setOpen={setAddColumnDialogOpen}
+          />
+          <span
+            onClick={() => setAddRowDialogOpen(true)}
+            aria-label="Add row after"
+            class="absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-solid border-border opacity-0 hover:opacity-50"
+          >
+            <Plus size="1rem" />
+          </span>
+          <AddRowButton
+            open={isAddRowDialogOpen()}
+            setOpen={setAddRowDialogOpen}
+          />
+        </Show>
       </div>
     </Show>
   );
@@ -153,20 +156,6 @@ const AddColumnButton = (props: {
     lines[index + 1] += ", " + prop + aliasStr;
     return lines.join("\n");
   });
-
-  // const addCol = async (markdown: string) => {
-  //   const { vault } = app;
-  //   const file = vault.getFileByPath(ctx.sourcePath);
-  //   if (!file) {
-  //     throw new Error("This should be impossible");
-  //   }
-  //   // const content = await vault.cachedRead(file);
-  //   const content = text;
-  //   const lines = content.split("\n");
-  //   lines[lineStart + 1] = markdown.split("\n")[1];
-  //   const newContent = lines.join("\n");
-  //   await vault.modify(file, newContent);
-  // };
 
   const addCol = () => {
     const prop = propertyValue().trim();

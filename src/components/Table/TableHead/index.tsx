@@ -1,6 +1,6 @@
 import { Markdown } from "@/components/Markdown";
 import { DataviewQueryResultHeaders } from "@/lib/types";
-import { createSignal, For, onCleanup, Setter } from "solid-js";
+import { createSignal, For, onCleanup, Setter, Show } from "solid-js";
 import GripHorizontal from "lucide-solid/icons/Grip-horizontal";
 import { draggedOverLeft, draggedOverRight } from "../TableBody";
 import { getScroller, getTableLine } from "@/lib/util";
@@ -16,6 +16,7 @@ export type TableHeadProps = {
   setDraggedOverIndex: Setter<number>;
 };
 export const TableHead = (props: TableHeadProps) => {
+  const codeBlockInfo = uesCodeBlock();
   const {
     plugin,
     ctx,
@@ -24,7 +25,7 @@ export const TableHead = (props: TableHeadProps) => {
     dataviewAPI: {
       settings: { tableIdColumnName },
     },
-  } = uesCodeBlock();
+  } = codeBlockInfo;
   const [translateX, setTranslateX] = createSignal(0);
   let lastMousePos = 0;
 
@@ -228,56 +229,59 @@ export const TableHead = (props: TableHeadProps) => {
 
   return (
     <thead>
-      <tr>
-        <For each={props.headers}>
-          {(_, index) => (
-            <th
-              onMouseDown={(e) => {
-                props.setHighlightIndex(index());
-                setTranslateX(0);
-                lastMousePos = e.clientX;
-                window.addEventListener("mousemove", onMouseMove);
-              }}
-              onMouseMove={() => {
-                if (props.highlightIndex === -1) return;
-                props.setDraggedOverIndex(index());
-              }}
-              // onMouseUp={() => {
-              //   props.setHighlightIndex(-1);
-              //   setTranslateX(0);
-              //   lastMousePos = 0;
-              // }}
-              // onMouseMove={(e) => {
-              //   e.preventDefault();
-              //   setTranslateX(() => e.clientX - lastMousePos);
-              // }}
-              class={`relative m-0 cursor-grab overflow-visible border-x-transparent border-t-transparent p-0 text-muted active:cursor-grabbing ${index() === props.highlightIndex ? "opacity-100" : "opacity-0"} ${props.highlightIndex === -1 ? "hover:opacity-100" : ""}`}
-            >
-              <div
-                aria-roledescription="column-drag-handle"
-                class={`flex size-full items-end justify-center`}
-                style={
-                  index() === props.highlightIndex
-                    ? {
-                        background:
-                          "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
-                        "border-radius": "var(--radius-s) var(--radius-s) 0 0",
-                        translate: translateX() + "px 0",
-                        "pointer-events": "none",
-                      }
-                    : props.highlightIndex !== -1
-                      ? {
-                          cursor: "grabbing",
-                        }
-                      : {}
-                }
+      <Show when={!codeBlockInfo.config.lockEditing}>
+        <tr>
+          <For each={props.headers}>
+            {(_, index) => (
+              <th
+                onMouseDown={(e) => {
+                  props.setHighlightIndex(index());
+                  setTranslateX(0);
+                  lastMousePos = e.clientX;
+                  window.addEventListener("mousemove", onMouseMove);
+                }}
+                onMouseMove={() => {
+                  if (props.highlightIndex === -1) return;
+                  props.setDraggedOverIndex(index());
+                }}
+                // onMouseUp={() => {
+                //   props.setHighlightIndex(-1);
+                //   setTranslateX(0);
+                //   lastMousePos = 0;
+                // }}
+                // onMouseMove={(e) => {
+                //   e.preventDefault();
+                //   setTranslateX(() => e.clientX - lastMousePos);
+                // }}
+                class={`relative m-0 cursor-grab overflow-visible border-x-transparent border-t-transparent p-0 text-muted active:cursor-grabbing ${index() === props.highlightIndex ? "opacity-100" : "opacity-0"} ${props.highlightIndex === -1 ? "hover:opacity-100" : ""}`}
               >
-                <GripHorizontal size="1rem" />
-              </div>
-            </th>
-          )}
-        </For>
-      </tr>
+                <div
+                  aria-roledescription="column-drag-handle"
+                  class={`flex size-full items-end justify-center`}
+                  style={
+                    index() === props.highlightIndex
+                      ? {
+                          background:
+                            "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
+                          "border-radius":
+                            "var(--radius-s) var(--radius-s) 0 0",
+                          translate: translateX() + "px 0",
+                          "pointer-events": "none",
+                        }
+                      : props.highlightIndex !== -1
+                        ? {
+                            cursor: "grabbing",
+                          }
+                        : {}
+                  }
+                >
+                  <GripHorizontal size="1rem" />
+                </div>
+              </th>
+            )}
+          </For>
+        </tr>
+      </Show>
       <tr>
         <For each={props.headers}>
           {(h, index) => (

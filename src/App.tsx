@@ -74,6 +74,7 @@ export type AppProps = CodeBlockInfo & {
   setQueryResultStore: SetStoreFunction<
     Record<string, ModifiedDataviewQueryResult>
   >;
+  setConfigStore: SetStoreFunction<DataEditBlockConfig>;
 };
 
 function App(props: AppProps) {
@@ -105,41 +106,41 @@ function App(props: AppProps) {
   updateQueryResults();
   registerDataviewEvents(plugin, updateQueryResults);
 
-  let view: MarkdownView;
-  // TODO this probably isn't the best way to do it, but it works
-  const onContainerClick = (e: Event) => {
-    console.log("container focused");
-    // Not properly typed in the API
-    const mode = view.getMode() as "source" | "preview";
-    // console.log("mode: ", mode);
-    if (mode === "preview") {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
+  // let view: MarkdownView;
+  // // TODO this probably isn't the best way to do it, but it works
+  // const onContainerClick = (e: Event) => {
+  //   console.log("container focused");
+  //   // Not properly typed in the API
+  //   const mode = view.getMode() as "source" | "preview";
+  //   // console.log("mode: ", mode);
+  //   if (mode === "preview") {
+  //     e.stopPropagation();
+  //     e.preventDefault();
+  //   }
+  // };
 
-  onMount(() => {
-    (async () => {
-      // for some reason this only works with this timeout
-      await new Promise<void>((res) => setTimeout(res, 0));
-      codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
-        if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
-        view = leaf.view as MarkdownView;
-        leaf.view.containerEl.addEventListener("click", onContainerClick);
-      });
-    })();
-  });
+  // onMount(() => {
+  //   (async () => {
+  //     // for some reason this only works with this timeout
+  //     await new Promise<void>((res) => setTimeout(res, 0));
+  //     codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
+  //       if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
+  //       view = leaf.view as MarkdownView;
+  //       leaf.view.containerEl.addEventListener("click", onContainerClick);
+  //     });
+  //   })();
+  // });
 
   onCleanup(() => {
     unregisterDataviewEvents(plugin, updateQueryResults);
-    (async () => {
-      await new Promise<void>((res) => setTimeout(res, 0));
-      codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
-        if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
-        // console.log("does contain");
-        leaf.view.containerEl.removeEventListener("click", onContainerClick);
-      });
-    })();
+    // (async () => {
+    //   await new Promise<void>((res) => setTimeout(res, 0));
+    //   codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
+    //     if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
+    //     // console.log("does contain");
+    //     leaf.view.containerEl.removeEventListener("click", onContainerClick);
+    //   });
+    // })();
   });
 
   return (
@@ -148,7 +149,7 @@ function App(props: AppProps) {
         <Table queryResults={queryResults()} />
       </div>
       <div class="flex items-center gap-2">
-        <Toolbar config={config} />
+        <Toolbar config={config} setConfigStore={props.setConfigStore} />
       </div>
     </CodeBlockContext.Provider>
   );
@@ -156,9 +157,13 @@ function App(props: AppProps) {
 
 export default App;
 
-export const Toolbar = (props: { config: DataEditBlockConfig }) => {
+export const Toolbar = (props: {
+  config: DataEditBlockConfig;
+  setConfigStore: SetStoreFunction<DataEditBlockConfig>;
+}) => {
   const codeBlockInfo = uesCodeBlock();
   const [isConfigOpen, setConfigOpen] = createSignal(false);
+
   const updateConfig = (
     key: DataEditBlockConfigKey,
     value: DataEditBlockConfig[typeof key],
@@ -179,9 +184,9 @@ export const Toolbar = (props: { config: DataEditBlockConfig }) => {
       >
         <Gear size="1rem" />
       </div>
-      <For each={Object.keys(props.config) as DataEditBlockConfigKey[]}>
+      <For each={Object.keys(codeBlockInfo.config) as DataEditBlockConfigKey[]}>
         {(key) => {
-          const value = props.config[key];
+          const value = codeBlockInfo.config[key];
           return (
             <Switch>
               <Match when={key === "lockEditing"}>
