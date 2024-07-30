@@ -116,7 +116,7 @@ function App(props: AppProps) {
       <div class="h-fit w-full overflow-x-scroll">
         <Table queryResults={queryResults()} hideFileCol={props.hideFileCol} />
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex -translate-y-4 items-center gap-2">
         <Toolbar config={config} setConfigStore={props.setConfigStore} />
       </div>
     </CodeBlockContext.Provider>
@@ -174,12 +174,12 @@ export const Toolbar = (props: {
           );
         }}
       </For>
-      <div>
+      {/* <div>
         <PromptComboBox
           app={codeBlockInfo.plugin.app}
           defaultOptions={["option a", "option b", "option c"]}
         />
-      </div>
+      </div> */}
     </>
   );
 };

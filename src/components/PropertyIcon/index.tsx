@@ -30,45 +30,55 @@ export const PropertyIcon = (props: {
     //   data-property-type={props.type}
     // >
     //   <span class="metadata-property-icon">
-    <Show when={headerIcons}>
-      <Switch>
-        <Match
-          when={
-            props.property === tableIdColumnName ||
-            props.property?.toLowerCase() === "file.link"
-          }
-        >
-          <File size="1rem" />
-        </Match>
-        <Match when={props.type === "text"}>
-          <AlignLeft size="1rem" />
-        </Match>
-        <Match when={props.type === "multitext"}>
-          <List size="1rem" />
-        </Match>
-        <Match when={props.type === "checkbox"}>
-          <SquareCheckBig size="1rem" />
-        </Match>
-        <Match when={props.type === "number"}>
-          <Binary size="1rem" class="svg-icon lucide-binary" />
-        </Match>
-        <Match when={props.type === "date"}>
-          <Calendar size="1rem" />
-        </Match>
-        <Match when={props.type === "datetime"}>
-          <Clock size="1rem" />
-        </Match>
-        <Match when={props.type === "tags"}>
-          <Tags size="1rem" />
-        </Match>
-        <Match when={props.type === "aliases"}>
-          <CornerUpRight size="1rem" />
-        </Match>
-        <Match when={props.type === "unknown"}>
-          <Sparkles size="1rem" />
-        </Match>
-      </Switch>
-    </Show>
+    <div
+      aria-label={
+        props.property === tableIdColumnName ||
+        props.property?.toLowerCase() === "file.link"
+          ? "file"
+          : props.type
+      }
+      class="flex items-center justify-center"
+    >
+      <Show when={headerIcons}>
+        <Switch>
+          <Match
+            when={
+              props.property === tableIdColumnName ||
+              props.property?.toLowerCase() === "file.link"
+            }
+          >
+            <File size="1rem" />
+          </Match>
+          <Match when={props.type === "text"}>
+            <AlignLeft size="1rem" />
+          </Match>
+          <Match when={props.type === "multitext"}>
+            <List size="1rem" />
+          </Match>
+          <Match when={props.type === "checkbox"}>
+            <SquareCheckBig size="1rem" />
+          </Match>
+          <Match when={props.type === "number"}>
+            <Binary size="1rem" class="svg-icon lucide-binary" />
+          </Match>
+          <Match when={props.type === "date"}>
+            <Calendar size="1rem" />
+          </Match>
+          <Match when={props.type === "datetime"}>
+            <Clock size="1rem" />
+          </Match>
+          <Match when={props.type === "tags"}>
+            <Tags size="1rem" />
+          </Match>
+          <Match when={props.type === "aliases"}>
+            <CornerUpRight size="1rem" />
+          </Match>
+          <Match when={props.type === "unknown"}>
+            <Sparkles size="1rem" />
+          </Match>
+        </Switch>
+      </Show>
+    </div>
     //   </span>
     // </div>
   );

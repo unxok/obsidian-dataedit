@@ -21,9 +21,9 @@ I still want to put my plugin out there as a drop-in replacement Dataview until 
 - [x] Parse for true property names and create alias object for use when updating properties
 - [x] If `WITHOUT ID` is used and no `file.link` is included, add it to the query and hide the `file.link` column
 - [x] Find `file.link` column index
-- [ ] Read dataview settings and use as needed
+- [x] Read dataview settings and use as needed
   - [x] date/datetime format
-  - [ ] null value display
+  - [x] null value display
   - [x] ID column display
 - [ ] dataeditjs (dataviewjs subset)
   - [ ] provide `dv` object
@@ -66,6 +66,7 @@ Each 'type' will change what type of input and how values are updated in frontma
 - [x] column reordering
 - [x] custom class names for table
 - [x] lock editing
+- [x] property type icons
 - [ ] custom options for column
 - [ ] column options
   - [ ] alignment
