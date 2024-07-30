@@ -12,6 +12,7 @@ export type CodeBlockInfo = {
   config: DataEditBlockConfig;
   ctx: MarkdownPostProcessorContext;
   dataviewAPI: DataviewAPI;
+  hideFileCol: boolean;
 };
 
 // TODO this feels like bad practice
@@ -25,6 +26,7 @@ export const CodeBlockContext = createContext<CodeBlockInfo>({
   config: {} as DataEditBlockConfig,
   ctx: {} as MarkdownPostProcessorContext,
   dataviewAPI: {} as DataviewAPI,
+  hideFileCol: false,
 });
 
 /**
@@ -33,4 +35,4 @@ export const CodeBlockContext = createContext<CodeBlockInfo>({
  * Therefore, this isn't technically *reactive* in Solid's perspective, so it's okay to destructure this at top level of components.
  * @returns Info specific to the code block instance
  */
-export const uesCodeBlock = () => useContext(CodeBlockContext);
+export const useCodeBlock = () => useContext(CodeBlockContext);

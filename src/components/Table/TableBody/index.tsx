@@ -4,9 +4,9 @@ import {
   DataviewLink,
 } from "@/lib/types";
 import { getIdColumnIndex } from "@/lib/util";
-import { For, Setter } from "solid-js";
+import { For, Setter, Show } from "solid-js";
 import { TableData } from "../TableData";
-import { uesCodeBlock } from "@/hooks/useDataEdit";
+import { useCodeBlock } from "@/hooks/useDataEdit";
 
 const highlightStyle = {
   "border-left-width": "2px",
@@ -41,11 +41,12 @@ type TableBodyProps = {
   setDraggedOverIndex: Setter<number>;
 };
 export const TableBody = (props: TableBodyProps) => {
+  const codeBlockInfo = useCodeBlock();
   const {
     dataviewAPI: {
       settings: { tableIdColumnName },
     },
-  } = uesCodeBlock();
+  } = codeBlockInfo;
 
   return (
     <tbody>
@@ -54,33 +55,42 @@ export const TableBody = (props: TableBodyProps) => {
           <tr>
             <For each={row}>
               {(value, valueIndex) => (
-                <TableData
-                  value={value}
-                  header={props.headers[valueIndex()]}
-                  property={props.properties[valueIndex()]}
-                  filePath={
-                    (
-                      row[
-                        getIdColumnIndex(props.headers, tableIdColumnName)
-                      ] as DataviewLink
-                    ).path ?? ""
+                <Show
+                  when={
+                    !(
+                      codeBlockInfo.hideFileCol &&
+                      valueIndex() === props.headers.length - 1
+                    )
                   }
-                  onMouseMove={() => {
-                    if (props.highlightIndex === -1) return;
-                    props.setDraggedOverIndex(valueIndex());
-                  }}
-                  style={
-                    valueIndex() === props.highlightIndex
-                      ? rowIndex() === props.rows.length - 1
-                        ? { ...highlightStyle, ...lastCellHighlight }
-                        : highlightStyle
-                      : valueIndex() === props.draggedOverIndex
-                        ? props.highlightIndex < valueIndex()
-                          ? draggedOverRight
-                          : draggedOverLeft
-                        : {}
-                  }
-                />
+                >
+                  <TableData
+                    value={value}
+                    header={props.headers[valueIndex()]}
+                    property={props.properties[valueIndex()]}
+                    filePath={
+                      (
+                        row[
+                          getIdColumnIndex(props.headers, tableIdColumnName)
+                        ] as DataviewLink
+                      ).path ?? ""
+                    }
+                    onMouseMove={() => {
+                      if (props.highlightIndex === -1) return;
+                      props.setDraggedOverIndex(valueIndex());
+                    }}
+                    style={
+                      valueIndex() === props.highlightIndex
+                        ? rowIndex() === props.rows.length - 1
+                          ? { ...highlightStyle, ...lastCellHighlight }
+                          : highlightStyle
+                        : valueIndex() === props.draggedOverIndex
+                          ? props.highlightIndex < valueIndex()
+                            ? draggedOverRight
+                            : draggedOverLeft
+                          : {}
+                    }
+                  />
+                </Show>
               )}
             </For>
           </tr>

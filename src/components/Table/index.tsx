@@ -22,16 +22,17 @@ import {
   updateBlockConfig,
 } from "@/lib/util";
 import { Markdown } from "../Markdown";
-import { MarkdownView, Notice, TFile } from "obsidian";
-import { uesCodeBlock } from "@/hooks/useDataEdit";
+import { MarkdownView, Notice } from "obsidian";
+import { useCodeBlock } from "@/hooks/useDataEdit";
 // prevents from being tree-shaken by TS
 autofocus;
 
 type TableProps = {
   queryResults: ModifiedDataviewQueryResult;
+  hideFileCol: boolean;
 };
 export const Table = (props: TableProps) => {
-  const codeBlockInfo = uesCodeBlock();
+  const codeBlockInfo = useCodeBlock();
   const {
     config: { tableClassName },
   } = codeBlockInfo;
@@ -124,7 +125,7 @@ const AddColumnButton = (props: {
     ctx,
     el,
     query,
-  } = uesCodeBlock();
+  } = useCodeBlock();
 
   const view = app.workspace.getActiveViewOfType(MarkdownView);
 
@@ -238,7 +239,7 @@ const AddColumnButton = (props: {
 };
 
 const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
-  const codeBlockInfo = uesCodeBlock();
+  const codeBlockInfo = useCodeBlock();
   const {
     plugin: { app },
     config,

@@ -19,7 +19,7 @@ I still want to put my plugin out there as a drop-in replacement Dataview until 
 ### Query processing
 
 - [x] Parse for true property names and create alias object for use when updating properties
-- [ ] If `WITHOUT ID` is used and no `file.link` is included, add it to the query and hide the `file.link` column
+- [x] If `WITHOUT ID` is used and no `file.link` is included, add it to the query and hide the `file.link` column
 - [x] Find `file.link` column index
 - [ ] Read dataview settings and use as needed
   - [x] date/datetime format
@@ -88,3 +88,9 @@ Each 'type' will change what type of input and how values are updated in frontma
     - [ ] next
     - [ ] last
     - [ ] input page number
+
+### Misc
+
+Random tasks
+
+- [x] Lock editing when in reading mode (but don't change config)

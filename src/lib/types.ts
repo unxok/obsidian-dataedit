@@ -150,11 +150,12 @@ export type DataviewAPI = {
   >;
 };
 
-export type PropertyValueType =
+export type PropertyType =
   | "text"
   | "number"
-  | "list"
+  | "multitext"
   | "tags"
+  | "aliases"
   | "date"
   | "datetime"
   | "checkbox"
@@ -163,7 +164,7 @@ export type PropertyValueType =
 export type PropertyInfo = {
   count: number;
   name: string;
-  type: PropertyValueType;
+  type: PropertyType;
 };
 
 //////////////////////////////////////////////////////////////////////

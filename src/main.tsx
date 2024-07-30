@@ -11,7 +11,7 @@ import {
   MarkdownView,
 } from "obsidian";
 import { DataviewAPI, ModifiedDataviewQueryResult } from "./lib/types.ts";
-import { splitQueryOnConfig } from "./lib/util.ts";
+import { ensureFileLinkColumn, splitQueryOnConfig } from "./lib/util.ts";
 import { createStore } from "solid-js/store";
 import { createUniqueId } from "solid-js";
 
@@ -41,15 +41,16 @@ export default class DataEdit extends Plugin {
 
     this.registerMarkdownCodeBlockProcessor(
       "dataedit",
-      async (source, el, ctx) => {
+      async (preSource, el, ctx) => {
         el.empty();
         el.classList.toggle("twcss", true);
         el.parentElement!.style.boxShadow = "none";
 
+        const { source, hide: hideFileCol } = ensureFileLinkColumn(preSource);
+
         const uid = createUniqueId();
         const dataviewAPI = getDataviewAPI(this.app) as DataviewAPI;
         const { query, config } = splitQueryOnConfig(source);
-        // TODO not working :(
         const [configStore, setConfigStore] = createStore(config);
 
         // obsidian reccomends this approach according to https://forum.obsidian.md/t/how-to-listen-for-toggling-reading-view/67709/2
@@ -90,9 +91,9 @@ export default class DataEdit extends Plugin {
           if (mode === "preview") {
             setConfigStore("lockEditing", true);
           }
-          if (mode === "source") {
-            setConfigStore("lockEditing", false);
-          }
+          // if (mode === "source") {
+          //   setConfigStore("lockEditing", false);
+          // }
         })();
 
         // for some reason, doing this as a signal inside each <App /> causes glitches when updating from dataview events
@@ -118,6 +119,7 @@ export default class DataEdit extends Plugin {
               uid={uid}
               queryResultStore={queryResultStore}
               setQueryResultStore={setQueryResultStore}
+              hideFileCol={hideFileCol}
             />
           );
         }, el);

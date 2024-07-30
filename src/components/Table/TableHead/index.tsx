@@ -1,11 +1,20 @@
 import { Markdown } from "@/components/Markdown";
 import { DataviewQueryResultHeaders } from "@/lib/types";
-import { createSignal, For, onCleanup, Setter, Show } from "solid-js";
+import {
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  Setter,
+  Show,
+} from "solid-js";
 import GripHorizontal from "lucide-solid/icons/Grip-horizontal";
 import { draggedOverLeft, draggedOverRight } from "../TableBody";
-import { getScroller, getTableLine } from "@/lib/util";
+import { getPropertyTypes, getTableLine, ScrollFixer } from "@/lib/util";
 import { MarkdownView } from "obsidian";
-import { uesCodeBlock } from "@/hooks/useDataEdit";
+import { useCodeBlock } from "@/hooks/useDataEdit";
+import { createStore } from "solid-js/store";
+import { PropertyIcon } from "@/components/PropertyIcon";
 
 export type TableHeadProps = {
   headers: DataviewQueryResultHeaders;
@@ -16,7 +25,7 @@ export type TableHeadProps = {
   setDraggedOverIndex: Setter<number>;
 };
 export const TableHead = (props: TableHeadProps) => {
-  const codeBlockInfo = uesCodeBlock();
+  const codeBlockInfo = useCodeBlock();
   const {
     plugin,
     ctx,
@@ -25,8 +34,12 @@ export const TableHead = (props: TableHeadProps) => {
     dataviewAPI: {
       settings: { tableIdColumnName },
     },
+    hideFileCol,
   } = codeBlockInfo;
   const [translateX, setTranslateX] = createSignal(0);
+  const propertyTypes = createMemo(() =>
+    getPropertyTypes(props.properties, plugin.app.metadataCache),
+  );
   let lastMousePos = 0;
 
   const onMouseMove = (e: MouseEvent) => {
@@ -148,7 +161,11 @@ export const TableHead = (props: TableHeadProps) => {
         throw new Error("This should be impossible");
       }
       const { lineStart } = sectionInfo;
-      const { line: preTableLine, index } = getTableLine(query);
+      const { line: prePreTableLine, index } = getTableLine(query);
+      // remove hidden column if needed
+      const preTableLine = hideFileCol
+        ? prePreTableLine.slice(0, -11)
+        : prePreTableLine;
       // index is relative to the provided source, so this offsets to an index of the whole note
       // add one because `source` doesn't include backticks, but lineStart is the first backticks
       const tableLineIndex = lineStart + index + 1;
@@ -198,19 +215,13 @@ export const TableHead = (props: TableHeadProps) => {
         0,
         cols[highlightIndex],
       );
-      const scroller = getScroller(view);
-      const prevScroll = scroller.scrollTop;
 
+      const scrollFixer = new ScrollFixer(el);
       view.editor.setLine(
         tableLineIndex,
         tableKeyword + " " + newCols.join(", "),
       );
-      // calling setLine() will scroll down a bunch if the bottom of the code block is visible...???
-      // doing this remedies that, and yes it only works on the next tick for some reason
-      setTimeout(
-        () => scroller.scrollTo({ top: prevScroll, behavior: "instant" }),
-        0,
-      );
+      scrollFixer.fix();
     }
 
     props.setHighlightIndex(-1);
@@ -233,51 +244,60 @@ export const TableHead = (props: TableHeadProps) => {
         <tr>
           <For each={props.headers}>
             {(_, index) => (
-              <th
-                onMouseDown={(e) => {
-                  props.setHighlightIndex(index());
-                  setTranslateX(0);
-                  lastMousePos = e.clientX;
-                  window.addEventListener("mousemove", onMouseMove);
-                }}
-                onMouseMove={() => {
-                  if (props.highlightIndex === -1) return;
-                  props.setDraggedOverIndex(index());
-                }}
-                // onMouseUp={() => {
-                //   props.setHighlightIndex(-1);
-                //   setTranslateX(0);
-                //   lastMousePos = 0;
-                // }}
-                // onMouseMove={(e) => {
-                //   e.preventDefault();
-                //   setTranslateX(() => e.clientX - lastMousePos);
-                // }}
-                class={`relative m-0 cursor-grab overflow-visible border-x-transparent border-t-transparent p-0 text-muted active:cursor-grabbing ${index() === props.highlightIndex ? "opacity-100" : "opacity-0"} ${props.highlightIndex === -1 ? "hover:opacity-100" : ""}`}
+              <Show
+                when={
+                  !(
+                    codeBlockInfo.hideFileCol &&
+                    index() === props.headers.length - 1
+                  )
+                }
               >
-                <div
-                  aria-roledescription="column-drag-handle"
-                  class={`flex size-full items-end justify-center`}
-                  style={
-                    index() === props.highlightIndex
-                      ? {
-                          background:
-                            "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
-                          "border-radius":
-                            "var(--radius-s) var(--radius-s) 0 0",
-                          translate: translateX() + "px 0",
-                          "pointer-events": "none",
-                        }
-                      : props.highlightIndex !== -1
-                        ? {
-                            cursor: "grabbing",
-                          }
-                        : {}
-                  }
+                <th
+                  onMouseDown={(e) => {
+                    props.setHighlightIndex(index());
+                    setTranslateX(0);
+                    lastMousePos = e.clientX;
+                    window.addEventListener("mousemove", onMouseMove);
+                  }}
+                  onMouseMove={() => {
+                    if (props.highlightIndex === -1) return;
+                    props.setDraggedOverIndex(index());
+                  }}
+                  // onMouseUp={() => {
+                  //   props.setHighlightIndex(-1);
+                  //   setTranslateX(0);
+                  //   lastMousePos = 0;
+                  // }}
+                  // onMouseMove={(e) => {
+                  //   e.preventDefault();
+                  //   setTranslateX(() => e.clientX - lastMousePos);
+                  // }}
+                  class={`relative m-0 cursor-grab overflow-visible border-x-transparent border-t-transparent p-0 text-muted active:cursor-grabbing ${index() === props.highlightIndex ? "opacity-100" : "opacity-0"} ${props.highlightIndex === -1 ? "hover:opacity-100" : ""}`}
                 >
-                  <GripHorizontal size="1rem" />
-                </div>
-              </th>
+                  <div
+                    aria-roledescription="column-drag-handle"
+                    class={`flex size-full items-end justify-center`}
+                    style={
+                      index() === props.highlightIndex
+                        ? {
+                            background:
+                              "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
+                            "border-radius":
+                              "var(--radius-s) var(--radius-s) 0 0",
+                            translate: translateX() + "px 0",
+                            "pointer-events": "none",
+                          }
+                        : props.highlightIndex !== -1
+                          ? {
+                              cursor: "grabbing",
+                            }
+                          : {}
+                    }
+                  >
+                    <GripHorizontal size="1rem" />
+                  </div>
+                </th>
+              </Show>
             )}
           </For>
         </tr>
@@ -285,40 +305,56 @@ export const TableHead = (props: TableHeadProps) => {
       <tr>
         <For each={props.headers}>
           {(h, index) => (
-            <th
-              onMouseMove={() => {
-                if (props.highlightIndex === -1) return;
-                props.setDraggedOverIndex(index());
-              }}
-              class="relative text-nowrap"
-              style={
-                index() === props.highlightIndex
-                  ? {
-                      "border-top-width": "2px",
-                      "border-left-width": "2px",
-                      "border-right-width": "2px",
-                      "border-top-color":
-                        "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
-                      "border-left-color":
-                        "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
-                      "border-right-color":
-                        "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
-                      "background-color": `hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 10%)`,
-                    }
-                  : props.highlightIndex !== -1 &&
-                      index() === props.draggedOverIndex
-                    ? props.highlightIndex < index()
-                      ? draggedOverRight
-                      : draggedOverLeft
-                    : {}
+            <Show
+              when={
+                !(
+                  codeBlockInfo.hideFileCol &&
+                  index() === props.headers.length - 1
+                )
               }
             >
-              <Markdown
-                app={plugin.app}
-                markdown={h}
-                sourcePath={ctx.sourcePath}
-              />
-            </th>
+              <th
+                onMouseMove={() => {
+                  if (props.highlightIndex === -1) return;
+                  props.setDraggedOverIndex(index());
+                }}
+                class="relative text-nowrap"
+                style={
+                  index() === props.highlightIndex
+                    ? {
+                        "border-top-width": "2px",
+                        "border-left-width": "2px",
+                        "border-right-width": "2px",
+                        "border-top-color":
+                          "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
+                        "border-left-color":
+                          "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
+                        "border-right-color":
+                          "hsl(var(--accent-h) var(--accent-s) var(--accent-l))",
+                        "background-color": `hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 10%)`,
+                      }
+                    : props.highlightIndex !== -1 &&
+                        index() === props.draggedOverIndex
+                      ? props.highlightIndex < index()
+                        ? draggedOverRight
+                        : draggedOverLeft
+                      : {}
+                }
+              >
+                <div class="flex items-center">
+                  <Markdown
+                    app={plugin.app}
+                    markdown={h}
+                    sourcePath={ctx.sourcePath}
+                  />
+                  &nbsp;
+                  <PropertyIcon
+                    property={props.properties[index()]}
+                    type={propertyTypes()[index()]}
+                  />
+                </div>
+              </th>
+            </Show>
           )}
         </For>
       </tr>

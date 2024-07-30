@@ -56,7 +56,7 @@ import { Toggle } from "./components/ui/toggle";
 import {
   CodeBlockContext,
   CodeBlockInfo,
-  uesCodeBlock,
+  useCodeBlock,
 } from "./hooks/useDataEdit";
 import { MarkdownView } from "obsidian";
 import { Combobox } from "@kobalte/core/combobox";
@@ -75,6 +75,7 @@ export type AppProps = CodeBlockInfo & {
     Record<string, ModifiedDataviewQueryResult>
   >;
   setConfigStore: SetStoreFunction<DataEditBlockConfig>;
+  hideFileCol: boolean;
 };
 
 function App(props: AppProps) {
@@ -106,47 +107,14 @@ function App(props: AppProps) {
   updateQueryResults();
   registerDataviewEvents(plugin, updateQueryResults);
 
-  // let view: MarkdownView;
-  // // TODO this probably isn't the best way to do it, but it works
-  // const onContainerClick = (e: Event) => {
-  //   console.log("container focused");
-  //   // Not properly typed in the API
-  //   const mode = view.getMode() as "source" | "preview";
-  //   // console.log("mode: ", mode);
-  //   if (mode === "preview") {
-  //     e.stopPropagation();
-  //     e.preventDefault();
-  //   }
-  // };
-
-  // onMount(() => {
-  //   (async () => {
-  //     // for some reason this only works with this timeout
-  //     await new Promise<void>((res) => setTimeout(res, 0));
-  //     codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
-  //       if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
-  //       view = leaf.view as MarkdownView;
-  //       leaf.view.containerEl.addEventListener("click", onContainerClick);
-  //     });
-  //   })();
-  // });
-
   onCleanup(() => {
     unregisterDataviewEvents(plugin, updateQueryResults);
-    // (async () => {
-    //   await new Promise<void>((res) => setTimeout(res, 0));
-    //   codeBlockInfo.plugin.app.workspace.iterateRootLeaves((leaf) => {
-    //     if (!leaf.view.containerEl.contains(codeBlockInfo.el)) return;
-    //     // console.log("does contain");
-    //     leaf.view.containerEl.removeEventListener("click", onContainerClick);
-    //   });
-    // })();
   });
 
   return (
     <CodeBlockContext.Provider value={codeBlockInfo}>
       <div class="h-fit w-full overflow-x-scroll">
-        <Table queryResults={queryResults()} />
+        <Table queryResults={queryResults()} hideFileCol={props.hideFileCol} />
       </div>
       <div class="flex items-center gap-2">
         <Toolbar config={config} setConfigStore={props.setConfigStore} />
@@ -161,7 +129,7 @@ export const Toolbar = (props: {
   config: DataEditBlockConfig;
   setConfigStore: SetStoreFunction<DataEditBlockConfig>;
 }) => {
-  const codeBlockInfo = uesCodeBlock();
+  const codeBlockInfo = useCodeBlock();
   const [isConfigOpen, setConfigOpen] = createSignal(false);
 
   const updateConfig = (
@@ -259,6 +227,18 @@ export const BlockConfigModal = (props: {
               name="lock-editing-toggle"
               checked={form.lockEditing}
               onCheckedChange={(b) => updateForm("lockEditing", b)}
+            />
+          </Setting>
+          <Setting
+            title="Header icons"
+            description="If enabled, will display the icon corresponding to the property type in the header cell."
+            labelFor="header-icons-toggle"
+          >
+            <Toggle
+              id="header-icons-toggle"
+              name="header-icons-toggle"
+              checked={form.headerIcons}
+              onCheckedChange={(b) => updateForm("headerIcons", b)}
             />
           </Setting>
           <Setting

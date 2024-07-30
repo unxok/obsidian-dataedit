@@ -2,7 +2,7 @@ import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
 import {
   DataviewPropertyValue,
   DataviewPropertyValueArray,
-  PropertyValueType,
+  PropertyType,
 } from "@/lib/types";
 import {
   checkIfDateHasTime,
@@ -18,7 +18,7 @@ import { ListTableDataWrapper } from "@/components/Inputs/list";
 import { NumberButtons, NumberInput } from "@/components/Inputs/number";
 import { TextInput } from "@/components/Inputs/text";
 import { MarkdownPostProcessorContext, Notice } from "obsidian";
-import { uesCodeBlock } from "@/hooks/useDataEdit";
+import { useCodeBlock } from "@/hooks/useDataEdit";
 import DataEdit from "@/main";
 
 export type TableDataProps<T = DataviewPropertyValue> = {
@@ -34,12 +34,17 @@ export const TableData = (props: TableDataProps) => {
   const {
     plugin,
     dataviewAPI: {
-      settings: { tableIdColumnName, defaultDateFormat, defaultDateTimeFormat },
+      settings: {
+        tableIdColumnName,
+        defaultDateFormat,
+        defaultDateTimeFormat,
+        renderNullAs,
+      },
       luxon,
     },
     config,
     ctx,
-  } = uesCodeBlock();
+  } = useCodeBlock();
   const valueType = createMemo(() => {
     return getValueType(props.value, props.header, luxon);
   });
@@ -59,14 +64,14 @@ export const TableData = (props: TableDataProps) => {
         // new Notice(e.target.tagName);
         // if number buttons are clicked
         if (e.target.tagName.toLowerCase() === "button") return;
-        if (valueType() === "list") return;
+        if (valueType() === "multitext") return;
         setEditing(true);
       }}
       onMouseMove={props.onMouseMove}
       style={props.style}
     >
       <Show
-        when={valueType() !== "list"}
+        when={valueType() !== "multitext" || valueType() !== "aliases"}
         fallback={
           <ListTableDataWrapper
             {...(props as TableDataProps<DataviewPropertyValueArray>)}
@@ -100,6 +105,7 @@ export const TableData = (props: TableDataProps) => {
                 ctx={ctx}
                 defaultDateFormat={defaultDateFormat}
                 defaultDateTimeFormat={defaultDateTimeFormat}
+                renderNullAs={renderNullAs}
               />
             </div>
           }
@@ -129,11 +135,12 @@ export const TableData = (props: TableDataProps) => {
 
 export type TableDataDisplayProps = TableDataProps & {
   setEditing: Setter<boolean>;
-  valueType: PropertyValueType;
+  valueType: PropertyType;
   plugin: DataEdit;
   ctx: MarkdownPostProcessorContext;
   defaultDateFormat: string;
   defaultDateTimeFormat: string;
+  renderNullAs: string;
 };
 export const TableDataDisplay = (props: TableDataDisplayProps) => {
   return (
@@ -142,7 +149,9 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
         <Markdown
           class="size-full"
           app={props.plugin.app}
-          markdown={tryDataviewLinkToMarkdown(props.value)}
+          markdown={
+            tryDataviewLinkToMarkdown(props.value) || props.renderNullAs
+          }
           sourcePath={props.ctx.sourcePath}
         />
       </Show>
@@ -164,7 +173,7 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
 
 export type TableDataEditProps<T = unknown> = TableDataProps<T> & {
   setEditing: Setter<boolean>;
-  valueType: PropertyValueType;
+  valueType: PropertyType;
 };
 export const TableDataEdit = (props: TableDataEditProps) => {
   // return <TextInput {...props} />;

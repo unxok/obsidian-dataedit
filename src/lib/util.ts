@@ -1,6 +1,7 @@
 import {
   App,
   MarkdownView,
+  MetadataCache,
   Notice,
   parseYaml,
   Plugin,
@@ -14,7 +15,7 @@ import {
   DataviewLink,
   DataviewPropertyValueNotLink,
   PropertyInfo,
-  PropertyValueType,
+  PropertyType,
 } from "./types";
 import { DateTime } from "luxon";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "./constants";
@@ -61,7 +62,7 @@ export const getValueType: (
   value: unknown,
   property: string,
   luxon: DataviewAPI["luxon"],
-) => PropertyValueType = (value, property, luxon) => {
+) => PropertyType = (value, property, luxon) => {
   const t = typeof value;
   if (t === "string") return "text";
   if (t === "number") return "number";
@@ -69,7 +70,7 @@ export const getValueType: (
   if (t === "object") {
     // console.log("object value: ", value);
     if (Array.isArray(value)) {
-      return property === "tags" ? "tags" : "list";
+      return property === "tags" ? "tags" : "multitext";
     }
     if (luxon.DateTime.isDateTime(value)) {
       const dt = value as unknown as DateTime;
@@ -79,6 +80,21 @@ export const getValueType: (
     return "text";
   }
   throw new Error("Failed to get property value type");
+};
+
+export const getPropertyTypes: (
+  properties: string[],
+  metadataCache: MetadataCache,
+) => PropertyType[] = (properties, metadataCache) => {
+  // @ts-expect-error Private API
+  const infos = metadataCache.getAllPropertyInfos() as Record<
+    string,
+    PropertyInfo
+  >;
+  return properties.map((p) => {
+    if (!infos[p]) return "unknown";
+    return infos[p].type as PropertyType;
+  });
 };
 
 export const registerDataviewEvents = (
@@ -396,6 +412,7 @@ export const getTableLine = (codeBlockText: string) => {
 
 export type DataEditBlockConfig = {
   lockEditing: boolean;
+  headerIcons: boolean;
   newNoteTemplatePath: string;
   tableClassName: string;
 };
@@ -404,12 +421,16 @@ export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
 
 export const defaultDataEditBlockConfig: DataEditBlockConfig = {
   lockEditing: false,
+  headerIcons: true,
   newNoteTemplatePath: "",
   tableClassName: "",
 };
 
 // TODO adds one extra line of space (not incrementally) which doesn't break anything but looks weird
-export const splitQueryOnConfig = (codeBlockText: string) => {
+export const splitQueryOnConfig: (codeBlockText: string) => {
+  query: string;
+  config: DataEditBlockConfig;
+} = (codeBlockText: string) => {
   const [query, configStr] = codeBlockText.split(/\n^---$\n/gim);
   try {
     const config = parseYaml(configStr);
@@ -428,14 +449,36 @@ export const splitQueryOnConfig = (codeBlockText: string) => {
   }
 };
 
-export const getScroller = (view: MarkdownView) => {
-  // TODO this is definitely not the right way to do this
-  const scrollEls = Array.from(document.querySelectorAll(".cm-scroller"));
-  // TODO the find() never works
-  const scroller =
-    scrollEls.find((el) => el.contains(view.contentEl)) ?? scrollEls[0];
-  return scroller;
-};
+/**
+ * Records the current scroll on instantiation, and provides the `fix()` method to revert back to that scroll position.
+ *
+ * Editing a note with the `Editor` API will usually result in a weird scroll down. Not sure why, but this class can be used to fix that.
+ *
+ * Having to do this feels like I am doing something wrong but for now it works.
+ */
+export class ScrollFixer {
+  private scroller: HTMLElement;
+  private prevScroll: number;
+
+  constructor(el: HTMLElement) {
+    const scroller = el.closest(".cm-scroller") as HTMLElement | null;
+    if (!scroller) {
+      throw new Error("Could not find scroller");
+    }
+    this.scroller = scroller;
+    this.prevScroll = scroller.scrollTop;
+  }
+
+  /**
+   * Restores scroll position back to the previously recorded position.
+   */
+  fix(): void {
+    // this will be used after a immediately after a DOM mutation so we run this next in the event queue to give it time to update
+    setTimeout(() => {
+      this.scroller.scrollTo({ top: this.prevScroll, behavior: "instant" });
+    });
+  }
+}
 
 // TODO fix scroll issue
 export const updateBlockConfig = (
@@ -450,7 +493,8 @@ export const updateBlockConfig = (
     plugin: {
       app: { workspace },
     },
-    query,
+    query: preQuery,
+    hideFileCol,
   } = codeBlockInfo;
   // update the old config
   const newConfig = { ...config, [key]: value };
@@ -458,19 +502,22 @@ export const updateBlockConfig = (
   const newConfigStr = stringifyYaml(newConfig);
   // text is the entire notes text and is essentially a synchronous read
   const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
+  // remove the ', file.link' we added if so
+  const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
+
   const newCodeBlockText =
     "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
   const editor = workspace.activeEditor?.editor;
   if (!editor) {
     return;
   }
-  const last = performance.now();
+  const scrollFixer = new ScrollFixer(el);
   editor.replaceRange(
     newCodeBlockText,
     { line: lineStart, ch: 0 },
     { line: lineEnd, ch: NaN },
   );
-  console.log("time to modify: ", performance.now() - last);
+  scrollFixer.fix();
 };
 
 // TODO could probably combine this with the updater func since it's literally just one line difference
@@ -486,25 +533,29 @@ export const setBlockConfig = (
     plugin: {
       app: { workspace },
     },
-    query,
+    query: preQuery,
+    hideFileCol,
   } = codeBlockInfo;
   // turn into yaml text. Always includes a newline character at the end
   const newConfigStr = stringifyYaml(config);
   // text is the entire notes text and is essentially a synchronous read
   const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
+  // remove the ', file.link' we added if so
+  const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
   const newCodeBlockText =
     "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
   const editor = workspace.activeEditor?.editor;
   if (!editor) {
     return;
   }
-  const last = performance.now();
+
+  const scrollFixer = new ScrollFixer(el);
   editor.replaceRange(
     newCodeBlockText,
     { line: lineStart, ch: 0 },
     { line: lineEnd, ch: NaN },
   );
-  console.log("time to modify: ", performance.now() - last);
+  scrollFixer.fix();
 };
 
 export const getTemplateFiles = (app: App) => {
@@ -516,4 +567,13 @@ export const getTemplateFiles = (app: App) => {
   if (!folder) return;
   if (!folder.children.length) return;
   return folder.children.filter((t) => t instanceof TFile);
+};
+
+export const ensureFileLinkColumn = (source: string) => {
+  if (!source.toLowerCase().startsWith("table without id"))
+    return { source, hide: false };
+  const lines = source.split("\n");
+  if (lines[0].includes("file.link")) return { source, hide: false };
+  lines[0] += ", file.link";
+  return { source: lines.join("\n"), hide: true };
 };

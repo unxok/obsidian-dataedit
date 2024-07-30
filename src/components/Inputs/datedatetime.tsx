@@ -1,16 +1,16 @@
-import { PropertyValueType } from "@/lib/types";
+import { PropertyType } from "@/lib/types";
 import { checkIfDateHasTime, updateMetadataProperty } from "@/lib/util";
 import { DateTime } from "luxon";
 import { Setter, createMemo } from "solid-js";
 import { TableDataProps } from "../Table/TableData";
 import { autofocus } from "@solid-primitives/autofocus";
-import { uesCodeBlock } from "@/hooks/useDataEdit";
+import { useCodeBlock } from "@/hooks/useDataEdit";
 // To prevent treeshaking
 autofocus;
 
 type DateDatetimeInputProps = TableDataProps<DateTime> & {
   setEditing: Setter<boolean>;
-  valueType: PropertyValueType;
+  valueType: PropertyType;
 };
 
 export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
@@ -19,7 +19,7 @@ export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
     dataviewAPI: {
       luxon: { DateTime },
     },
-  } = uesCodeBlock();
+  } = useCodeBlock();
   const isTime = createMemo(() => {
     return checkIfDateHasTime(props.value);
   });
