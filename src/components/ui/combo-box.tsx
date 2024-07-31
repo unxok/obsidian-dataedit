@@ -1,4 +1,6 @@
+import { useCodeBlock } from "@/hooks/useDataEdit";
 import { NO_MATCH_FOUND } from "@/lib/constants";
+import { getAllFiles, getAllFolders, getTemplateFiles } from "@/lib/util";
 import { cn } from "@/libs/cn";
 import { createFilter } from "@kobalte/core";
 import type {
@@ -13,10 +15,18 @@ import { App, HeadingCache, SectionCache, TFile } from "obsidian";
 import type {
   JSXElement,
   ParentProps,
+  Setter,
   ValidComponent,
   VoidProps,
 } from "solid-js";
-import { createEffect, createSignal, Index, Show, splitProps } from "solid-js";
+import {
+  createComputed,
+  createEffect,
+  createSignal,
+  Index,
+  Show,
+  splitProps,
+} from "solid-js";
 import { createStore } from "solid-js/store";
 
 export const Combobox = ComboboxPrimitive;
@@ -69,7 +79,7 @@ export const ComboboxTrigger = <T extends ValidComponent = "button">(
         // obsidian always show's aria labels as tooltips, which looks weird in this case
         aria-label="" // TODO look into a way to disable tooltip from aria-label in obsidian?
         class={cn(
-          "size-fit border-none bg-transparent p-1 shadow-none",
+          "size-fit overflow-visible border-none bg-transparent p-0 shadow-none",
           local.class,
         )}
         {...rest}
@@ -405,6 +415,174 @@ export const PromptComboBox = (props: PromptComboBoxProps) => {
         />
       </ComboboxTrigger>
       <ComboboxContent promptInstructions={promptInstructions} />
+    </Combobox>
+  );
+};
+
+type Option = {
+  value: string;
+  label: string;
+  disabled: boolean;
+};
+
+type OptionGroup = {
+  label: string;
+  options: Option[];
+};
+
+export const FilepathComboBox = (props: {
+  pathValue: string;
+  setPathValue: (path: string) => void;
+  templates: boolean;
+}) => {
+  const {
+    plugin: { app },
+  } = useCodeBlock();
+
+  const templateOptions: OptionGroup = {
+    label: "Templates",
+    options:
+      getTemplateFiles(app)?.map((f) => ({
+        label: f.basename,
+        value: f.path,
+        disabled: false,
+      })) ?? [],
+  };
+
+  const fileOptions: OptionGroup = {
+    label: "All files",
+    options:
+      getAllFiles(app)?.map((f) => ({
+        label: f.basename,
+        value: f.path,
+        disabled: false,
+      })) ?? [],
+  };
+  // const options = getOptions();
+  const options = props.templates
+    ? [templateOptions, fileOptions]
+    : [fileOptions];
+  const findChosen = () => {
+    const defaultOption = { value: "", label: "", disabled: false };
+    if (!props.templates) {
+      return (
+        fileOptions.options.find((f) => f.value === props.pathValue) ??
+        defaultOption
+      );
+    }
+    return (
+      templateOptions.options.find((f) => f.value === props.pathValue) ??
+      fileOptions.options.find((f) => f.value === props.pathValue) ??
+      defaultOption
+    );
+  };
+  const [inputValue, setInputValue] = createStore<Option>(findChosen());
+
+  createComputed(() => {
+    props.setPathValue(inputValue.value);
+  });
+
+  return (
+    <Combobox<Option, OptionGroup>
+      value={inputValue}
+      onChange={setInputValue}
+      onInputChange={(value) =>
+        value === "" && setInputValue({ label: "", value: "", disabled: false })
+      }
+      // onInputChange={(value) => props.setValue(value)}
+      options={options}
+      optionValue={(opt) => opt?.value ?? ""}
+      optionLabel={(opt) => opt?.value ?? ""}
+      optionDisabled={(opt) => opt.disabled}
+      optionGroupChildren={"options"}
+      itemComponent={(itemProps) => (
+        <ComboboxItem
+          item={itemProps.item}
+          note={itemProps.item.rawValue.value}
+        >
+          {itemProps.item.rawValue.label}
+        </ComboboxItem>
+      )}
+      sectionComponent={(sectionProps) => (
+        <Show when={props.templates}>
+          <ComboboxItem item={{ ...sectionProps.section, disabled: true }}>
+            {sectionProps.section.rawValue.label}
+          </ComboboxItem>
+        </Show>
+      )}
+    >
+      <ComboboxTrigger>
+        <ComboboxInput />
+      </ComboboxTrigger>
+      <ComboboxContent />
+    </Combobox>
+  );
+};
+
+export const FolderpathComboBox = (props: {
+  pathValue: string;
+  setPathValue: (path: string) => void;
+}) => {
+  const {
+    plugin: { app },
+  } = useCodeBlock();
+
+  const fileOptions: OptionGroup = {
+    label: "All files",
+    options:
+      getAllFolders(app)?.map((f) => ({
+        label: f.name,
+        value: f.path,
+        disabled: false,
+      })) ?? [],
+  };
+
+  const findChosen = () => {
+    const defaultOption = { value: "", label: "", disabled: false };
+    return (
+      fileOptions.options.find((f) => f.value === props.pathValue) ??
+      defaultOption
+    );
+  };
+  const [inputValue, setInputValue] = createStore<Option>(findChosen());
+
+  createComputed(() => {
+    props.setPathValue(inputValue.value);
+  });
+
+  return (
+    <Combobox<Option, OptionGroup>
+      value={inputValue}
+      onChange={setInputValue}
+      onInputChange={(value) =>
+        value === "" && setInputValue({ label: "", value: "", disabled: false })
+      }
+      // onInputChange={(value) => props.setValue(value)}
+      options={[fileOptions]}
+      optionValue={(opt) => opt?.value ?? ""}
+      optionLabel={(opt) => opt?.value ?? ""}
+      optionDisabled={(opt) => opt.disabled}
+      optionGroupChildren={"options"}
+      itemComponent={(itemProps) => (
+        <ComboboxItem
+          item={itemProps.item}
+          note={itemProps.item.rawValue.value}
+        >
+          {itemProps.item.rawValue.label}
+        </ComboboxItem>
+      )}
+      // sectionComponent={(sectionProps) => (
+      //   <Show when={props.templates}>
+      //     <ComboboxItem item={{ ...sectionProps.section, disabled: true }}>
+      //       {sectionProps.section.rawValue.label}
+      //     </ComboboxItem>
+      //   </Show>
+      // )}
+    >
+      <ComboboxTrigger>
+        <ComboboxInput />
+      </ComboboxTrigger>
+      <ComboboxContent />
     </Combobox>
   );
 };

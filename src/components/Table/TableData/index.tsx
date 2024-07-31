@@ -86,15 +86,10 @@ export const TableData = (props: TableDataProps) => {
           }
           fallback={
             <div
-              onClick={
+              class={
                 isEditableProperty(props.property)
-                  ? undefined
-                  : config.lockEditing
-                    ? undefined
-                    : () =>
-                        new Notice(
-                          "This is a calculated property, so you can't edit it!",
-                        )
+                  ? ""
+                  : "hover:cursor-not-allowed"
               }
             >
               <TableDataDisplay

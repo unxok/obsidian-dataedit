@@ -414,6 +414,7 @@ export type DataEditBlockConfig = {
   lockEditing: boolean;
   headerIcons: boolean;
   newNoteTemplatePath: string;
+  newNoteFolderPath: string;
   tableClassName: string;
 };
 
@@ -423,6 +424,7 @@ export const defaultDataEditBlockConfig: DataEditBlockConfig = {
   lockEditing: false,
   headerIcons: true,
   newNoteTemplatePath: "",
+  newNoteFolderPath: "",
   tableClassName: "",
 };
 
@@ -567,6 +569,14 @@ export const getTemplateFiles = (app: App) => {
   if (!folder) return;
   if (!folder.children.length) return;
   return folder.children.filter((t) => t instanceof TFile);
+};
+
+export const getAllFiles = (app: App) => {
+  return app.vault.getAllLoadedFiles().filter((f) => f instanceof TFile);
+};
+
+export const getAllFolders = (app: App) => {
+  return app.vault.getAllFolders(false);
 };
 
 export const ensureFileLinkColumn = (source: string) => {

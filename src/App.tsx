@@ -65,6 +65,7 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxTrigger,
+  FilepathComboBox,
   PromptComboBox,
 } from "./components/ui/combo-box";
 
@@ -132,6 +133,8 @@ export const Toolbar = (props: {
   const codeBlockInfo = useCodeBlock();
   const [isConfigOpen, setConfigOpen] = createSignal(false);
 
+  const [value, setValue] = createSignal("none");
+
   const updateConfig = (
     key: DataEditBlockConfigKey,
     value: DataEditBlockConfig[typeof key],
@@ -174,12 +177,6 @@ export const Toolbar = (props: {
           );
         }}
       </For>
-      {/* <div>
-        <PromptComboBox
-          app={codeBlockInfo.plugin.app}
-          defaultOptions={["option a", "option b", "option c"]}
-        />
-      </div> */}
     </>
   );
 };
@@ -192,7 +189,6 @@ export const BlockConfigModal = (props: {
   trigger?: JSXElement;
 }) => {
   const [form, setForm] = createStore(props.config);
-  const templates = getTemplateFiles(props.codeBlockInfo.plugin.app);
 
   const updateForm = (
     key: keyof DataEditBlockConfig,
@@ -246,13 +242,19 @@ export const BlockConfigModal = (props: {
             description="Path to the template file to use by default for notes created view the 'add row' button. Must be within the template folder configured in core plugin setting."
             labelFor="new-note-template"
           >
+            <FilepathComboBox
+              pathValue={form.newNoteTemplatePath}
+              setPathValue={(v) => updateForm("newNoteTemplatePath", v)}
+              templates={true}
+            />
             {/* TODO make this a combobox */}
-            <input
+            {/* <input
               type="text"
               id="new-note-template"
               name="new-note-template"
               list="template-list"
               value={form.newNoteTemplatePath}
+              class="w-48"
               onInput={(e) =>
                 updateForm("newNoteTemplatePath", e.currentTarget.value)
               }
@@ -261,7 +263,7 @@ export const BlockConfigModal = (props: {
               <For each={templates}>
                 {(f) => <option value={f.path}>{f.basename}</option>}
               </For>
-            </datalist>
+            </datalist> */}
           </Setting>
           <Setting
             title="Table CSS class"

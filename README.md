@@ -67,6 +67,8 @@ Each 'type' will change what type of input and how values are updated in frontma
 - [x] custom class names for table
 - [x] lock editing
 - [x] property type icons
+- [x] default template for add row button
+- [x] default folder for add row button
 - [ ] custom options for column
 - [ ] column options
   - [ ] alignment

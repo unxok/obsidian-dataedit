@@ -19,11 +19,13 @@ import {
   getExistingProperties,
   getTableLine,
   getTemplateFiles,
+  setBlockConfig,
   updateBlockConfig,
 } from "@/lib/util";
 import { Markdown } from "../Markdown";
 import { MarkdownView, Notice } from "obsidian";
 import { useCodeBlock } from "@/hooks/useDataEdit";
+import { FilepathComboBox, FolderpathComboBox } from "../ui/combo-box";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -246,111 +248,115 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
   } = codeBlockInfo;
 
   const [titleValue, setTitleValue] = createSignal("");
-  const [templateValue, setTemplateValue] = createSignal("");
+  const [templateValue, setTemplateValue] = createSignal(
+    config.newNoteTemplatePath,
+  );
+  const [folderValue, setFolderValue] = createSignal(config.newNoteFolderPath);
   const [isSaveDefault, setSaveDefault] = createSignal(false);
-  const templates = getTemplateFiles(app);
 
-  const handleHasDefault = () => {
-    if (!config.newNoteTemplatePath) return;
-    const found = templates?.find((f) => f.path === config.newNoteTemplatePath);
-    if (!found) return;
-    setTemplateValue(found.name.slice(0, -3));
+  const createNote = async () => {
+    // todo technically you could have something like 'Note.md.sdflkj.sdf'
+    const title = titleValue().includes(".md")
+      ? titleValue()
+      : titleValue() + ".md";
+    if (!templateValue()) {
+      try {
+        await app.vault.create(title, "");
+        props.setOpen(false);
+        return;
+      } catch (_) {
+        new Notice("Note already exists, choose a different name");
+        return;
+      }
+    }
+    const templateFile = app.vault.getFileByPath(templateValue());
+    if (!templateFile) {
+      new Notice("Couldn't find template note. Double check the file path!");
+      return;
+    }
+    const content = await app.vault.cachedRead(templateFile!);
+    try {
+      await app.vault.create(folderValue() + "/" + title, content);
+    } catch (_) {
+      new Notice("Note already exists, choose a different name");
+      return;
+    }
+
+    if (isSaveDefault()) {
+      setBlockConfig(
+        {
+          ...config,
+          newNoteTemplatePath: templateValue(),
+          newNoteFolderPath: folderValue(),
+        },
+        codeBlockInfo,
+      );
+    }
+
+    props.setOpen(false);
   };
-
-  handleHasDefault();
 
   return (
     <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
       <DialogContent>
         <DialogTitle>Create new note</DialogTitle>
-        <div class="flex w-full items-center justify-between">
-          <label for="title-input">Title: </label>
-          <input
-            use:autofocus
-            autofocus
-            name="title-input"
-            id="title-input"
-            type="text"
-            value={titleValue()}
-            onInput={(e) => setTitleValue(e.target.value)}
-          />
-        </div>
-        <div class="flex w-full items-center justify-between">
-          <label for="template-input">Template (optional): </label>
-          <input
-            disabled={!templates}
-            name="template-input"
-            id="template-input"
-            type="text"
-            list="template-datalist"
-            value={templateValue()}
-            onInput={(e) => setTemplateValue(e.target.value)}
-          />
-          <Show when={templates}>
-            <datalist id="template-datalist">
-              <For each={templates}>
-                {(file) => (
-                  <option value={file.name.slice(0, -3)}>{file.path}</option>
-                )}
-              </For>
-            </datalist>
-          </Show>
-        </div>
-        <div class="flex items-center gap-1">
-          <input
-            type="checkbox"
-            id="save-as-default-template"
-            name="save-as-default-template"
-            checked={isSaveDefault()}
-            onClick={() => setSaveDefault((prev) => !prev)}
-          />
-          <label for="save-as-default-template">
-            Save as default for this block
-          </label>
-        </div>
-        <div class="w-full">
-          <button
-            disabled={!titleValue()}
-            onClick={async () => {
-              // todo technically you could have something like 'Note.md.sdflkj.sdf'
-              const title = titleValue().includes(".md")
-                ? titleValue()
-                : titleValue() + ".md";
-              if (!templates) {
-                try {
-                  await app.vault.create(title, "");
-                  props.setOpen(false);
-                  return;
-                } catch (_) {
-                  new Notice("Note already exists, choose a different name");
-                  return;
-                }
-              }
-              const templateFile = templates.find(
-                (t) => t.name === templateValue() + ".md",
-              );
-              const content = await app.vault.cachedRead(templateFile!);
-              try {
-                await app.vault.create(title, content);
-              } catch (_) {
-                new Notice("Note already exists, choose a different name");
-                return;
-              }
-
-              if (isSaveDefault()) {
-                const path = templates.find(
-                  (f) => f.name === templateValue() + ".md",
-                )!.path;
-                updateBlockConfig("newNoteTemplatePath", path, codeBlockInfo);
-              }
-
-              props.setOpen(false);
-            }}
-            class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"
-          >
-            add
-          </button>
-        </div>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await createNote();
+          }}
+          class="flex flex-col gap-3"
+        >
+          <div class="flex w-full items-center justify-between">
+            <label for="title-input">Title: </label>
+            <input
+              use:autofocus
+              autofocus
+              name="title-input"
+              id="title-input"
+              type="text"
+              value={titleValue()}
+              onInput={(e) => setTitleValue(e.target.value)}
+            />
+          </div>
+          <div class="flex w-full items-center justify-between">
+            <label for="template-input">Folder (optional): </label>
+            <FolderpathComboBox
+              pathValue={folderValue()}
+              setPathValue={(v) => setFolderValue(v)}
+            />
+          </div>
+          <div class="flex w-full items-center justify-between">
+            <label for="template-input">Template (optional): </label>
+            <FilepathComboBox
+              pathValue={templateValue()}
+              setPathValue={(v) => setTemplateValue(v)}
+              templates={true}
+            />
+          </div>
+          <div class="flex items-center gap-1">
+            <input
+              type="checkbox"
+              id="save-as-default-template"
+              name="save-as-default-template"
+              checked={isSaveDefault()}
+              onClick={() => setSaveDefault((prev) => !prev)}
+            />
+            <label for="save-as-default-template">
+              Save as default for this block
+            </label>
+          </div>
+          <div class="w-full">
+            <button
+              type="submit"
+              disabled={!titleValue()}
+              // onClick={}
+              class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"
+            >
+              add
+            </button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
