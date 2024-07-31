@@ -9,7 +9,14 @@ import {
   getValueType,
   tryDataviewLinkToMarkdown,
 } from "@/lib/util";
-import { createSignal, createMemo, Show, Setter, JSX } from "solid-js";
+import {
+  createSignal,
+  createMemo,
+  Show,
+  Setter,
+  JSX,
+  mergeProps,
+} from "solid-js";
 import { Markdown } from "@/components/Markdown";
 import { DateTime } from "luxon";
 import { CheckboxInput } from "@/components/Inputs/checkbox";
@@ -25,6 +32,7 @@ export type TableDataProps<T = DataviewPropertyValue> = {
   value: T;
   header: string;
   property: string;
+  propertyType: PropertyType;
   filePath: string;
   style: string | JSX.CSSProperties | undefined;
   onMouseMove: (e: MouseEvent) => void;
@@ -46,8 +54,11 @@ export const TableData = (props: TableDataProps) => {
     ctx,
   } = useCodeBlock();
   const valueType = createMemo(() => {
-    return getValueType(props.value, props.header, luxon);
+    const t = getValueType(props.value, props.header, luxon);
+    if (t !== "unknown") return t;
+    return props.propertyType;
   });
+
   const isEditableProperty = (property: string) => {
     // console.log("property: ", property);
     const str = (property ?? "").toLowerCase();
@@ -171,8 +182,6 @@ export type TableDataEditProps<T = unknown> = TableDataProps<T> & {
   valueType: PropertyType;
 };
 export const TableDataEdit = (props: TableDataEditProps) => {
-  // return <TextInput {...props} />;
-
   return (
     <>
       <Show when={props.valueType === "text"}>

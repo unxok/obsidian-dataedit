@@ -3,8 +3,8 @@ import {
   DataviewQueryResultValues,
   DataviewLink,
 } from "@/lib/types";
-import { getIdColumnIndex } from "@/lib/util";
-import { For, Setter, Show } from "solid-js";
+import { getIdColumnIndex, getPropertyTypes } from "@/lib/util";
+import { createMemo, For, Setter, Show } from "solid-js";
 import { TableData } from "../TableData";
 import { useCodeBlock } from "@/hooks/useDataEdit";
 
@@ -46,7 +46,14 @@ export const TableBody = (props: TableBodyProps) => {
     dataviewAPI: {
       settings: { tableIdColumnName },
     },
+    plugin: {
+      app: { metadataCache },
+    },
   } = codeBlockInfo;
+
+  const propertyTypes = createMemo(() => {
+    return getPropertyTypes(props.properties, metadataCache);
+  });
 
   return (
     <tbody>
@@ -67,6 +74,7 @@ export const TableBody = (props: TableBodyProps) => {
                     value={value}
                     header={props.headers[valueIndex()]}
                     property={props.properties[valueIndex()]}
+                    propertyType={propertyTypes()[valueIndex()]}
                     filePath={
                       (
                         row[

@@ -3,8 +3,16 @@ import {
   DataviewQueryResultSuccess,
   DataviewQueryResult,
   DataviewQueryResultFail,
+  PropertyType,
 } from "@/lib/types";
-import { createSignal, For, Show, createMemo, Setter } from "solid-js";
+import {
+  createSignal,
+  For,
+  Show,
+  createMemo,
+  Setter,
+  createComputed,
+} from "solid-js";
 import { TableBody } from "./TableBody";
 import { TableHead } from "./TableHead";
 import Plus from "lucide-solid/icons/Plus";
@@ -16,16 +24,28 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import {
+  getAllFolders,
   getExistingProperties,
   getTableLine,
   getTemplateFiles,
+  ScrollFixer,
   setBlockConfig,
   updateBlockConfig,
 } from "@/lib/util";
 import { Markdown } from "../Markdown";
 import { MarkdownView, Notice } from "obsidian";
 import { useCodeBlock } from "@/hooks/useDataEdit";
-import { FilepathComboBox, FolderpathComboBox } from "../ui/combo-box";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxTrigger,
+  FilepathComboBox,
+  FolderpathComboBox,
+} from "../ui/combo-box";
+import { createStore } from "solid-js/store";
+import { PropertyIcon } from "../PropertyIcon";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -129,13 +149,6 @@ const AddColumnButton = (props: {
     query,
   } = useCodeBlock();
 
-  const view = app.workspace.getActiveViewOfType(MarkdownView);
-
-  if (!view) {
-    // throw new Error("This should be impossible");
-    return;
-  }
-
   const sectionInfo = ctx.getSectionInfo(el);
   if (!sectionInfo) {
     // throw new Error("This should be impossible");
@@ -161,6 +174,12 @@ const AddColumnButton = (props: {
   });
 
   const addCol = () => {
+    // const view = app.workspace.getActiveViewOfType(MarkdownView);
+    const editor = app.workspace.activeEditor?.editor;
+    if (!editor) {
+      // throw new Error("This should be impossible");
+      return;
+    }
     const prop = propertyValue().trim();
     const alias = aliasValue();
     const aliasStr = alias
@@ -169,12 +188,13 @@ const AddColumnButton = (props: {
     const { line, index } = getTableLine(query);
     // offset by 1 since lineStart is with backticks but query is without
     const relativeIndex = lineStart + index + 1;
-    view.editor.setLine(relativeIndex, line + ", " + prop + aliasStr);
+    editor.setLine(relativeIndex, line + ", " + prop + aliasStr);
     // lines[index + 1] += ", " + prop + aliasStr;
   };
 
   const properties = getExistingProperties(app);
   const propertyNames = Object.keys(properties).sort();
+  const propertyTypes = propertyNames.map((p) => properties[p].type);
   return (
     <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
       <DialogTrigger
@@ -191,7 +211,13 @@ const AddColumnButton = (props: {
         <DialogTitle>Add column</DialogTitle>
         <div class="flex w-full flex-wrap items-center justify-between">
           <label for="property-input">Property: </label>
-          <input
+          <PropertiesComboBox
+            value={propertyValue()}
+            setValue={setPropertyValue}
+            propertyNames={propertyNames}
+            propertyTypes={propertyTypes}
+          />
+          {/* <input
             use:autofocus
             autofocus
             name="property-input"
@@ -205,7 +231,7 @@ const AddColumnButton = (props: {
             <For each={propertyNames}>
               {(prop) => <option value={prop}>{properties[prop].type}</option>}
             </For>
-          </datalist>
+          </datalist> */}
         </div>
         <div class="flex w-full flex-wrap items-center justify-between">
           <label for="alias-input">Alias (optional): </label>
@@ -221,7 +247,7 @@ const AddColumnButton = (props: {
           app={app}
           markdown={markdown()}
           sourcePath={ctx.sourcePath}
-          class="max-h-[50%] overflow-y-auto"
+          class="max-h-[50%] w-full overflow-y-auto"
         />
         <div class="w-full">
           <button
@@ -237,6 +263,57 @@ const AddColumnButton = (props: {
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// TODO it seems this is normal behavior based on the docs, but it will clear the value if unfocused when options are shown and none is selected
+const PropertiesComboBox = (props: {
+  value: string;
+  setValue: (value: string) => void;
+  propertyNames: string[];
+  propertyTypes: string[];
+  mount?: Node;
+}) => {
+  const [inputValue, setInputValue] = createSignal(props.value);
+
+  return (
+    <Combobox
+      disallowEmptySelection={true}
+      value={inputValue()}
+      onChange={(value) => {
+        props.setValue(value);
+        setInputValue(value);
+      }}
+      onInputChange={(value) => {
+        value === "" && props.setValue("");
+        // props.setValue(value);
+      }}
+      // onInputChange={(value) => props.setValue(value)}
+      options={props.propertyNames}
+      itemComponent={(itemProps) => (
+        <ComboboxItem
+          item={itemProps.item}
+          note={props.propertyTypes[itemProps.item.index]}
+          auxLabel={
+            <PropertyIcon
+              property=""
+              type={props.propertyTypes[itemProps.item.index] as PropertyType}
+            />
+          }
+        >
+          {itemProps.item.rawValue}
+        </ComboboxItem>
+      )}
+    >
+      <ComboboxTrigger>
+        <ComboboxInput
+          onBlur={(e) => {
+            props.setValue(e.currentTarget.value);
+          }}
+        />
+      </ComboboxTrigger>
+      <ComboboxContent mount={props.mount} />
+    </Combobox>
   );
 };
 
@@ -303,7 +380,9 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
         <form
           onSubmit={async (e) => {
             e.preventDefault();
+            const sf = new ScrollFixer(codeBlockInfo.el);
             await createNote();
+            sf.fix();
           }}
           class="flex flex-col gap-3"
         >
@@ -361,5 +440,3 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
     </Dialog>
   );
 };
-
-// TODO fix nested

@@ -113,6 +113,7 @@ type comboboxContentProps<T extends ValidComponent = "div"> =
   ComboboxContentProps<T> & {
     class?: string;
     promptInstructions?: PromptInstructions;
+    mount?: Node;
   };
 
 export const ComboboxContent = <T extends ValidComponent = "div">(
@@ -121,10 +122,11 @@ export const ComboboxContent = <T extends ValidComponent = "div">(
   const [local, rest] = splitProps(props as comboboxContentProps, [
     "class",
     "promptInstructions",
+    "mount",
   ]);
 
   return (
-    <ComboboxPrimitive.Portal>
+    <ComboboxPrimitive.Portal mount={local.mount}>
       <div class="twcss">
         <ComboboxPrimitive.Content
           class={cn(

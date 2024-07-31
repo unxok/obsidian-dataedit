@@ -114,11 +114,11 @@ function App(props: AppProps) {
 
   return (
     <CodeBlockContext.Provider value={codeBlockInfo}>
+      <div class="flex items-center gap-2">
+        <Toolbar config={config} setConfigStore={props.setConfigStore} />
+      </div>
       <div class="h-fit w-full overflow-x-scroll">
         <Table queryResults={queryResults()} hideFileCol={props.hideFileCol} />
-      </div>
-      <div class="flex -translate-y-4 items-center gap-2">
-        <Toolbar config={config} setConfigStore={props.setConfigStore} />
       </div>
     </CodeBlockContext.Provider>
   );
@@ -132,8 +132,6 @@ export const Toolbar = (props: {
 }) => {
   const codeBlockInfo = useCodeBlock();
   const [isConfigOpen, setConfigOpen] = createSignal(false);
-
-  const [value, setValue] = createSignal("none");
 
   const updateConfig = (
     key: DataEditBlockConfigKey,
