@@ -91,7 +91,7 @@ function App(props: AppProps) {
   }, defaultQueryResult);
 
   const updateQueryResults = async () => {
-    // console.log("we out here", props.query);
+    console.log("we out here", props.query);
     const truePropertyNames = getColumnPropertyNames(query);
     // console.log("true props; ", truePropertyNames);
     const result = await dataviewAPI.query(query);

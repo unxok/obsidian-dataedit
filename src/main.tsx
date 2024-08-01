@@ -20,12 +20,14 @@ const getDataviewAPI = (pApp?: ObsidianApp) => {
     // @ts-ignore
     const { plugins } = pApp.plugins;
     if (plugins.hasOwnProperty("dataview")) {
+      // @ts-ignore TODO obsidian-typings messed up this type
       return plugins.dataview.api as DataviewAPI;
     }
   }
   // @ts-ignore
   const gPlugins = app.plugins.plugins;
   if (gPlugins.hasOwnProperty("dataview")) {
+    // @ts-ignore TODO obsidian-typings messed up this type
     return gPlugins.dataview.api as DataviewAPI;
   }
   const msg = "Failed to get Dataview API. Is Dataview installed & enabled?";
@@ -74,7 +76,8 @@ export default class DataEdit extends Plugin {
           });
         });
 
-        (async () => {
+        // TODO this breaks with using markdown editors in the table
+        const watchEditMode = async () => {
           await new Promise<void>((res) => setTimeout(res, 0));
           const container = el.closest("[data-mode]");
           if (!container) {
@@ -88,13 +91,16 @@ export default class DataEdit extends Plugin {
 
           // mutation won't run callback on instantiation so we check here
           const mode = container.getAttribute("data-mode");
+          console.log("mode: ", mode);
           if (mode === "preview") {
             setConfigStore("lockEditing", true);
           }
           // if (mode === "source") {
           //   setConfigStore("lockEditing", false);
           // }
-        })();
+        };
+
+        // watchEditMode();
 
         // for some reason, doing this as a signal inside each <App /> causes glitches when updating from dataview events
         // but this works just fine

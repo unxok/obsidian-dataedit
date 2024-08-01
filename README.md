@@ -96,4 +96,5 @@ Each 'type' will change what type of input and how values are updated in frontma
 
 Random tasks
 
-- [x] Lock editing when in reading mode (but don't change config)
+- [ ] Lock editing when in reading mode (but don't change config)
+  - This stopped working after switching to using markdown editors rather than inputs :/

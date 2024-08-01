@@ -19,6 +19,7 @@ export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
     dataviewAPI: {
       luxon: { DateTime },
     },
+    el,
   } = useCodeBlock();
   const isTime = createMemo(() => {
     return checkIfDateHasTime(props.value);
@@ -48,6 +49,7 @@ export const DateDatetimeInput = (props: DateDatetimeInputProps) => {
           newValue,
           props.filePath,
           plugin,
+          el,
           formattedOld,
         );
         props.setEditing(false);

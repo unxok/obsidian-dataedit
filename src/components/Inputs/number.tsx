@@ -22,7 +22,7 @@ autofocus;
 
 export const NumberInput = (props: TableDataEditProps) => {
   const [size, setSize] = createSignal(props.value?.toString().length ?? 5);
-  const { plugin } = useCodeBlock();
+  const { plugin, el } = useCodeBlock();
   return (
     <input
       use:autofocus
@@ -38,6 +38,7 @@ export const NumberInput = (props: TableDataEditProps) => {
           toNumber(e.target.value),
           props.filePath,
           plugin,
+          el,
           props.value,
         );
         props.setEditing(false);
@@ -49,7 +50,10 @@ export const NumberInput = (props: TableDataEditProps) => {
   );
 };
 
-type NumberButtonsProps = TableDataProps<number> & { plugin: DataEdit };
+type NumberButtonsProps = TableDataProps<number> & {
+  plugin: DataEdit;
+  el: HTMLElement;
+};
 export const NumberButtons = (props: NumberButtonsProps) => (
   <div class="flex w-full items-center gap-1">
     <button
@@ -61,6 +65,7 @@ export const NumberButtons = (props: NumberButtonsProps) => (
           props.value - 1,
           props.filePath,
           props.plugin,
+          props.el,
           props.value,
         );
       }}
@@ -77,6 +82,7 @@ export const NumberButtons = (props: NumberButtonsProps) => (
           props.value + 1,
           props.filePath,
           props.plugin,
+          props.el,
           props.value,
         );
       }}
@@ -99,6 +105,7 @@ const NumberExpressionButton = (props: NumberButtonsProps) => {
       v,
       props.filePath,
       props.plugin,
+      props.el,
       props.value,
     );
   };

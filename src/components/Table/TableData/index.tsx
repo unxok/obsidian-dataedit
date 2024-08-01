@@ -52,6 +52,7 @@ export const TableData = (props: TableDataProps) => {
     },
     config,
     ctx,
+    el,
   } = useCodeBlock();
   const valueType = createMemo(() => {
     const t = getValueType(props.value, props.header, luxon);
@@ -82,13 +83,23 @@ export const TableData = (props: TableDataProps) => {
       style={props.style}
     >
       <Show
-        when={valueType() !== "multitext" || valueType() !== "aliases"}
+        when={!(valueType() === "multitext" || valueType() === "aliases")}
         fallback={
           <ListTableDataWrapper
             {...(props as TableDataProps<DataviewPropertyValueArray>)}
           />
         }
       >
+        {/* <Show
+          when={!(valueType() === "text" || valueType() === "unknown")}
+          fallback={
+            <TextInput
+              {...props}
+              setEditing={setEditing}
+              valueType={valueType()}
+            />
+          }
+        > */}
         <Show
           when={
             !config.lockEditing &&
@@ -121,6 +132,7 @@ export const TableData = (props: TableDataProps) => {
             setEditing={setEditing}
             valueType={valueType()}
           />
+          {/* </Show> */}
         </Show>
         <Show
           when={
@@ -132,6 +144,7 @@ export const TableData = (props: TableDataProps) => {
           <NumberButtons
             {...(props as TableDataProps<number>)}
             plugin={plugin}
+            el={el}
           />
         </Show>
       </Show>
@@ -160,6 +173,7 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
           }
           sourcePath={props.ctx.sourcePath}
         />
+        {/* <TextInput {...props} /> */}
       </Show>
       <Show when={props.valueType === "checkbox"}>
         <CheckboxInput {...props} />

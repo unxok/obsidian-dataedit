@@ -86,7 +86,7 @@ export const getPropertyTypes: (
   properties: string[],
   metadataCache: MetadataCache,
 ) => PropertyType[] = (properties, metadataCache) => {
-  // @ts-expect-error Private API
+  // Private API
   const infos = metadataCache.getAllPropertyInfos() as Record<
     string,
     PropertyInfo
@@ -101,7 +101,7 @@ export const registerDataviewEvents = (
   plugin: Plugin,
   callback: () => unknown,
 ) => {
-  plugin.app.metadataCache.on("dataview:index-ready" as "changed", callback);
+  // plugin.app.metadataCache.on("dataview:index-ready" as "changed", callback);
 
   plugin.app.metadataCache.on(
     "dataview:metadata-change" as "changed",
@@ -113,7 +113,7 @@ export const unregisterDataviewEvents = (
   plugin: Plugin,
   callback: () => unknown,
 ) => {
-  plugin.app.metadataCache.off("dataview:index-ready" as "changed", callback);
+  // plugin.app.metadataCache.off("dataview:index-ready" as "changed", callback);
 
   plugin.app.metadataCache.off(
     "dataview:metadata-change" as "changed",
@@ -211,12 +211,14 @@ export const updateMetadataProperty = async (
   value: unknown,
   filePath: string,
   plugin: Plugin,
+  el: HTMLElement,
   previousValue: unknown,
   itemIndex?: number,
 ) => {
   const {
     app: { fileManager, vault },
   } = plugin;
+  // const scrollFixer = new ScrollFixer(el);
   const file = vault.getFileByPath(filePath);
   if (!file) {
     throw new Error(
@@ -238,7 +240,7 @@ export const updateMetadataProperty = async (
     return (fmUpdated = true);
   });
 
-  if (fmUpdated) return;
+  if (fmUpdated) return; //scrollFixer.fix();
 
   const inlineUpdated = await tryUpdateInlineProperty(
     property,
@@ -248,12 +250,14 @@ export const updateMetadataProperty = async (
     vault,
     itemIndex,
   );
-  if (inlineUpdated) return;
+  if (inlineUpdated) return; //scrollFixer.fix();
 
   // property is not in frontmatter nor inline
   await fileManager.processFrontMatter(file, (fm) => {
     fm[property] = value;
   });
+
+  // scrollFixer.fix();
 };
 
 /**
@@ -390,7 +394,6 @@ const tryUpdateInlineProperty = async (
 
 export const getExistingProperties = (app: App) => {
   const { metadataCache } = app;
-  // @ts-expect-error
   return metadataCache.getAllPropertyInfos() as Record<string, PropertyInfo>;
 };
 
@@ -478,7 +481,7 @@ export class ScrollFixer {
     // this will be used after a immediately after a DOM mutation so we run this next in the event queue to give it time to update
     setTimeout(() => {
       this.scroller.scrollTo({ top: this.prevScroll, behavior: "instant" });
-    });
+    }, 0);
   }
 }
 

@@ -46,6 +46,7 @@ import {
 } from "../ui/combo-box";
 import { createStore } from "solid-js/store";
 import { PropertyIcon } from "../PropertyIcon";
+import { MarkdownEditor } from "../Markdown/EmbeddableMarkdownEditor";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -62,6 +63,7 @@ export const Table = (props: TableProps) => {
   const [draggedOverIndex, setDraggedOverIndex] = createSignal(-1);
   const [isAddColumnDialogOpen, setAddColumnDialogOpen] = createSignal(false);
   const [isAddRowDialogOpen, setAddRowDialogOpen] = createSignal(false);
+
   return (
     <Show
       when={props.queryResults.successful}
@@ -274,6 +276,8 @@ const PropertiesComboBox = (props: {
   propertyTypes: string[];
   mount?: Node;
 }) => {
+  // combobox will not let you change to a value that doesn't match any options when options are still suggested
+  // ...this fixes that
   const [inputValue, setInputValue] = createSignal(props.value);
 
   return (

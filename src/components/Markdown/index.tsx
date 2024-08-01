@@ -50,7 +50,10 @@ export const Markdown = (props: MarkdownProps) => {
     <div
       {...divProps}
       // Always renders a paragraph that default has weird margins
-      class={twMerge("w-fit [&>p]:m-0", localProps.class)}
+      class={twMerge(
+        "w-fit [&>p]:m-0 [&_li[data-task]]:m-0 [&_ul]:m-0",
+        localProps.class,
+      )}
       ref={(r) => (ref = r)}
     ></div>
   );

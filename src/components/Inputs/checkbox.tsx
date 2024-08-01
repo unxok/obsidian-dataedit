@@ -7,7 +7,7 @@ type CheckboxInputProps = TableDataProps & {
   valueType: PropertyType;
 };
 export const CheckboxInput = (props: CheckboxInputProps) => {
-  const { plugin, config } = useCodeBlock();
+  const { plugin, config, el } = useCodeBlock();
   return (
     <input
       class=""
@@ -20,6 +20,7 @@ export const CheckboxInput = (props: CheckboxInputProps) => {
           e.currentTarget.checked,
           props.filePath,
           plugin,
+          el,
           props.value,
         );
       }}

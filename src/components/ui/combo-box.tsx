@@ -13,6 +13,8 @@ import { Combobox as ComboboxPrimitive } from "@kobalte/core/combobox";
 import type { PolymorphicProps } from "@kobalte/core/polymorphic";
 import { App, HeadingCache, SectionCache, TFile } from "obsidian";
 import type {
+  Component,
+  JSX,
   JSXElement,
   ParentProps,
   Setter,
@@ -231,12 +233,14 @@ const filter = createFilter({ sensitivity: "base" });
 export type PromptComboBoxProps = {
   app: App;
   defaultOptions: string[];
+  defaultValue: string;
+  // onBlur: (e: FocusEvent) => void | Promise<void>;
   triggerProps?: ComboboxTriggerProps;
-  inputProps?: ComboboxInputProps;
+  inputProps?: comboboxInputProps & JSX.InputHTMLAttributes<HTMLInputElement>;
   itemProps?: ComboboxItemProps;
 };
 export const PromptComboBox = (props: PromptComboBoxProps) => {
-  const [inputValue, setInputValue] = createSignal("");
+  const [inputValue, setInputValue] = createSignal(props.defaultValue);
   const [options, setOptions] = createStore(props.defaultOptions);
   const [labels, setLabels] = createStore<string[]>([]);
   const [aux, setAux] = createStore<string[]>([]);
@@ -285,7 +289,7 @@ export const PromptComboBox = (props: PromptComboBoxProps) => {
   const getTagOptions = (value: string) => {
     // remove the '#' at the beginning
     const searchTag = value.slice(1).toLowerCase();
-    // @ts-expect-error
+    // Private API
     const tags = Object.keys(props.app.metadataCache.getTags());
     // get rid of '#' that will always be in start of tag
     const opts = tags.map((t) => t.slice(1).toLowerCase());
@@ -407,13 +411,19 @@ export const PromptComboBox = (props: PromptComboBoxProps) => {
           {...props.inputProps}
           value={inputValue()}
           // without doing this, default options will always be shown on focus, even if input value is not empty
-          onFocus={(e) => {
-            onInputChange(e.currentTarget.value);
-            const { onFocus } = props.inputProps ?? {};
-            if (!onFocus || typeof onFocus !== "function") return;
-            onFocus(e);
+          // onFocus={(e) => {
+          //   onInputChange(e.currentTarget.value);
+          //   const { onFocus } = props.inputProps ?? {};
+          //   if (!onFocus || typeof onFocus !== "function") return;
+          //   onFocus(e);
+          // }}
+          onInput={(e) => {
+            setInputValue(e.currentTarget.value);
+            const { onInput } = props.inputProps ?? {};
+            if (!onInput || typeof onInput !== "function") return;
+            // @ts-ignore TODO ???
+            onInput(e);
           }}
-          onInput={(e) => setInputValue(e.currentTarget.value)}
         />
       </ComboboxTrigger>
       <ComboboxContent promptInstructions={promptInstructions} />

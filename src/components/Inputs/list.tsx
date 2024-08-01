@@ -16,7 +16,7 @@ import { useCodeBlock } from "@/hooks/useDataEdit";
 export const ListTableDataWrapper = (
   props: TableDataProps<DataviewPropertyValueArray>,
 ) => {
-  const { plugin, ctx, config } = useCodeBlock();
+  const { plugin, ctx, config, el } = useCodeBlock();
   return (
     <ul class="m-0 flex flex-col gap-1 p-0 [&>li]:list-disc">
       <For each={props.value}>
@@ -25,6 +25,7 @@ export const ListTableDataWrapper = (
             {...props}
             plugin={plugin}
             ctx={ctx}
+            el={el}
             itemValue={val}
             itemIndex={index()}
             config={config}
@@ -41,6 +42,7 @@ export const ListTableDataWrapper = (
             [...props.value, ""],
             props.filePath,
             plugin,
+            el,
             props.value,
           );
         }}
@@ -55,6 +57,7 @@ export type ListTableDataItemProps =
   TableDataProps<DataviewPropertyValueArray> & {
     plugin: DataEdit;
     ctx: MarkdownPostProcessorContext;
+    el: HTMLElement;
     itemValue: unknown;
     itemIndex: number;
   };
@@ -91,7 +94,7 @@ export const ListInput = (
     <TextInput
       {...props}
       value={props.itemValue}
-      valueType="list"
+      valueType="multitext"
       updateProperty={async (newVal) => {
         const value = [...props.value] as unknown[];
         if (!newVal && newVal !== 0) {
@@ -101,6 +104,7 @@ export const ListInput = (
             arr,
             props.filePath,
             props.plugin,
+            props.el,
             props.itemValue,
             props.itemIndex,
           );
@@ -112,6 +116,7 @@ export const ListInput = (
           value,
           props.filePath,
           props.plugin,
+          props.el,
           props.itemValue,
           props.itemIndex,
         );
