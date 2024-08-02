@@ -4,7 +4,10 @@ import { TableDataEditProps } from "../Table/TableData";
 import { autofocus } from "@solid-primitives/autofocus";
 import { useCodeBlock } from "@/hooks/useDataEdit";
 import { PromptComboBox } from "../ui/combo-box";
-import { MarkdownEditor } from "../Markdown/EmbeddableMarkdownEditor";
+import {
+  EmbeddableMarkdownEditor,
+  MarkdownEditor,
+} from "../Markdown/EmbeddableMarkdownEditor";
 // To prevent treeshaking
 autofocus;
 
@@ -13,30 +16,51 @@ export const TextInput = (
     updateProperty?: (val: unknown) => Promise<void>;
   },
 ) => {
+  // el.ActiveElement() wasn't working right
+  const [isFocused, setFocused] = createSignal(false);
   const [size, setSize] = createSignal(props.value?.toString().length ?? 5);
   const { plugin, el } = useCodeBlock();
+
+  const updateProperty = async (editor: EmbeddableMarkdownEditor) => {
+    const value = editor.editor.getValue();
+    if (props.updateProperty) {
+      await props.updateProperty(value);
+    } else {
+      await updateMetadataProperty(
+        props.property,
+        value,
+        props.filePath,
+        plugin,
+        el,
+        props.value,
+      );
+    }
+    props.setEditing(false);
+  };
+
   return (
     <MarkdownEditor
       app={plugin.app}
       options={{
         focus: true,
         value: props.value?.toString(),
-        onBlur: async (editor) => {
-          const value = editor.editor.getValue();
-          if (props.updateProperty) {
-            await props.updateProperty(value);
-          } else {
-            await updateMetadataProperty(
-              props.property,
-              value,
-              props.filePath,
-              plugin,
-              el,
-              props.value,
-            );
-          }
-          props.setEditing(false);
+        onFocus: () => {
+          console.log("focused");
+          setFocused(true);
         },
+        onBlur: async (editor) => updateProperty(editor),
+        // onChange: async (_, editor) => {
+        //   console.log("change: ", editor.editor.getValue());
+        // },
+        onEditorClick: (e, editor, el) => {
+          editor.editor.cm.contentDOM.focus();
+        },
+      }}
+      onMount={(eme) => {
+        eme.containerEl.addEventListener("mouseleave", (e) => {
+          if (isFocused()) return;
+          props.setEditing(false);
+        });
       }}
     />
     // <input

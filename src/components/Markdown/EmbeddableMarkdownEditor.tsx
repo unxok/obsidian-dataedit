@@ -51,6 +51,11 @@ interface MarkdownEditorProps {
 
   filteredExtensions: Extension[];
 
+  onEditorClick: (
+    event: MouseEvent,
+    editor: EmbeddableMarkdownEditor,
+    element?: HTMLElement,
+  ) => void;
   onEnter: (
     editor: EmbeddableMarkdownEditor,
     mod: boolean,
@@ -58,9 +63,10 @@ interface MarkdownEditorProps {
   ) => boolean;
   onEscape: (editor: EmbeddableMarkdownEditor) => void;
   onSubmit: (editor: EmbeddableMarkdownEditor) => void;
+  onFocus: (editor: EmbeddableMarkdownEditor) => void;
   onBlur: (editor: EmbeddableMarkdownEditor) => void | Promise<void>;
   onPaste: (e: ClipboardEvent, editor: EmbeddableMarkdownEditor) => void;
-  onChange: (update: ViewUpdate) => void;
+  onChange: (update: ViewUpdate, editor: EmbeddableMarkdownEditor) => void;
 }
 
 const defaultProperties: MarkdownEditorProps = {
@@ -71,6 +77,7 @@ const defaultProperties: MarkdownEditorProps = {
   focus: true,
   filteredExtensions: [],
 
+  onEditorClick: () => {},
   onEnter: (editor, mod, shift) => {
     // if (mod) editor.options.onSubmit(editor);
     editor.options.onSubmit(editor);
@@ -84,6 +91,7 @@ const defaultProperties: MarkdownEditorProps = {
   onBlur: (editor) => {
     editor.options.onBlur(editor);
   },
+  onFocus: (editor) => {},
   onPaste: () => {},
   onChange: () => {},
 };
@@ -172,6 +180,8 @@ export class EmbeddableMarkdownEditor
     this.editor.cm.contentDOM.addEventListener("focusin", (e) => {
       this.app.keymap.pushScope(this.scope);
       this.app.workspace.activeEditor = this.owner;
+      if (this.options.onFocus === defaultProperties.onFocus) return;
+      this.options.onFocus(this);
     });
 
     this.editorEl.classList.remove("markdown-source-view");
@@ -189,7 +199,12 @@ export class EmbeddableMarkdownEditor
 
   onUpdate(update: ViewUpdate, changed: boolean) {
     super.onUpdate(update, changed);
-    if (changed) this.options.onChange(update);
+    if (changed) this.options.onChange(update, this);
+  }
+
+  onEditorClick(event: MouseEvent, element?: HTMLElement): void {
+    super.onEditorClick(event, element);
+    this.options.onEditorClick(event, this, element);
   }
 
   /**
@@ -285,6 +300,7 @@ export class EmbeddableMarkdownEditor
 export const MarkdownEditor = (props: {
   app: App;
   options: Partial<MarkdownEditorProps>;
+  onMount: (eme: EmbeddableMarkdownEditor) => void;
 }) => {
   let ref: HTMLDivElement;
   let eme: EmbeddableMarkdownEditor;
@@ -313,6 +329,8 @@ export const MarkdownEditor = (props: {
 
     // eme.sourceMode;
     // eme.owner.app.commands.executeCommandById("markdown:toggle-preview");
+
+    props.onMount(eme);
   });
 
   onCleanup(() => {

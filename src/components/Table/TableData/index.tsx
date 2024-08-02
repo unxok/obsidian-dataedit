@@ -132,8 +132,8 @@ export const TableData = (props: TableDataProps) => {
             setEditing={setEditing}
             valueType={valueType()}
           />
-          {/* </Show> */}
         </Show>
+        {/* </Show> */}
         <Show
           when={
             valueType() === "number" &&
@@ -164,7 +164,13 @@ export type TableDataDisplayProps = TableDataProps & {
 export const TableDataDisplay = (props: TableDataDisplayProps) => {
   return (
     <>
-      <Show when={props.valueType === "text" || props.valueType === "number"}>
+      <Show
+        when={
+          props.valueType === "text" ||
+          props.valueType === "unknown" ||
+          props.valueType === "number"
+        }
+      >
         <Markdown
           class="size-full"
           app={props.plugin.app}
@@ -172,6 +178,11 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
             tryDataviewLinkToMarkdown(props.value) || props.renderNullAs
           }
           sourcePath={props.ctx.sourcePath}
+          onMouseEnter={() => {
+            console.log("enter");
+            if (props.valueType === "number") return;
+            props.setEditing(true);
+          }}
         />
         {/* <TextInput {...props} /> */}
       </Show>
