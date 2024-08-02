@@ -1,5 +1,6 @@
 import {
   Accessor,
+  Component,
   createMemo,
   createSignal,
   For,
@@ -31,6 +32,13 @@ import {
 import Lock from "lucide-solid/icons/Lock";
 import LockOpen from "lucide-solid/icons/Lock-open";
 import Gear from "lucide-solid/icons/Settings";
+import ChevronsUp from "lucide-solid/icons/Chevrons-up";
+import ChevronsDown from "lucide-solid/icons/Chevrons-down";
+import ChevronsDownUp from "lucide-solid/icons/Chevrons-down-up";
+import AlignLeft from "lucide-solid/icons/Align-left";
+import AlignCenter from "lucide-solid/icons/Align-center";
+import AlignRight from "lucide-solid/icons/Align-right";
+import Wrench from "lucide-solid/icons/Wrench";
 /*
   TODO
   - problem: build process bundles *all* lucide icons, but *does* correctly treeshake for final bundle. This causes 500% increase to build time despite bundle being correct.
@@ -68,6 +76,12 @@ import {
   FilepathComboBox,
   PromptComboBox,
 } from "./components/ui/combo-box";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./components/ui/popover";
+import { LucideProps } from "lucide-solid";
 
 export type AppProps = CodeBlockInfo & {
   uid: string;
@@ -114,12 +128,40 @@ function App(props: AppProps) {
 
   return (
     <CodeBlockContext.Provider value={codeBlockInfo}>
-      <div class="flex items-center gap-2">
-        <Toolbar config={config} setConfigStore={props.setConfigStore} />
+      <div
+        aria-label="Toggle toolbar"
+        onClick={() => {
+          updateBlockConfig(
+            "showToolbar",
+            !codeBlockInfo.config.showToolbar,
+            codeBlockInfo,
+          );
+        }}
+        class="clickable-icon inset edit-block-button absolute !top-[calc(2*var(--size-2-2)+var(--icon-size)+10px)]"
+      >
+        <Wrench class="svg-icon" />
       </div>
+      <Show
+        when={
+          codeBlockInfo.config.showToolbar && codeBlockInfo.config.toolbarTop
+        }
+      >
+        <div class="flex items-center gap-2">
+          <Toolbar config={config} setConfigStore={props.setConfigStore} />
+        </div>
+      </Show>
       <div class="h-fit w-full overflow-x-scroll">
         <Table queryResults={queryResults()} hideFileCol={props.hideFileCol} />
       </div>
+      <Show
+        when={
+          codeBlockInfo.config.showToolbar && !codeBlockInfo.config.toolbarTop
+        }
+      >
+        <div class="flex -translate-y-4 items-center gap-2">
+          <Toolbar config={config} setConfigStore={props.setConfigStore} />
+        </div>
+      </Show>
     </CodeBlockContext.Provider>
   );
 }
@@ -171,11 +213,130 @@ export const Toolbar = (props: {
                   </Show>
                 </div>
               </Match>
+              <Match when={key === "horizontalAlignment"}>
+                <Popover>
+                  <PopoverTrigger
+                    as="div"
+                    aria-label={
+                      "Horizontal alignment: " +
+                      props.config.horizontalAlignment
+                    }
+                    class="clickable-icon"
+                  >
+                    <HorizontalAlignIcon
+                      align={props.config.horizontalAlignment}
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent class="flex size-fit rounded-md p-2">
+                    <div
+                      aria-label="left"
+                      class="clickable-icon"
+                      onClick={() =>
+                        updateConfig("horizontalAlignment", "left")
+                      }
+                    >
+                      <AlignLeft class="svg-icon" />
+                    </div>
+                    <div
+                      aria-label="center"
+                      class="clickable-icon"
+                      onClick={() =>
+                        updateConfig("horizontalAlignment", "center")
+                      }
+                    >
+                      <AlignCenter class="svg-icon" />
+                    </div>
+                    <div
+                      aria-label="right"
+                      class="clickable-icon"
+                      onClick={() =>
+                        updateConfig("horizontalAlignment", "right")
+                      }
+                    >
+                      <AlignRight class="svg-icon" />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </Match>
+              <Match when={key === "verticalAlignment"}>
+                <Popover>
+                  <PopoverTrigger
+                    as="div"
+                    aria-label={
+                      "Vertical alignment: " + props.config.verticalAlignment
+                    }
+                    class="clickable-icon"
+                  >
+                    <VerticalAlignIcon align={props.config.verticalAlignment} />
+                  </PopoverTrigger>
+                  <PopoverContent class="flex size-fit rounded-md p-2">
+                    <div
+                      aria-label="top"
+                      class="clickable-icon"
+                      onClick={() => updateConfig("verticalAlignment", "top")}
+                    >
+                      <ChevronsUp class="svg-icon" />
+                    </div>
+                    <div
+                      aria-label="middle"
+                      class="clickable-icon"
+                      onClick={() =>
+                        updateConfig("verticalAlignment", "middle")
+                      }
+                    >
+                      <ChevronsDownUp class="svg-icon" />
+                    </div>
+                    <div
+                      aria-label="bottom"
+                      class="clickable-icon"
+                      onClick={() =>
+                        updateConfig("verticalAlignment", "bottom")
+                      }
+                    >
+                      <ChevronsDown class="svg-icon" />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </Match>
             </Switch>
           );
         }}
       </For>
     </>
+  );
+};
+
+const HorizontalAlignIcon = (props: {
+  align: DataEditBlockConfig["horizontalAlignment"];
+  iconProps?: Component<LucideProps>;
+}) => {
+  //
+  return (
+    <Switch fallback={<AlignLeft class="svg-icon" {...props.iconProps} />}>
+      <Match when={props.align === "center"}>
+        <AlignCenter class="svg-icon" {...props.iconProps} />
+      </Match>
+      <Match when={props.align === "right"}>
+        <AlignRight class="svg-icon" {...props.iconProps} />
+      </Match>
+    </Switch>
+  );
+};
+
+const VerticalAlignIcon = (props: {
+  align: DataEditBlockConfig["verticalAlignment"];
+  iconProps?: Component<LucideProps>;
+}) => {
+  //
+  return (
+    <Switch fallback={<ChevronsUp class="svg-icon" {...props.iconProps} />}>
+      <Match when={props.align === "middle"}>
+        <ChevronsDownUp class="svg-icon" {...props.iconProps} />
+      </Match>
+      <Match when={props.align === "bottom"}>
+        <ChevronsDown class="svg-icon" {...props.iconProps} />
+      </Match>
+    </Switch>
   );
 };
 
@@ -186,7 +347,7 @@ export const BlockConfigModal = (props: {
   setOpen?: Setter<boolean>;
   trigger?: JSXElement;
 }) => {
-  const [form, setForm] = createStore(props.config);
+  const [form, setForm] = createStore({ ...props.config });
 
   const updateForm = (
     key: keyof DataEditBlockConfig,
@@ -211,9 +372,20 @@ export const BlockConfigModal = (props: {
         </DialogDescription>
         <div class="flex size-full max-h-[90%] flex-col gap-2 overflow-y-auto pr-2">
           <Setting
+            title="Toolbar on top"
+            description="Turn off to have toolbar be at the bottom of the table."
+            labelFor="toolbar-top-toggle"
+          >
+            <Toggle
+              id="toolbar-top-toggle"
+              name="toolbar-top-toggle"
+              checked={form.toolbarTop}
+              onCheckedChange={(b) => updateForm("toolbarTop", b)}
+            />
+          </Setting>
+          <Setting
             title="Lock editing"
-            description="Prevents editing in all cells which makes links and tags
-                clickable."
+            description="Prevents editing in all cells which makes links and tags clickable."
             labelFor="lock-editing-toggle"
           >
             <Toggle
@@ -277,6 +449,44 @@ export const BlockConfigModal = (props: {
                 updateForm("tableClassName", e.currentTarget.value)
               }
             />
+          </Setting>
+          <Setting
+            title="Vertical alignment"
+            description="Sets the vertical alignment of all table cells."
+            labelFor="vertical-alignment"
+          >
+            <select
+              id="vertical-alignment"
+              name="vertical-alignment"
+              value={form.verticalAlignment}
+              onChange={(e) => {
+                updateForm("verticalAlignment", e.currentTarget.value);
+              }}
+              class="dropdown"
+            >
+              <option value="top">Top (default)</option>
+              <option value="middle">Middle</option>
+              <option value="bottom">Bottom</option>
+            </select>
+          </Setting>
+          <Setting
+            title="Horizontal alignment"
+            description="Sets the vertical alignment of all table cells."
+            labelFor="horizontal-alignment"
+          >
+            <select
+              id="horizontal-alignment"
+              name="horizontal-alignment"
+              value={form.horizontalAlignment}
+              onChange={(e) => {
+                updateForm("horizontalAlignment", e.currentTarget.value);
+              }}
+              class="dropdown"
+            >
+              <option value="left">Left (default)</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
           </Setting>
         </div>
         <DialogFooter>

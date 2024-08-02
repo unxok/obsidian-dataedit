@@ -139,7 +139,9 @@ export const checkIfDataviewLink = (val: unknown) => {
   if (!val) return false;
   if (typeof val !== "object") return false;
   if (!val.hasOwnProperty("type")) return false;
-  if ((val as { type: unknown }).type !== "file") return false;
+  // if ((val as { type: unknown }).type !== "file") return false;
+  if (typeof (val as Record<string, any>)?.markdown !== "function")
+    return false;
   return true;
 };
 
@@ -208,13 +210,14 @@ export const getColumnPropertyNames = (source: string) => {
 
 export const updateMetadataProperty = async (
   property: string,
-  value: unknown,
+  preValue: unknown,
   filePath: string,
   plugin: Plugin,
   el: HTMLElement,
   previousValue: unknown,
   itemIndex?: number,
 ) => {
+  const value = tryDataviewLinkToMarkdown(preValue);
   const {
     app: { fileManager, vault },
   } = plugin;
@@ -414,21 +417,29 @@ export const getTableLine = (codeBlockText: string) => {
 };
 
 export type DataEditBlockConfig = {
+  showToolbar: boolean;
+  toolbarTop: boolean;
   lockEditing: boolean;
   headerIcons: boolean;
   newNoteTemplatePath: string;
   newNoteFolderPath: string;
   tableClassName: string;
+  horizontalAlignment: "left" | "center" | "right";
+  verticalAlignment: "top" | "middle" | "bottom";
 };
 
 export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
 
 export const defaultDataEditBlockConfig: DataEditBlockConfig = {
+  showToolbar: true,
+  toolbarTop: true,
   lockEditing: false,
   headerIcons: true,
   newNoteTemplatePath: "",
   newNoteFolderPath: "",
   tableClassName: "",
+  horizontalAlignment: "left",
+  verticalAlignment: "top",
 };
 
 // TODO adds one extra line of space (not incrementally) which doesn't break anything but looks weird

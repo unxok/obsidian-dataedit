@@ -80,7 +80,13 @@ export const TableData = (props: TableDataProps) => {
         setEditing(true);
       }}
       onMouseMove={props.onMouseMove}
-      style={props.style}
+      style={Object.assign(
+        {
+          "vertical-align": config.verticalAlignment,
+          "text-align": config.horizontalAlignment,
+        },
+        props.style,
+      )}
     >
       <Show
         when={!(valueType() === "multitext" || valueType() === "aliases")}
@@ -179,7 +185,6 @@ export const TableDataDisplay = (props: TableDataDisplayProps) => {
           }
           sourcePath={props.ctx.sourcePath}
           onMouseEnter={() => {
-            console.log("enter");
             if (props.valueType === "number") return;
             props.setEditing(true);
           }}

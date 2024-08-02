@@ -347,6 +347,16 @@ export const TableHead = (props: TableHeadProps) => {
                     markdown={h}
                     sourcePath={ctx.sourcePath}
                   />
+                  <Show
+                    when={
+                      index() === 0 &&
+                      props.properties[index()] === tableIdColumnName
+                    }
+                  >
+                    <span class="px-[.1rem] text-xs text-muted">
+                      ({props.headers.length})
+                    </span>
+                  </Show>
                   &nbsp;
                   <PropertyIcon
                     property={props.properties[index()]}

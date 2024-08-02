@@ -26,7 +26,7 @@ export const ListTableDataWrapper = (
             plugin={plugin}
             ctx={ctx}
             el={el}
-            itemValue={val}
+            itemValue={tryDataviewLinkToMarkdown(val)}
             itemIndex={index()}
             config={config}
           />
@@ -43,7 +43,7 @@ export const ListTableDataWrapper = (
             props.filePath,
             plugin,
             el,
-            props.value,
+            "",
           );
         }}
       >
@@ -78,6 +78,10 @@ export const ListTableDataItem = (
             onClick={
               props.config.lockEditing ? undefined : () => setEditing(true)
             }
+            onMouseEnter={() => {
+              if (typeof props.itemValue === "number") return;
+              setEditing(true);
+            }}
           />
         }
       >
@@ -96,7 +100,9 @@ export const ListInput = (
       value={props.itemValue}
       valueType="multitext"
       updateProperty={async (newVal) => {
-        const value = [...props.value] as unknown[];
+        const value = [...props.value].map((u) =>
+          tryDataviewLinkToMarkdown(u),
+        ) as unknown[];
         if (!newVal && newVal !== 0) {
           const arr = value.filter((_, i) => i !== props.itemIndex);
           await updateMetadataProperty(

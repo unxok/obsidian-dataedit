@@ -45,7 +45,7 @@ export const TextInput = (
         focus: true,
         value: props.value?.toString(),
         onFocus: () => {
-          console.log("focused");
+          // console.log("focused");
           setFocused(true);
         },
         onBlur: async (editor) => updateProperty(editor),
@@ -53,7 +53,10 @@ export const TextInput = (
         //   console.log("change: ", editor.editor.getValue());
         // },
         onEditorClick: (e, editor, el) => {
-          editor.editor.cm.contentDOM.focus();
+          // without this, clicking the 'edit block' button won't work
+          setTimeout(() => {
+            editor.editor.cm.contentDOM.focus();
+          }, 0);
         },
       }}
       onMount={(eme) => {

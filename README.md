@@ -4,6 +4,13 @@ A wrapper for the incredible [Dataview](https://github.com/blacksmithgu/obsidian
 
 This is a remake of my [original Dataedit](https://github.com/unxok/dataedit) except built with [ViteJs](https://vitejs.dev) for better bundling, and [SolidJs](https://solidjs.com) for more performance and better rendering predictability.
 
+_At some point I'll merge this repo into my previous one and delete this one._
+
+## Showcase
+
+Here's a demo as of 2024-08-02
+![showcase gif](/gifs/showcase.gif)
+
 ## Datacore...?
 
 I think of this project as a middle ground between Dataview and [Datacore](https://github.com/blacksmithgu/datacore), which is the successor to Dataview made by the same creator (blacksmithgu)
@@ -12,7 +19,7 @@ I think of this project as a middle ground between Dataview and [Datacore](https
 
 Datacore recently has had much more work being done on it by its contributers and it is now open to contributions. Once I get this plugin to a good place, I am hoping to try and help out over there!
 
-I still want to put my plugin out there as a drop-in replacement Dataview until Datacore is ready or for those who simply aren't ready to change all their queries in their vault to a new syntax.
+I still want to put my plugin out there as a drop-in replacement Dataview until Datacore is ready, as well as to just have the features I want and getting more practice in development.
 
 ## Roadmap
 
