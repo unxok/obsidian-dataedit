@@ -309,7 +309,10 @@ export const MarkdownEditor = (props: {
         // setDummy((prev) => prev + 1);
       },
     });
-    eme.editor.focus();
+    // eme.editor.focus();
+
+    // eme.sourceMode;
+    // eme.owner.app.commands.executeCommandById("markdown:toggle-preview");
   });
 
   onCleanup(() => {
