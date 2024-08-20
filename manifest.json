@@ -1,7 +1,7 @@
 {
   "id": "obsidian-dataedit",
-  "name": "Obsidian Dataedit Plugin",
-  "version": "0.0.0",
+  "name": "Dataedit",
+  "version": "0.0.1",
   "minAppVersion": "1.0.0",
   "description": "A wrapper for Dataview to make it editable. Built on Solidjs",
   "author": "Unxok",
