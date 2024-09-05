@@ -78,13 +78,13 @@ const prefix = prefixSelector({
   },
 });
 
-export default {
-  plugins: [
-    tailwindcss(),
-    autoprefixer({}),
-    prefix,
-    discard({
-      rule: ["html", "body"],
-    }),
-  ],
-};
+// export default {
+//   plugins: [
+//     tailwindcss(),
+//     autoprefixer({}),
+//     // prefix,
+//     discard({
+//       rule: ["html", "body"],
+//     }),
+//   ],
+// };

@@ -89,7 +89,11 @@ export const TableData = (props: TableDataProps) => {
       )}
     >
       <Show
-        when={!(valueType() === "multitext" || valueType() === "aliases")}
+        when={
+          !(valueType() === "multitext" || valueType() === "aliases") ||
+          valueType() === "tags" ||
+          props.propertyType === "multitext"
+        }
         fallback={
           <ListTableDataWrapper
             {...(props as TableDataProps<DataviewPropertyValueArray>)}

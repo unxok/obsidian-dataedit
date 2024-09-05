@@ -91,9 +91,11 @@ export const getPropertyTypes: (
     string,
     PropertyInfo
   >;
+  const infosKeys = Object.keys(infos);
   return properties.map((p) => {
-    if (!infos[p]) return "unknown";
-    return infos[p].type as PropertyType;
+    const found = infosKeys.find((k) => infos[k].name === p);
+    if (!found) return "unknown";
+    return infos[found].type as PropertyType;
   });
 };
 
@@ -130,7 +132,8 @@ export const getIdColumnIndex = (
       h.toLowerCase() === tableIdColumnName.toLowerCase() || h === "file.link",
   );
   if (i === -1) {
-    throw new Error("Couldn't fine ID column index");
+    // console.error("Couldn't find ID column index");
+    return 0;
   }
   return i;
 };
@@ -164,6 +167,7 @@ export const tryDataviewArrayToArray = <T>(val: T) => {
 
 export const getColumnPropertyNames = (source: string) => {
   const line = source.split("\n")[0];
+  // TODO possible could have this string within a column alias
   const isWithoutId = line.toLowerCase().includes("without id");
   const cols = source
     .split("\n")[0]

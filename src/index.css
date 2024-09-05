@@ -1,3 +1,50 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities; */
+
+.no-p-margin p {
+  margin: 0;
+}
+
+.property-text-div div.cm-gutters {
+  display: none !important;
+}
+
+.property-text-div div.cm-scroller {
+  overflow: visible;
+}
+
+/* TODO probably shouldnt use the "*" operator nor "!important" */
+.property-text-div * {
+  max-width: none !important;
+  width: fit-content !important;
+  line-height: inherit !important;
+}
+
+.property-text-div [role="textbox"] {
+  width: fit-content;
+  text-wrap: nowrap;
+}
+
+input.property-number-input[type="number"] {
+  background-color: transparent;
+  border: none;
+  width: fit-content;
+  font-size: var(--font-table-text-size);
+  box-shadow: none;
+  padding: 0px;
+  height: fit-content;
+}
+
+ul.property-multitext-ul {
+  margin-block: 0px 0px;
+}
+
+ul.property-multitext-ul > li {
+  margin-inline-start: calc(var(--list-indent) / 2);
+  padding-top: 5px; /* when rendering tags, will overlap without this */
+}
+
+ul.property-multitext-ul > li div.cm-active.cm-line {
+  padding-inline-end: 1ch; /* when rendering tags, makes it easier to click to edit instead of clicking to search for tag */
+}

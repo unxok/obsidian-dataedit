@@ -7,7 +7,7 @@ import {
 import DataEdit from "@/main";
 import Plus from "lucide-solid/icons/Plus";
 import { MarkdownPostProcessorContext } from "obsidian";
-import { For, createSignal, Show, Setter } from "solid-js";
+import { For, createSignal, Show, Setter, createMemo } from "solid-js";
 import { Markdown } from "../Markdown";
 import { TableDataProps } from "../Table/TableData";
 import { TextInput } from "./text";
@@ -17,9 +17,13 @@ export const ListTableDataWrapper = (
   props: TableDataProps<DataviewPropertyValueArray>,
 ) => {
   const { plugin, ctx, config, el } = useCodeBlock();
+  const arr = createMemo(() => {
+    if (Array.isArray(props.value)) return props.value;
+    return [props.value];
+  });
   return (
     <ul class="m-0 flex flex-col gap-1 p-0 [&>li]:list-disc">
-      <For each={props.value}>
+      <For each={arr()}>
         {(val, index) => (
           <ListTableDataItem
             {...props}

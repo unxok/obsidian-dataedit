@@ -130,6 +130,7 @@ export type DataviewQueryResultSuccess = {
 export type DataviewQueryResultFail = {
   successful: false;
   error: string;
+  value: undefined;
 };
 export type DataviewQueryResult =
   | DataviewQueryResultSuccess
