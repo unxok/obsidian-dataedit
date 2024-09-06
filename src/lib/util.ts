@@ -172,10 +172,11 @@ export const getColumnPropertyNames = (source: string) => {
   const cols = source
     .split("\n")[0]
     .substring(isWithoutId ? 17 : 6)
-    .split(",")
+    .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/gm)
     .map((c) => {
       const str = c.trim();
-      const potential = str.split(/\sAS\s/gim)[0].trim();
+      const potential = str.split(/\sAS\s/i)[0].trim();
+      // console.log("potential: ", potential);
       const invalidChars = [
         "(",
         ")",

@@ -29,22 +29,32 @@ type CodeBlockProps = {
   config: CodeBlockConfig;
   dataviewAPI: DataviewAPI;
   propertyNames: string[];
-  propertyTypes: PropertyType[];
 };
 
-const defaultBlockContext = {
+export type BlockContext = {
+  plugin: Plugin;
+  el: HTMLElement;
+  ctx: MarkdownPostProcessorContext;
+  source: string;
+  query: string;
+  config: CodeBlockConfig;
+  dataviewAPI: DataviewAPI;
+};
+const defaultBlockContext: BlockContext = {
   plugin: {} as Plugin,
   el: {} as HTMLElement,
   ctx: {} as MarkdownPostProcessorContext,
+  source: "",
   query: "",
   config: {} as CodeBlockConfig,
   dataviewAPI: {} as DataviewAPI,
 };
-const BlockContext = createContext(defaultBlockContext);
+const BlockContext = createContext<BlockContext>(defaultBlockContext);
 
 export const useBlock = () => useContext(BlockContext);
 
 export const CodeBlock = (props: CodeBlockProps) => {
+  const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
   const [idColIndex, setIdColIndex] = createSignal(0);
   const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
     {
@@ -53,12 +63,31 @@ export const CodeBlock = (props: CodeBlockProps) => {
     },
   );
 
+  const updatePropertyTypes = () => {
+    const arr = getPropertyTypes(
+      props.propertyNames,
+      props.plugin.app.metadataCache,
+    );
+    setPropertyTypes(() => arr);
+  };
+
+  const updateIdColIndex = (dataviewResult: DataviewQueryResult) => {
+    if (!dataviewResult.successful) return;
+    const id = getIdColumnIndex(
+      dataviewResult.value.headers,
+      props.dataviewAPI.settings.tableIdColumnName,
+    );
+    setIdColIndex(id);
+  };
+
   // memoizing isn't playing nice with dataview event callbacks...?
   // for now it doesn't matter since these props should never actually change without obsidian causing a rerender automatically
   const updateResults = () => {
     (async () => {
       const results = await props.dataviewAPI.query(props.query);
       setDataviewResult(results);
+      updateIdColIndex(results);
+      updatePropertyTypes();
     })();
   };
 
@@ -69,15 +98,6 @@ export const CodeBlock = (props: CodeBlockProps) => {
 
   onCleanup(() => {
     unregisterDataviewEvents(props.plugin, updateResults);
-  });
-
-  createEffect(() => {
-    if (!dataviewResult().successful) return;
-    const id = getIdColumnIndex(
-      dataviewResult().value!.headers,
-      props.dataviewAPI.settings.tableIdColumnName,
-    );
-    setIdColIndex(id);
   });
 
   return (
@@ -91,6 +111,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
           plugin: props.plugin,
           el: props.el,
           ctx: props.ctx,
+          source: props.source,
           query: props.query,
           config: props.config,
           dataviewAPI: props.dataviewAPI,
@@ -101,7 +122,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
             properties={props.propertyNames}
             headers={dataviewResult().value!.headers}
             values={dataviewResult().value!.values}
-            propertyTypes={props.propertyTypes}
+            propertyTypes={propertyTypes()}
             idColIndex={idColIndex()}
           />
         </div>

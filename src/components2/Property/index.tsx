@@ -5,19 +5,41 @@ import {
   DataviewPropertyValueNotLink,
   PropertyType,
 } from "@/lib/types";
-import { createMemo, For, Match, Show, Switch } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  Match,
+  Show,
+  Switch,
+} from "solid-js";
 import { useBlock } from "../CodeBlock";
 import { Markdown } from "@/components/Markdown";
-import { updateMetadataProperty } from "@/lib/util";
+import { checkIfDateHasTime, updateMetadataProperty } from "@/lib/util";
 import { PropertyText } from "./PropertyText";
 import { PropertyNumber } from "./PropertyNumber";
 import { PropertyCheckbox } from "./PropertyCheckbox";
 import { Icon } from "@/components/Icon";
 import { PropertyMultitext } from "./PropertyMultitext";
+import { DateTime } from "luxon";
+import { autofocus } from "@solid-primitives/autofocus";
+import { PropertyDateDatetime } from "./PropertyDateDatetime";
+import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
+// To prevent treeshaking
+autofocus;
 
 export const PropertyHeader = (props: { header: string; property: string }) => {
-  //
-  return <div>{props.header}</div>;
+  const bctx = useBlock();
+  return (
+    <Markdown
+      app={bctx.plugin.app}
+      markdown={props.header}
+      sourcePath={bctx.ctx.sourcePath}
+      class="no-p-margin"
+      style={{ "text-wrap": "nowrap" }}
+    />
+  );
 };
 
 type PropertyDataProps = {
@@ -41,6 +63,12 @@ export const PropertyData = (props: PropertyDataProps) => {
       props.header === bctx.dataviewAPI.settings.tableIdColumnName,
   );
 
+  const isEditable = createMemo(() => {
+    const isComplex = props.property === COMPLEX_PROPERTY_PLACEHOLDER;
+    const isFileNested = props.property.includes("file.");
+    return !isComplex && !isFileNested;
+  });
+
   const updateProperty = async (value: unknown) => {
     await updateMetadataProperty(
       props.property,
@@ -54,7 +82,7 @@ export const PropertyData = (props: PropertyDataProps) => {
 
   return (
     <Show
-      when={!isIdCol()}
+      when={!isIdCol() && isEditable()}
       fallback={
         <Markdown
           app={bctx.plugin.app}
@@ -73,7 +101,9 @@ export const PropertyData = (props: PropertyDataProps) => {
 const PropertySwitch = (props: PropertyCommonProps) => {
   return (
     <Switch fallback={<div>fallback</div>}>
-      <Match when={props.propertyType === "text"}>
+      <Match
+        when={props.propertyType === "text" || props.propertyType === "unknown"}
+      >
         <PropertyText {...props} />
       </Match>
       <Match when={props.propertyType === "number"}>
@@ -91,6 +121,13 @@ const PropertySwitch = (props: PropertyCommonProps) => {
         }
       >
         <PropertyMultitext {...props} />
+      </Match>
+      <Match
+        when={
+          props.propertyType === "date" || props.propertyType === "datetime"
+        }
+      >
+        <PropertyDateDatetime {...props} />
       </Match>
     </Switch>
   );

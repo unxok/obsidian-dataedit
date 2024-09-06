@@ -12,6 +12,8 @@ import {
   MarkdownPostProcessor,
   parseYaml,
   MarkdownPostProcessorContext,
+  setIcon,
+  Menu,
 } from "obsidian";
 import {
   DataviewAPI,
@@ -169,17 +171,59 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
 export default class DataEdit extends Plugin {
   onload(): void {
     this.registerMdCBP();
+    this.devReload(); // TODO comment out when releasing
+  }
+
+  devReload(): void {
+    const { activeEditor } = app.workspace;
+    try {
+      // @ts-expect-error
+      activeEditor.leaf.rebuildView();
+    } catch (_) {
+      console.log("failed dev reload");
+    }
+  }
+
+  async overrideEditButton(blockEl: HTMLElement): Promise<void> {
+    await Promise.resolve();
+    const btnEl = blockEl.parentElement!.find("div.edit-block-button");
+    if (!btnEl) return;
+    const newBtn = document.createElement("div");
+    newBtn.className = "edit-block-button";
+    newBtn.onclick = (e) => {
+      const menu = new Menu()
+        .addItem((item) =>
+          item
+            .setTitle("Edit")
+            .setIcon("code-2")
+            .onClick(() => {
+              btnEl.click();
+            }),
+        )
+        .addItem((item) =>
+          item
+            .setTitle("Configure")
+            .setIcon("sliders-horizontal")
+            .onClick(() => {
+              // open config modal
+            }),
+        );
+
+      menu.showAtMouseEvent(e);
+    };
+
+    setIcon(newBtn, "settings");
+
+    btnEl.insertAdjacentElement("afterend", newBtn);
+    btnEl.style.display = "none";
   }
 
   registerMdCBP(): void {
     this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
+      this.overrideEditButton(el);
       const [query, configStr = ""] = source.split(/\n^---$\n/gm);
 
       const propertyNames = getColumnPropertyNames(source);
-      const propertyTypes = getPropertyTypes(
-        propertyNames,
-        this.app.metadataCache,
-      );
 
       const preConfig = parseYaml(configStr) ?? {};
       // preConfig is not actually type safe... might use zod later
@@ -198,6 +242,9 @@ export default class DataEdit extends Plugin {
 
       // best practice by Obsidian, but solid may do this anyway
       el.empty();
+      // since mouse will often be inside table, the box shadow is annoying to me
+      // I guess I should make this a confi option eventually?
+      el.parentElement!.style.boxShadow = "none";
 
       // entrypoint for Solid
       const dispose = render(
@@ -211,7 +258,6 @@ export default class DataEdit extends Plugin {
             config={config}
             dataviewAPI={dataviewAPI}
             propertyNames={propertyNames}
-            propertyTypes={propertyTypes}
           />
         ),
         el,

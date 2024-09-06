@@ -48,3 +48,104 @@ ul.property-multitext-ul > li {
 ul.property-multitext-ul > li div.cm-active.cm-line {
   padding-inline-end: 1ch; /* when rendering tags, makes it easier to click to edit instead of clicking to search for tag */
 }
+
+div.column-reorder-button {
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  flex-direction: row;
+  align-items: end;
+  justify-content: center;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  background-color: var(--table-drag-handle-background);
+  color: transparent;
+  user-select: none;
+  touch-action: none;
+}
+
+div.column-reorder-button:hover {
+  color: var(--table-drag-handle-color);
+  cursor: grab;
+}
+
+/* This doesn't work for some reason... natvie obsidian tables have same issue */
+div.column-reorder-button[data-grabbing="true"] {
+  background-color: var(--color-accent);
+  color: var(--text-normal);
+  cursor: grabbing;
+}
+
+th:has(div.column-reorder-button) {
+  padding: 0%;
+  border: none;
+  background-color: transparent;
+  height: fit-content;
+}
+
+/* table.dataedit-table > thead > tr > th,
+table.dataedit-table > tbody > tr > td {
+  white-space: nowrap;
+} */
+
+td.dataedit-is-selected,
+th.dataedit-is-selected {
+  position: relative;
+}
+td.dataedit-is-selected::after,
+th.dataedit-is-selected::after {
+  pointer-events: none;
+  content: "";
+  display: block;
+  position: absolute;
+  top: calc(-1 * var(--table-border-width));
+  inset-inline-end: calc(-1 * var(--table-border-width));
+  bottom: calc(-1 * var(--table-border-width));
+  inset-inline-start: calc(-1 * var(--table-border-width));
+  background-color: var(--table-selection);
+  border: 0px solid var(--table-selection-border-color);
+  mix-blend-mode: var(--table-selection-blend-mode);
+  z-index: 1;
+  border-inline-end-width: var(--table-selection-border-width);
+  border-inline-start-width: var(--table-selection-border-width);
+}
+
+th.dataedit-is-selected.top::after {
+  border-start-start-radius: var(--table-selection-border-radius);
+  border-start-end-radius: var(--table-selection-border-radius);
+  border-top-width: var(--table-selection-border-width);
+  /* top: calc(-1 * var(--table-selection-border-width)); */
+}
+
+td.dataedit-is-selected.bottom::after {
+  border-end-start-radius: var(--table-selection-border-radius);
+  border-end-end-radius: var(--table-selection-border-radius);
+  border-bottom-width: var(--table-selection-border-width);
+  /* bottom: calc(-1 * var(--table-selection-border-width)); */
+}
+
+td.dataedit-is-dragged-over,
+th.dataedit-is-dragged-over {
+  position: relative;
+}
+td.dataedit-is-dragged-over:not(.dataedit-is-selected)::after,
+th.dataedit-is-dragged-over:not(.dataedit-is-selected)::after {
+  pointer-events: none;
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  height: 100%;
+  z-index: 1;
+  width: var(--table-selection-border-width);
+  background-color: var(--table-selection-border-color);
+}
+
+td.dataedit-is-dragged-over.right:not(.dataedit-is-selected)::after,
+th.dataedit-is-dragged-over.right:not(.dataedit-is-selected)::after {
+  right: 0;
+}
+
+td.dataedit-is-dragged-over.left:not(.dataedit-is-selected)::after,
+th.dataedit-is-dragged-over.left:not(.dataedit-is-selected)::after {
+  left: 0;
+}
