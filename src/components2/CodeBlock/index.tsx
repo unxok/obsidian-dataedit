@@ -1,5 +1,4 @@
 import { DataviewAPI, DataviewQueryResult, PropertyType } from "@/lib/types";
-import { CodeBlockConfig } from "@/main";
 import { Table } from "@/components2/Table";
 import { MarkdownPostProcessorContext, Plugin } from "obsidian";
 import {
@@ -19,6 +18,7 @@ import {
   registerDataviewEvents,
   unregisterDataviewEvents,
 } from "@/lib/util";
+import { CodeBlockConfig } from "./Config";
 
 type CodeBlockProps = {
   plugin: Plugin;

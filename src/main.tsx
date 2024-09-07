@@ -28,7 +28,12 @@ import {
 } from "./lib/util.ts";
 import { createStore } from "solid-js/store";
 import { createEffect, createUniqueId, For, onMount, Show } from "solid-js";
-import { CodeBlock } from "./components2/CodeBlock/index.tsx";
+import { BlockContext, CodeBlock } from "./components2/CodeBlock/index.tsx";
+import {
+  CodeBlockConfig,
+  CodeBlockConfigModal,
+  defaultCodeBlockConfig,
+} from "./components2/CodeBlock/Config/index.tsx";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -160,14 +165,6 @@ const getDataviewAPI = (pApp?: ObsidianApp) => {
 
 /////////////////////////////////////////////////////////////////////////
 
-export type CodeBlockConfig = {
-  hello: string;
-};
-
-export const defaultCodeBlockConfig: CodeBlockConfig = {
-  hello: "world",
-};
-
 export default class DataEdit extends Plugin {
   onload(): void {
     this.registerMdCBP();
@@ -184,9 +181,12 @@ export default class DataEdit extends Plugin {
     }
   }
 
-  async overrideEditButton(blockEl: HTMLElement): Promise<void> {
+  async overrideEditButton(
+    ...params: ConstructorParameters<typeof CodeBlockConfigModal>
+  ): Promise<void> {
     await Promise.resolve();
-    const btnEl = blockEl.parentElement!.find("div.edit-block-button");
+    const [app, form, blockContext] = params;
+    const btnEl = blockContext.el.parentElement!.find("div.edit-block-button");
     if (!btnEl) return;
     const newBtn = document.createElement("div");
     newBtn.className = "edit-block-button";
@@ -205,7 +205,7 @@ export default class DataEdit extends Plugin {
             .setTitle("Configure")
             .setIcon("sliders-horizontal")
             .onClick(() => {
-              // open config modal
+              new CodeBlockConfigModal(...params).open();
             }),
         );
 
@@ -220,7 +220,6 @@ export default class DataEdit extends Plugin {
 
   registerMdCBP(): void {
     this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
-      this.overrideEditButton(el);
       const [query, configStr = ""] = source.split(/\n^---$\n/gm);
 
       const propertyNames = getColumnPropertyNames(source);
@@ -232,6 +231,13 @@ export default class DataEdit extends Plugin {
         ...preConfig,
       } as CodeBlockConfig;
 
+      this.overrideEditButton(this.app, config, {
+        ctx,
+        el,
+        source,
+        plugin: this,
+      });
+
       const dataviewAPI = getDataviewAPI(this.app);
       if (!dataviewAPI) {
         const msg =
@@ -240,6 +246,7 @@ export default class DataEdit extends Plugin {
         return;
       }
 
+      el.className += " " + config.containerClass;
       // best practice by Obsidian, but solid may do this anyway
       el.empty();
       // since mouse will often be inside table, the box shadow is annoying to me

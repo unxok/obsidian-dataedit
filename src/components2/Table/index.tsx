@@ -63,9 +63,17 @@ export const Table = (props: {
   propertyTypes: PropertyType[];
   idColIndex: number;
 }) => {
+  const bctx = useBlock();
   const [dragContext, setDragContext] = createStore<DragContextValue>(
     defaultDragContextValue,
   );
+
+  const getVertical = () => {
+    return bctx.config.verticalAlignment;
+  };
+  const getHorizontal = () => {
+    return bctx.config.horizontalAlignment;
+  };
 
   const getFilePath = (rowIndex: number) => {
     const fileColValue = props.values[rowIndex][props.idColIndex];
@@ -99,10 +107,15 @@ export const Table = (props: {
                     right: dragContext.draggedIndex < index(),
                     left: dragContext.draggedIndex > index(),
                   }}
+                  style={{
+                    "vertical-align": getVertical(),
+                    "text-align": getHorizontal(),
+                  }}
                 >
                   <PropertyHeader
                     header={props.headers[index()]}
                     property={item}
+                    propertyType={props.propertyTypes[index()]}
                   />
                 </th>
               )}
@@ -124,6 +137,10 @@ export const Table = (props: {
                           dragContext.draggedOverIndex === itemIndex(),
                         right: dragContext.draggedIndex < itemIndex(),
                         left: dragContext.draggedIndex > itemIndex(),
+                      }}
+                      style={{
+                        "vertical-align": getVertical(),
+                        "text-align": getHorizontal(),
                       }}
                     >
                       <PropertyData

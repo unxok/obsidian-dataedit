@@ -17,7 +17,7 @@
 /* TODO probably shouldnt use the "*" operator nor "!important" */
 .property-text-div * {
   max-width: none !important;
-  width: fit-content !important;
+  width: 100% !important;
   line-height: inherit !important;
 }
 

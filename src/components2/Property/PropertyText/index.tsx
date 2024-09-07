@@ -24,7 +24,13 @@ export const PropertyText = (props: PropertyCommonProps) => {
 
   return (
     <>
-      <div class="property-text-div" ref={(r) => (ref = r)}></div>
+      <div
+        class="property-text-div"
+        ref={(r) => (ref = r)}
+        style={{
+          "text-align": bctx.config.horizontalAlignment,
+        }}
+      ></div>
     </>
   );
 };

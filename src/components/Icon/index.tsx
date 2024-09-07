@@ -11,5 +11,15 @@ export const Icon = (props: ComponentProps<"span"> & { iconId: string }) => {
     setIcon(ref, local.iconId);
   });
 
-  return <span ref={(r) => (ref = r)} {...rest}></span>;
+  return (
+    <span
+      style={{
+        display: "flex",
+        "justify-content": "center",
+        "align-items": "center",
+      }}
+      ref={(r) => (ref = r)}
+      {...rest}
+    ></span>
+  );
 };

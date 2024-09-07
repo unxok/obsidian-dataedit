@@ -9,6 +9,16 @@
  * 	 - Allow all editor commands to function on this editor
  * 	 - Added typings for the editor(s) (will be added to obsidian-typings)
  * Make sure to also check out the original source code here: https://github.com/mgmeyers/obsidian-kanban/blob/main/src/components/Editor/MarkdownEditor.tsx
+ * @author Fevol
+ * @url https://gist.github.com/Fevol/caa478ce303e69eabede7b12b2323838
+ */
+
+/**
+ * Implementation is licensed under MIT, as is this project.
+ * I have made modifications to implement in SolidJs as well as some other miscellaneous things:
+ * - Removed check for now-fixed chrome bug for onBlur()
+ * - Added some typescript assertions for editor being existent (ts error if not asserted)
+ * - setActiveLeaf() can cause a callstack max range error, so I added a gard to prevent over 5 iterations
  */
 
 import { App, Constructor, Scope, TFile, WorkspaceLeaf } from "obsidian";
@@ -103,6 +113,8 @@ export class EmbeddableMarkdownEditor
   options: MarkdownEditorProps;
   initial_value: string;
   scope: Scope;
+  //
+  setActiveLeafCalls: number = 0;
 
   /**
    * Construct the editor
@@ -159,8 +171,18 @@ export class EmbeddableMarkdownEditor
           ) =>
           (leaf: WorkspaceLeaf, params: { focus?: boolean }) => {
             // If the editor is currently focused, prevent the workspace setting the focus to a workspaceLeaf instead
-            if (!this.activeCM.hasFocus)
+            if (!this.activeCM.hasFocus) {
+              const { setActiveLeafCalls } = this;
+              // this can cause an infinite loop of calling the old method
+              // so this check prevents a max callstack error
+              // 5 is completely arbitrary, but seems to work
+              if (setActiveLeafCalls > 5) return;
+              this.setActiveLeafCalls += 1;
               oldMethod.call(this.app.workspace, leaf, params);
+              return;
+            } else {
+              this.setActiveLeafCalls = 0;
+            }
           },
       }),
     );
@@ -169,15 +191,16 @@ export class EmbeddableMarkdownEditor
     // NOTE: Apparently Chrome does a weird thing where removing an element from the DOM triggers a blur event
     //		 (Hence why the ._loaded check is necessary)
     if (this.options.onBlur !== defaultProperties.onBlur) {
-      this.editor.cm.contentDOM.addEventListener("blur", () => {
-        // console.log("blur happened");
-        if (this._loaded || true) this.options.onBlur(this);
+      this.editor!.cm.contentDOM.addEventListener("blur", () => {
+        // Seems Chrome fixed this
+        // if (this._loaded) this.options.onBlur(this);
+        this.options.onBlur(this);
       });
     }
 
     // Whenever the editor is focused, set the activeEditor to the mocked view (this.owner)
     // This allows for the editorCommands to actually work
-    this.editor.cm.contentDOM.addEventListener("focusin", (e) => {
+    this.editor!.cm.contentDOM.addEventListener("focusin", (e) => {
       this.app.keymap.pushScope(this.scope);
       this.app.workspace.activeEditor = this.owner;
       if (this.options.onFocus === defaultProperties.onFocus) return;
@@ -188,7 +211,7 @@ export class EmbeddableMarkdownEditor
 
     if (options.cls) this.editorEl.classList.add(options.cls);
     if (options.cursorLocation) {
-      this.editor.cm.dispatch({
+      this.editor!.cm.dispatch({
         selection: EditorSelection.range(
           options.cursorLocation.anchor,
           options.cursorLocation.head,
@@ -293,7 +316,7 @@ export class EmbeddableMarkdownEditor
    */
   onload() {
     super.onload();
-    if (this.options.focus) this.editor.focus();
+    if (this.options.focus) this.editor!.focus();
   }
 }
 
@@ -304,31 +327,12 @@ export const MarkdownEditor = (props: {
 }) => {
   let ref: HTMLDivElement;
   let eme: EmbeddableMarkdownEditor;
-  const [dummy, setDummy] = createSignal(0);
-  let timer = 0;
-
-  // debouncer
-  //   createEffect(() => {
-  //     dummy();
-  //     window.clearTimeout(timer);
-  //     timer = window.setTimeout(() => {
-  //       if (!props.options.onBlur) return;
-  //       props.options.onBlur(eme);
-  //     }, 3000);
-  //   });
 
   onMount(() => {
     if (!ref) return;
     eme = new EmbeddableMarkdownEditor(props.app, ref, {
       ...props.options,
-      onChange: () => {
-        // setDummy((prev) => prev + 1);
-      },
     });
-    // eme.editor.focus();
-
-    // eme.sourceMode;
-    // eme.owner.app.commands.executeCommandById("markdown:toggle-preview");
 
     props.onMount(eme);
   });

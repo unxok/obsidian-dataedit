@@ -1,5 +1,7 @@
 import { BlockContext } from "@/components2/CodeBlock";
+import { CodeBlockConfig } from "@/components2/CodeBlock/Config";
 import { ScrollFixer } from "@/lib/util";
+import { MarkdownPostProcessorContext, Plugin, stringifyYaml } from "obsidian";
 
 export const arrayMove = (arr: any[], from: number, to: number) => {
   const copy = [...arr];
@@ -75,4 +77,48 @@ export const moveColumn = ({
     { ch: NaN, line: lineEnd - 1 },
   );
   sf.fix();
+};
+
+export type SetBlockConfigProps = {
+  newConfig: CodeBlockConfig | null;
+  ctx: MarkdownPostProcessorContext;
+  el: HTMLElement;
+  plugin: Plugin;
+  source: string;
+};
+export const setBlockConfig = ({
+  newConfig: config,
+  ctx,
+  el,
+  plugin,
+  source,
+}: SetBlockConfigProps) => {
+  const {
+    app: { workspace },
+  } = plugin;
+  // turn into yaml text. Always includes a newline character at the end
+  const newConfigStr = stringifyYaml(config);
+  // text is the entire notes text and is essentially a synchronous read
+  const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
+  // remove the ', file.link' we added if so
+  // const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
+  const query = source.split("\n---\n")[0];
+  let newCodeBlockText = "```dataedit\n" + query;
+  if (config) {
+    newCodeBlockText += "\n---\n" + newConfigStr + "```";
+  } else {
+    newCodeBlockText += "\n```";
+  }
+  const editor = workspace.activeEditor?.editor;
+  if (!editor) {
+    return;
+  }
+
+  const scrollFixer = new ScrollFixer(el);
+  editor.replaceRange(
+    newCodeBlockText,
+    { line: lineStart, ch: 0 },
+    { line: lineEnd, ch: NaN },
+  );
+  scrollFixer.fix();
 };
