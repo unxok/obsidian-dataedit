@@ -15,7 +15,7 @@ import {
   Setter,
   useContext,
 } from "solid-js";
-import { PropertyHeader, PropertyData } from "../Property";
+import { PropertyData } from "../Property";
 import { useBlock } from "../CodeBlock";
 import { checkIfDataviewLink } from "@/lib/util";
 import { Icon } from "@/components/Icon";
@@ -23,6 +23,7 @@ import { DOMElement } from "solid-js/jsx-runtime";
 import { debounce } from "obsidian";
 import { createStore } from "solid-js/store";
 import { moveColumn } from "@/lib2/utils";
+import { PropertyHeader } from "../Property/PropertyHeader";
 
 type DragContextValue = {
   draggedIndex: number;
@@ -30,8 +31,8 @@ type DragContextValue = {
 };
 
 const defaultDragContextValue: DragContextValue = {
-  draggedIndex: NaN,
-  draggedOverIndex: NaN,
+  draggedIndex: -1,
+  draggedOverIndex: -1,
 };
 
 type DragContextProps = {
@@ -116,6 +117,7 @@ export const Table = (props: {
                     header={props.headers[index()]}
                     property={item}
                     propertyType={props.propertyTypes[index()]}
+                    index={index()}
                   />
                 </th>
               )}
@@ -185,13 +187,20 @@ const ColumnReorderButtonContainer = (props: { properties: string[] }) => {
   return (
     <For each={props.properties}>
       {(item, index) => (
-        <th>
+        <th
+        // style={{ position: "relative" }}
+        >
           <ColumnReorderButton
             index={index()}
             property={item}
             recordBounds={recordBounds}
             boundsArr={boundsArr()}
           />
+          {/* <Icon
+            iconId="grip-horizontal"
+            aria-hidden={true}
+            style={{ color: "transparent", background: "transparent" }}
+          /> */}
         </th>
       )}
     </For>
@@ -212,6 +221,8 @@ const ColumnReorderButton = (props: {
   const [isGrabbing, setGrabbing] = createSignal(false);
   const [transform, setTransform] = createSignal(0);
   let lastMousePos = 0;
+  let ref: HTMLDivElement;
+  let baseDisplay: string;
 
   const onmousemove = (e: MouseEvent) => {
     if (!isGrabbing()) return;
@@ -243,8 +254,8 @@ const ColumnReorderButton = (props: {
     document.removeEventListener("mousemove", onmousemove);
     dragCtx.setContext((prev) => ({
       ...prev,
-      draggedIndex: NaN,
-      draggedOverIndex: NaN,
+      draggedIndex: -1,
+      draggedOverIndex: -1,
     }));
     setGrabbing(false);
   };
@@ -267,7 +278,26 @@ const ColumnReorderButton = (props: {
     document.addEventListener("mousemove", onmousemove);
   };
 
+  let timerRef = 0;
+
+  // createEffect(() => {
+  //   console.log("effect");
+  //   const shouldHide =
+  //     dragCtx.context.draggedIndex !== props.index &&
+  //     dragCtx.context.draggedIndex !== -1;
+  //   if (shouldHide && ref.parentElement) {
+  //     timerRef = window.setTimeout(() => {
+  //       ref.parentElement!.style.display = "none";
+  //       ref.parentElement!.style.width = "auto";
+  //     }, 100);
+  //     return;
+  //   }
+  //   ref.parentElement!.style.display = "table-cell";
+  //   ref.parentElement!.style.width = "100%";
+  // });
+
   onCleanup(() => {
+    window.clearTimeout(timerRef);
     document.removeEventListener("mouseup", onmouseup);
     document.removeEventListener("mousemove", onmousemove);
   });
@@ -275,6 +305,8 @@ const ColumnReorderButton = (props: {
   return (
     <div
       ref={async (r) => {
+        ref = r;
+
         // I'm not sure if this is the right approach
         // The idea is to allow CSS to resize the elements
         // but the width is needed when we change position to absolute
@@ -299,6 +331,7 @@ const ColumnReorderButton = (props: {
       }}
       class="column-reorder-button"
       data-grabbing={isGrabbing().toString()}
+      data-hidden={!isGrabbing() && dragCtx.context.draggedIndex !== -1}
       onMouseDown={onMouseDown}
       style={
         isGrabbing()

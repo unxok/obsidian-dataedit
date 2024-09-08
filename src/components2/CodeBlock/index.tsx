@@ -19,9 +19,10 @@ import {
   unregisterDataviewEvents,
 } from "@/lib/util";
 import { CodeBlockConfig } from "./Config";
+import DataEdit from "@/main";
 
 type CodeBlockProps = {
-  plugin: Plugin;
+  plugin: DataEdit;
   source: string;
   el: HTMLElement;
   ctx: MarkdownPostProcessorContext;
@@ -32,7 +33,7 @@ type CodeBlockProps = {
 };
 
 export type BlockContext = {
-  plugin: Plugin;
+  plugin: DataEdit;
   el: HTMLElement;
   ctx: MarkdownPostProcessorContext;
   source: string;
@@ -41,7 +42,7 @@ export type BlockContext = {
   dataviewAPI: DataviewAPI;
 };
 const defaultBlockContext: BlockContext = {
-  plugin: {} as Plugin,
+  plugin: {} as DataEdit,
   el: {} as HTMLElement,
   ctx: {} as MarkdownPostProcessorContext,
   source: "",
@@ -94,10 +95,16 @@ export const CodeBlock = (props: CodeBlockProps) => {
   onMount(() => {
     updateResults();
     registerDataviewEvents(props.plugin, updateResults);
+    props.plugin.app.metadataTypeManager.on(
+      "changed",
+      updatePropertyTypes,
+      props.ctx,
+    );
   });
 
   onCleanup(() => {
     unregisterDataviewEvents(props.plugin, updateResults);
+    props.plugin.app.metadataTypeManager.off("changed", updatePropertyTypes);
   });
 
   return (

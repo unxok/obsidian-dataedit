@@ -29,97 +29,6 @@ import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
 // To prevent treeshaking
 autofocus;
 
-type PropertyHeaderProps = {
-  header: string;
-  property: string;
-  propertyType: PropertyType;
-};
-export const PropertyHeader = (props: PropertyHeaderProps) => {
-  const bctx = useBlock();
-
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        "flex-direction": "row",
-        "align-items": "center",
-        gap: ".5ch",
-        width: "fit-content",
-      }}
-    >
-      <Show when={bctx.config.typeIcons && bctx.config.typeIconLeft}>
-        <PropertyHeaderIcon
-          {...props}
-          tableIdColumnName={bctx.dataviewAPI.settings.tableIdColumnName}
-        />
-      </Show>
-      <Markdown
-        app={bctx.plugin.app}
-        markdown={props.header}
-        sourcePath={bctx.ctx.sourcePath}
-        class="no-p-margin"
-        style={{ "text-wrap": "nowrap" }}
-      />
-      <Show when={bctx.config.typeIcons && !bctx.config.typeIconLeft}>
-        <PropertyHeaderIcon
-          {...props}
-          tableIdColumnName={bctx.dataviewAPI.settings.tableIdColumnName}
-        />
-      </Show>
-    </div>
-  );
-};
-
-const PropertyHeaderIcon = (
-  props: PropertyHeaderProps & { tableIdColumnName: string },
-) => {
-  const isFile = () => {
-    const a = props.property === "file.link";
-    const b = props.header === props.tableIdColumnName;
-    return a || b;
-  };
-  return (
-    <Show
-      when={isFile()}
-      fallback={<PropertyIcon propertyType={props.propertyType} />}
-    >
-      <Icon iconId="file" />
-    </Show>
-  );
-};
-
-const PropertyIcon = (props: { propertyType: PropertyType }) => {
-  //
-  return (
-    <Switch fallback={<Icon iconId="text" />}>
-      <Match when={props.propertyType === "aliases"}>
-        <Icon iconId="forward" />
-      </Match>
-      <Match when={props.propertyType === "checkbox"}>
-        <Icon iconId="check-square" />
-      </Match>
-      <Match when={props.propertyType === "date"}>
-        <Icon iconId="calendar" />
-      </Match>
-      <Match when={props.propertyType === "datetime"}>
-        <Icon iconId="clock" />
-      </Match>
-      <Match when={props.propertyType === "multitext"}>
-        <Icon iconId="list" />
-      </Match>
-      <Match when={props.propertyType === "number"}>
-        <Icon iconId="binary" />
-      </Match>
-      <Match when={props.propertyType === "tags"}>
-        <Icon iconId="tags" />
-      </Match>
-      <Match when={props.propertyType === "unknown"}>
-        <Icon iconId="star" />
-      </Match>
-    </Switch>
-  );
-};
-
 type PropertyDataProps = {
   property: string;
   value: DataviewPropertyValue;
@@ -148,12 +57,12 @@ export const PropertyData = (props: PropertyDataProps) => {
   });
 
   const updateProperty = async (value: unknown) => {
-    await updateMetadataProperty(
+    await bctx.plugin.updateProperty(
       props.property,
       value,
       props.filePath,
-      bctx.plugin,
-      bctx.el,
+      // bctx.plugin,
+      // bctx.el,
       props.value,
     );
   };

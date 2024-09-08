@@ -50,6 +50,8 @@ ul.property-multitext-ul > li div.cm-active.cm-line {
 }
 
 div.column-reorder-button {
+  /* position: absolute; */
+  position: relative;
   width: 100%;
   height: fit-content;
   display: flex;
@@ -61,6 +63,7 @@ div.column-reorder-button {
   color: transparent;
   user-select: none;
   touch-action: none;
+  z-index: 1;
 }
 
 div.column-reorder-button:hover {
@@ -71,8 +74,10 @@ div.column-reorder-button:hover {
 /* This doesn't work for some reason... natvie obsidian tables have same issue */
 div.column-reorder-button[data-grabbing="true"] {
   background-color: var(--color-accent);
+  /* position: absolute; */
   color: var(--text-normal);
   cursor: grabbing;
+  z-index: 5;
 }
 
 th:has(div.column-reorder-button) {
@@ -80,6 +85,22 @@ th:has(div.column-reorder-button) {
   border: none;
   background-color: transparent;
   height: fit-content;
+  /* position: relative; */
+  z-index: 1;
+}
+
+th:has(div.column-reorder-button[data-grabbing="true"]) {
+  /* overflow-x: visible; */
+  z-index: 5;
+}
+
+th:has(div.column-reorder-button[data-hidden="true"]) {
+  opacity: 0;
+  z-index: -1;
+}
+
+div.column-reorder-button[data-hidden="true"] {
+  z-index: -1;
 }
 
 /* table.dataedit-table > thead > tr > th,
@@ -148,4 +169,15 @@ th.dataedit-is-dragged-over.right:not(.dataedit-is-selected)::after {
 td.dataedit-is-dragged-over.left:not(.dataedit-is-selected)::after,
 th.dataedit-is-dragged-over.left:not(.dataedit-is-selected)::after {
   left: 0;
+}
+div.dataedit-property-header {
+  border-radius: var(--clickable-icon-radius);
+  padding: 0 var(--size-2-3);
+}
+
+div.dataedit-property-header:hover {
+  opacity: var(--icon-opacity-hover);
+  color: var(--icon-color-hover);
+  background-color: var(--background-modifier-hover);
+  cursor: var(--cursor);
 }

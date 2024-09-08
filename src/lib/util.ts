@@ -21,9 +21,14 @@ import { DateTime } from "luxon";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "./constants";
 import { CodeBlockInfo } from "@/hooks/useDataEdit";
 
-export const clampNumber = (n: number, min: number, max: number) => {
-  if (n < min) return min;
-  if (n > max) return max;
+export const clampNumber = (
+  n: number,
+  min: number,
+  max: number,
+  inclusive?: boolean,
+) => {
+  if (inclusive ? n <= min : n < min) return min;
+  if (inclusive ? n >= max : n > max) return max;
   return n;
 };
 
@@ -165,6 +170,10 @@ export const tryDataviewArrayToArray = <T>(val: T) => {
   WHERE true 
 */
 
+// TODO move somewhere else
+export const REGEX_COMMA_NOT_IN_DOUBLE_QUOTES =
+  /,(?=(?:[^"]*"[^"]*")*[^"]*$)/gm;
+
 export const getColumnPropertyNames = (source: string) => {
   const line = source.split("\n")[0];
   // TODO possible could have this string within a column alias
@@ -172,7 +181,7 @@ export const getColumnPropertyNames = (source: string) => {
   const cols = source
     .split("\n")[0]
     .substring(isWithoutId ? 17 : 6)
-    .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/gm)
+    .split(REGEX_COMMA_NOT_IN_DOUBLE_QUOTES)
     .map((c) => {
       const str = c.trim();
       const potential = str.split(/\sAS\s/i)[0].trim();
@@ -215,14 +224,15 @@ export const getColumnPropertyNames = (source: string) => {
 
 export const updateMetadataProperty = async (
   property: string,
-  preValue: unknown,
+  newValue: unknown,
   filePath: string,
   plugin: Plugin,
-  el: HTMLElement,
-  previousValue: unknown,
+  // TODO `el` is not needed
+  el: HTMLElement | null,
+  oldValue: unknown,
   itemIndex?: number,
 ) => {
-  const value = tryDataviewLinkToMarkdown(preValue);
+  const value = tryDataviewLinkToMarkdown(newValue);
   const {
     app: { fileManager, vault },
   } = plugin;
@@ -253,7 +263,7 @@ export const updateMetadataProperty = async (
   const inlineUpdated = await tryUpdateInlineProperty(
     property,
     value,
-    previousValue,
+    oldValue,
     file,
     vault,
     itemIndex,
@@ -346,6 +356,10 @@ const tryUpdateInlineProperty = async (
   vault: Vault,
   itemIndex?: number,
 ) => {
+  if (value?.toString().includes("\n")) {
+    new Notice("Inline properties cannot contain new lines!", 5000);
+    return true;
+  }
   const content = await vault.read(file);
   const lines: (string | null)[] = content.split("\n");
   const yaml = [];
@@ -452,7 +466,7 @@ export const splitQueryOnConfig: (codeBlockText: string) => {
   query: string;
   config: DataEditBlockConfig;
 } = (codeBlockText: string) => {
-  const [query, configStr] = codeBlockText.split(/\n^---$\n/gim);
+  const [query, configStr] = codeBlockText.split(/\n^---$\n/m);
   try {
     const config = parseYaml(configStr);
     if (typeof config !== "object") throw new Error();
