@@ -84,12 +84,14 @@ type RenameColumnParams = {
   alias: string;
   index: number;
   blockContext: BlockContext;
+  remove?: boolean;
 };
 export const renameColumn = ({
   propertyName,
   alias,
   index,
   blockContext,
+  remove,
 }: RenameColumnParams) => {
   // TODO technically dataview doesn't require the 'TABLE ...' line to be separated by new lines
   const { query, plugin, source, ctx, el, dataviewAPI } = blockContext;
@@ -114,13 +116,16 @@ export const renameColumn = ({
     ? tableLine.slice(0, 17)
     : tableLine.slice(0, 6);
   const [_, colsText] = tableLine.split(/table(?:\swithout\sid)?\s/im);
-  const cols = colsText
+  const cols: (string | null)[] = colsText
     .split(REGEX_COMMA_NOT_IN_DOUBLE_QUOTES)
     .map((s) => s.trim());
   const colIndex = isWithoutId ? index : index - 1;
   const aliasStr = alias ? ' AS "' + alias + '"' : "";
   cols[colIndex] = propertyName + aliasStr;
-  const newTableLine = tableKeyword + cols.join(", ");
+  if (remove) {
+    cols[colIndex] = null;
+  }
+  const newTableLine = tableKeyword + cols.filter((c) => c !== null).join(", ");
   const newQuery = newTableLine + "\n" + restLines.join("\n");
   const [__, configStr] = source.split(/\n---\n/);
   const newSource = configStr ? newQuery + "\n---\n" + configStr : newQuery;

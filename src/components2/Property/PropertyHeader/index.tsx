@@ -1,9 +1,10 @@
 import { Icon } from "@/components/Icon";
 import { Markdown } from "@/components/Markdown";
 import { BlockContext, useBlock } from "@/components2/CodeBlock";
-import { PropertyType } from "@/lib/types";
+import { DataviewLink, PropertyType } from "@/lib/types";
+import { parseLinesForInlineFields, splitYamlAndContent } from "@/lib/util";
 import { renameColumn, toFirstUpperCase } from "@/lib2/utils";
-import { App, Menu, Modal, Notice, Setting } from "obsidian";
+import { App, Menu, Modal, Notice, Setting, TFile } from "obsidian";
 import { Show, createEffect, createMemo, onCleanup } from "solid-js";
 
 type PropertyHeaderProps = {
@@ -73,17 +74,58 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
       })
       .addItem((item) =>
         item
-          .setTitle("Edit")
+          .setTitle("Edit column")
           .setIcon("pencil")
           .onClick(() => {
-            const modal = new PropertyEditModal(
-              bctx.plugin.app,
+            const modal = new ColumnEditModal(
               props.index,
               props.property,
               props.header === props.property ? "" : props.header,
               bctx,
             );
             modal.open();
+          }),
+      )
+      .addItem((item) =>
+        item
+          .setTitle("Edit property")
+          .setIcon("pen-box")
+          .onClick(() => {
+            const modal = new PropertyEditModal(
+              props.index,
+              props.property,
+              props.header,
+              bctx,
+            );
+            modal.open();
+          }),
+      )
+      .addSeparator()
+      .addItem((item) =>
+        item
+          .setTitle("Remove column")
+          .setIcon("cross")
+          .onClick(() => {
+            new ColumnRemoveModal(
+              props.index,
+              props.property,
+              props.header,
+              bctx,
+            ).open();
+          }),
+      )
+      .addItem((item) =>
+        item
+          .setTitle("Delete property")
+          .setIcon("trash")
+          .setWarning(true)
+          .onClick(() => {
+            new PropertyDeleteModal(
+              props.index,
+              props.property,
+              props.header,
+              bctx,
+            ).open();
           }),
       );
   };
@@ -174,21 +216,21 @@ const PropertyIcon = (props: { propertyType: PropertyType }) => {
   // );
 };
 
-class PropertyEditModal extends Modal {
+class ColumnEditModal extends Modal {
   private colIndex: number;
   private oldProperty: string;
   private oldAlias: string;
   private newProperty: string;
   private newAlias: string;
   private blockContext: BlockContext;
+  private replaceAll: boolean = false;
   constructor(
-    app: App,
     colIndex: number,
     oldProperty: string,
     oldAlias: string,
     blockContext: BlockContext,
   ) {
-    super(app);
+    super(blockContext.plugin.app);
     this.colIndex = colIndex;
     this.oldProperty = oldProperty;
     this.oldAlias = oldAlias;
@@ -198,7 +240,7 @@ class PropertyEditModal extends Modal {
   }
 
   onOpen(): void {
-    this.setTitle("Edit property");
+    this.setTitle("Edit column");
     const { contentEl, colIndex, oldProperty, oldAlias } = this;
     contentEl.empty();
     contentEl
@@ -226,6 +268,15 @@ class PropertyEditModal extends Modal {
         cmp.setValue(oldAlias ?? "").onChange((v) => (this.newAlias = v)),
       );
 
+    new Setting(contentEl)
+      .setName("Replace all occurrences")
+      .setDesc(
+        "Turn on to replace all instances of the old property name with the new name.",
+      )
+      .addToggle((cmp) =>
+        cmp.setValue(false).onChange((b) => (this.replaceAll = b)),
+      );
+
     new Setting(contentEl).addButton((cmp) =>
       cmp
         .setButtonText("update")
@@ -235,12 +286,419 @@ class PropertyEditModal extends Modal {
           if (oldProperty === newProperty && oldAlias === newAlias) {
             return this.close();
           }
+          if (this.replaceAll) {
+            blockContext.query = blockContext.query.replaceAll(
+              oldProperty,
+              newProperty,
+            );
+          }
           renameColumn({
             propertyName: newProperty,
             alias: newAlias,
             index: colIndex,
             blockContext: blockContext,
           });
+          this.close();
+        })
+        .setCta(),
+    );
+  }
+}
+
+class PropertyEditModal extends Modal {
+  private colIndex: number;
+  private oldProperty: string;
+  private alias: string;
+  private newProperty: string;
+  private blockContext: BlockContext;
+  private replaceAll: boolean = false;
+  constructor(
+    colIndex: number,
+    oldProperty: string,
+    alias: string,
+    blockContext: BlockContext,
+  ) {
+    super(blockContext.plugin.app);
+    this.colIndex = colIndex;
+    this.oldProperty = oldProperty;
+    this.alias = alias;
+    this.newProperty = oldProperty;
+    this.blockContext = blockContext;
+  }
+
+  async doUpdate(): Promise<void> {
+    const { blockContext, oldProperty, alias, newProperty, colIndex } = this;
+    const {
+      dataviewAPI,
+      plugin: { app },
+    } = blockContext;
+    const result = await dataviewAPI.query(
+      "TABLE\nWHERE " + oldProperty + " != null",
+    );
+    if (!result.successful) {
+      const msg = "Failed to update property, please try again!";
+      new Notice(msg);
+      return console.error(msg);
+    }
+    const files = result.value.values.map(
+      ([obj]) => app.vault.getFileByPath((obj as DataviewLink).path)!,
+    );
+
+    files.map(async (f) => {
+      let isFail = false;
+      await app.fileManager.processFrontMatter(f, (fm) => {
+        if (!fm.hasOwnProperty(oldProperty)) {
+          // assume it's an inline property
+          isFail = true;
+        }
+        fm[newProperty] = fm[oldProperty];
+        delete fm[oldProperty];
+      });
+      if (!isFail) return;
+      await app.vault.process(f, (data) => {
+        const { yaml, lines } = splitYamlAndContent(data);
+        const fields = parseLinesForInlineFields(lines);
+        fields.forEach(({ key, line, match }) => {
+          if (key !== oldProperty || !lines[line]) return;
+          const newFieldValue = match.replaceAll(oldProperty, newProperty);
+          lines[line] = lines[line].replaceAll(match, newFieldValue);
+        });
+        let finalContent = "";
+        for (let m = 0; m < lines.length; m++) {
+          const v = lines[m];
+          if (v === null) continue;
+          finalContent += "\n" + v;
+        }
+        return yaml.join("\n") + finalContent;
+      });
+    });
+
+    if (this.replaceAll) {
+      blockContext.query = blockContext.query.replaceAll(
+        oldProperty,
+        newProperty,
+      );
+    }
+
+    renameColumn({
+      propertyName: newProperty,
+      alias: oldProperty === alias ? "" : alias,
+      blockContext: blockContext,
+      index: colIndex,
+    });
+
+    new Notice("Succesfully renamed property in " + files.length + " notes!");
+  }
+
+  onOpen(): void {
+    const { contentEl, oldProperty } = this;
+    this.setTitle("Edit property: " + oldProperty);
+    contentEl.empty();
+    contentEl
+      .createEl("p")
+      .setText("Edit the property name for all notes that contain it.");
+    contentEl
+      .createEl("p")
+      .setText(
+        "The specified column will be swapped out with the new name within the 'TABLE ...' line upon completion, but you may still need to update any other lines that used the old property name.",
+      );
+    contentEl
+      .createEl("p", { attr: { style: "color: var(--text-error);" } })
+      .setText("This update will be permanent! Use with caution.");
+
+    new Setting(contentEl)
+      .setName("New property name")
+      .setDesc("The new name to change to.")
+      .addText((cmp) =>
+        cmp.setValue(oldProperty).onChange((v) => (this.newProperty = v)),
+      );
+
+    new Setting(contentEl)
+      .setName("Replace all occurrences")
+      .setDesc(
+        "Turn on to replace all instances of the old property name with the new name.",
+      )
+      .addToggle((cmp) =>
+        cmp.setValue(false).onChange((b) => (this.replaceAll = b)),
+      );
+
+    new Setting(contentEl).addButton((cmp) =>
+      cmp
+        .setButtonText("update")
+        .onClick(async () => {
+          const { oldProperty, newProperty } = this;
+          if (oldProperty === newProperty) {
+            return this.close();
+          }
+
+          await this.doUpdate();
+
+          this.close();
+        })
+        .setCta(),
+    );
+  }
+}
+
+// class PropertyDeleteModal extends Modal {
+//   private colIndex: number;
+//   private property: string;
+//   private blockContext: BlockContext;
+
+//   constructor(
+//     app: App,
+//     colIndex: number,
+//     blockContext: BlockContext,
+//   ) {
+//     super(app);
+//     this.colIndex = colIndex;
+//     this.blockContext = blockContext;
+//   }
+
+//   async doUpdate(): Promise<void> {
+//     const { blockContext, oldProperty, alias, newProperty, colIndex } = this;
+//     const {
+//       dataviewAPI,
+//       plugin: { app },
+//     } = blockContext;
+//     const result = await dataviewAPI.query(
+//       "TABLE\nWHERE " + oldProperty + " != null",
+//     );
+//     if (!result.successful) {
+//       const msg = "Failed to update property, please try again!";
+//       new Notice(msg);
+//       return console.error(msg);
+//     }
+//     const files = result.value.values.map(
+//       ([obj]) => app.vault.getFileByPath((obj as DataviewLink).path)!,
+//     );
+
+//     files.forEach(async (f) => {
+//       await app.fileManager.processFrontMatter(f, (fm) => {
+//         if (!fm.hasOwnProperty(oldProperty)) {
+//           throw new Error(
+//             "Couldn't find old property in found files. This should never happen.",
+//           );
+//         }
+//         fm[newProperty] = fm[oldProperty];
+//         delete fm[oldProperty];
+//       });
+//     });
+
+//     if (this.replaceAll) {
+//       blockContext.query = blockContext.query.replaceAll(
+//         oldProperty,
+//         newProperty,
+//       );
+//     }
+
+//     renameColumn({
+//       propertyName: newProperty,
+//       alias: oldProperty === alias ? "" : alias,
+//       blockContext: blockContext,
+//       index: colIndex,
+//     });
+
+//     new Notice("Succesfully renamed property in " + files.length + " notes!");
+//   }
+
+//   onOpen(): void {
+//     const { contentEl, property } = this;
+//     this.setTitle("Delete property: " + property);
+//     contentEl.empty();
+//     contentEl
+//       .createEl("p")
+//       .setText("Delete property from notes.");
+//     contentEl
+//       .createEl("p")
+//       .setText(
+//         "Only works on frontmatter properties. Inline properties are not supported yet.",
+//       );
+//     contentEl
+//       .createEl("p", { attr: { style: "color: var(--text-error);" } })
+//       .setText("This deletion will be permanent! Use with caution.");
+
+//     new Setting(contentEl)
+//       .setName("New property name")
+//       .setDesc("The new name to change to.")
+//       .addText((cmp) =>
+//         cmp.setValue(oldProperty).onChange((v) => (this.newProperty = v)),
+//       );
+
+//     new Setting(contentEl)
+//       .setName("Replace all occurrences")
+//       .setDesc(
+//         "Turn on to replace all instances of the old property name with the new name.",
+//       )
+//       .addToggle((cmp) =>
+//         cmp.setValue(false).onChange((b) => (this.replaceAll = b)),
+//       );
+
+//     new Setting(contentEl).addButton((cmp) =>
+//       cmp
+//         .setButtonText("update")
+//         .onClick(async () => {
+//           const { oldProperty, newProperty } = this;
+//           if (oldProperty === newProperty) {
+//             return this.close();
+//           }
+
+//           await this.doUpdate();
+
+//           this.close();
+//         })
+//         .setCta(),
+//     );
+//   }
+// }
+
+class ColumnRemoveModal extends Modal {
+  private colIndex: number;
+  private property: string;
+  private alias: string;
+  private blockContext: BlockContext;
+  constructor(
+    colIndex: number,
+    property: string,
+    alias: string,
+    blockContext: BlockContext,
+  ) {
+    super(blockContext.plugin.app);
+    this.colIndex = colIndex;
+    this.property = property;
+    this.alias = alias;
+    this.blockContext = blockContext;
+  }
+
+  onOpen(): void {
+    const { contentEl, colIndex, property, alias } = this;
+    const combined = alias ? property + ' AS "' + alias + '"' : property;
+    this.setTitle("Remove column: " + combined);
+    contentEl.empty();
+    contentEl.createEl("p").setText("Removes the column from the table.");
+    contentEl
+      .createEl("p")
+      .setText("This will only affect the 'TABLE ...' line.");
+    contentEl.createEl("p").setText("This will NOT update any notes metdata.");
+
+    new Setting(contentEl).addButton((cmp) =>
+      cmp
+        .setButtonText("remove")
+        .setWarning()
+        .onClick(() => {
+          const { property, alias, blockContext } = this;
+
+          renameColumn({
+            propertyName: property,
+            alias: alias,
+            index: colIndex,
+            blockContext: blockContext,
+            remove: true,
+          });
+          this.close();
+        })
+        .setCta(),
+    );
+  }
+}
+
+class PropertyDeleteModal extends Modal {
+  private colIndex: number;
+  private alias: string;
+  private property: string;
+  private blockContext: BlockContext;
+  constructor(
+    colIndex: number,
+    property: string,
+    alias: string,
+    blockContext: BlockContext,
+  ) {
+    super(blockContext.plugin.app);
+    this.colIndex = colIndex;
+    this.alias = alias;
+    this.property = property;
+    this.blockContext = blockContext;
+  }
+
+  async doUpdate(): Promise<void> {
+    const { blockContext, alias, property, colIndex } = this;
+    const {
+      dataviewAPI,
+      plugin: { app },
+    } = blockContext;
+    const result = await dataviewAPI.query(
+      "TABLE\nWHERE " + property + " != null",
+    );
+    if (!result.successful) {
+      const msg = "Failed to update property, please try again!";
+      new Notice(msg);
+      return console.error(msg);
+    }
+    const files = result.value.values.map(
+      ([obj]) => app.vault.getFileByPath((obj as DataviewLink).path)!,
+    );
+
+    files.map(async (f) => {
+      let isFail = false;
+      await app.fileManager.processFrontMatter(f, (fm) => {
+        if (!fm.hasOwnProperty(property)) {
+          // assume it's an inline property
+          isFail = true;
+        }
+        delete fm[property];
+      });
+      if (!isFail) return;
+      await app.vault.process(f, (data) => {
+        const { yaml, lines } = splitYamlAndContent(data);
+        const fields = parseLinesForInlineFields(lines);
+        fields.forEach(({ key, line, match }) => {
+          if (key !== property || !lines[line]) return;
+          lines[line] = lines[line].replaceAll(match, "");
+        });
+        let finalContent = "";
+        for (let m = 0; m < lines.length; m++) {
+          const v = lines[m];
+          if (v === null) continue;
+          finalContent += "\n" + v;
+        }
+        return yaml.join("\n") + finalContent;
+      });
+    });
+
+    renameColumn({
+      propertyName: property,
+      alias: property === alias ? "" : alias,
+      blockContext: blockContext,
+      index: colIndex,
+      remove: true,
+    });
+
+    new Notice("Succesfully renamed property in " + files.length + " notes!");
+  }
+
+  onOpen(): void {
+    const { contentEl, property } = this;
+    this.setTitle("Delete property: " + property);
+    contentEl.empty();
+    contentEl
+      .createEl("p")
+      .setText("Removes the property from notes that contain it.");
+    contentEl
+      .createEl("p")
+      .setText(
+        "The corresponding column will be removed from the 'TABLE ...' line upon completion, but you may still need to update any other lines that used the property.",
+      );
+    contentEl
+      .createEl("p", { attr: { style: "color: var(--text-error);" } })
+      .setText("This update will be permanent! Use with caution.");
+
+    new Setting(contentEl).addButton((cmp) =>
+      cmp
+        .setButtonText("delete")
+        .setWarning()
+        .onClick(async () => {
+          await this.doUpdate();
+
           this.close();
         })
         .setCta(),

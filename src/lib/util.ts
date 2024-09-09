@@ -320,7 +320,7 @@ type InlinePropertyValue =
   | (string | number)[]
   | undefined;
 
-const parseLinesForInlineFields = (lines: (string | null)[]) => {
+export const parseLinesForInlineFields = (lines: (string | null)[]) => {
   const reg = new RegExp(/[\[\(]?([^\n\r\(\[]*)::[ ]*([^\)\]\n\r]*)[\]\)]?/gm);
   return lines.reduce<
     {
@@ -348,19 +348,7 @@ const parseLinesForInlineFields = (lines: (string | null)[]) => {
   }, []);
 };
 
-const tryUpdateInlineProperty = async (
-  property: string,
-  value: unknown,
-  previousValue: unknown,
-  file: TFile,
-  vault: Vault,
-  itemIndex?: number,
-) => {
-  if (value?.toString().includes("\n")) {
-    new Notice("Inline properties cannot contain new lines!", 5000);
-    return true;
-  }
-  const content = await vault.read(file);
+export const splitYamlAndContent = (content: string) => {
   const lines: (string | null)[] = content.split("\n");
   const yaml = [];
   if (lines[0] === "---") {
@@ -379,6 +367,23 @@ const tryUpdateInlineProperty = async (
       }
     }
   }
+  return { yaml, lines };
+};
+
+const tryUpdateInlineProperty = async (
+  property: string,
+  value: unknown,
+  previousValue: unknown,
+  file: TFile,
+  vault: Vault,
+  itemIndex?: number,
+) => {
+  if (value?.toString().includes("\n")) {
+    new Notice("Inline properties cannot contain new lines!", 5000);
+    return true;
+  }
+  const content = await vault.read(file);
+  const { yaml, lines } = splitYamlAndContent(content);
   const parsedFields = parseLinesForInlineFields(lines);
   const foundInline = parsedFields.find(
     (f) => f.value === previousValue?.toString(),
@@ -398,12 +403,14 @@ const tryUpdateInlineProperty = async (
     return false;
   }
   const newValue = Array.isArray(value) ? value[itemIndex ?? 0] : value;
+  console.log("found: ", foundInline);
+  const newFieldValue = foundInline.match.replaceAll(
+    previousValue?.toString() ?? "",
+    newValue,
+  );
   lines[foundInline.line] =
-    lines[foundInline.line]?.replace(
-      // TODO I don't think space after colons is required
-      (property + ":: " + foundInline.value) as string,
-      property + ":: " + (newValue ?? "").toString(),
-    ) ?? null;
+    lines[foundInline.line]?.replaceAll(foundInline.match, newFieldValue) ??
+    null;
   let finalContent = "";
   for (let m = 0; m < lines.length; m++) {
     const v = lines[m];
