@@ -80,24 +80,22 @@ div.column-reorder-button[data-grabbing="true"] {
   z-index: 5;
 }
 
-th:has(div.column-reorder-button) {
+/* th:has(div.column-reorder-button) {
   padding: 0%;
   border: none;
   background-color: transparent;
   height: fit-content;
-  /* position: relative; */
   z-index: 1;
 }
 
 th:has(div.column-reorder-button[data-grabbing="true"]) {
-  /* overflow-x: visible; */
   z-index: 5;
 }
 
 th:has(div.column-reorder-button[data-hidden="true"]) {
   opacity: 0;
   z-index: -1;
-}
+} */
 
 div.column-reorder-button[data-hidden="true"] {
   z-index: -1;
@@ -180,4 +178,46 @@ div.dataedit-property-header:hover {
   color: var(--icon-color-hover);
   background-color: var(--background-modifier-hover);
   cursor: var(--cursor);
+}
+
+div.dataedit-table-col-btn,
+div.dataedit-table-row-btn {
+  --icon-size: var(--icon-s);
+  --icon-stroke: var(--icon-s-stroke-width);
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--table-drag-handle-size);
+  width: var(--table-drag-handle-size);
+  background-color: var(--table-add-button-background);
+  border: var(--table-add-button-border-width) solid
+    var(--table-add-button-border-color);
+  color: var(--text-faint);
+  transition: opacity 0s 0.1s;
+  opacity: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+div.dataedit-table-row-btn {
+  top: 100%;
+  inset-inline-start: 0;
+  width: 100%;
+  border-top: none;
+  cursor: s-resize;
+  max-height: var(--icon-s);
+}
+
+div.dataedit-table-col-btn {
+  top: 0;
+  height: 100%;
+  inset-inline-start: 100%;
+  border-inline-start: none;
+  cursor: e-resize;
+}
+
+div.dataedit-table-row-btn:hover,
+div.dataedit-table-col-btn:hover {
+  opacity: 1;
 }

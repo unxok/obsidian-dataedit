@@ -10,6 +10,7 @@ import {
   createContext,
   useContext,
   onCleanup,
+  createUniqueId,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import {
@@ -40,6 +41,7 @@ export type BlockContext = {
   query: string;
   config: CodeBlockConfig;
   dataviewAPI: DataviewAPI;
+  uid: string;
 };
 const defaultBlockContext: BlockContext = {
   plugin: {} as DataEdit,
@@ -49,12 +51,14 @@ const defaultBlockContext: BlockContext = {
   query: "",
   config: {} as CodeBlockConfig,
   dataviewAPI: {} as DataviewAPI,
+  uid: "",
 };
-const BlockContext = createContext<BlockContext>(defaultBlockContext);
+const BlockContext = createContext<BlockContext>({ ...defaultBlockContext });
 
 export const useBlock = () => useContext(BlockContext);
 
 export const CodeBlock = (props: CodeBlockProps) => {
+  const uid = createUniqueId();
   const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
   const [idColIndex, setIdColIndex] = createSignal(0);
   const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
@@ -113,6 +117,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
         dataviewResult().successful && dataviewResult().value!.headers.length
       }
     >
+      ID: {uid}
       <BlockContext.Provider
         value={{
           plugin: props.plugin,
@@ -122,9 +127,10 @@ export const CodeBlock = (props: CodeBlockProps) => {
           query: props.query,
           config: props.config,
           dataviewAPI: props.dataviewAPI,
+          uid: uid,
         }}
       >
-        <div style={{ "overflow-x": "auto" }}>
+        <div style={{ "overflow-x": "auto", height: "fit-content" }}>
           <Table
             properties={props.propertyNames}
             headers={dataviewResult().value!.headers}

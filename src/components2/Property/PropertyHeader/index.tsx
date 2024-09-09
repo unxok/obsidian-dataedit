@@ -5,13 +5,20 @@ import { DataviewLink, PropertyType } from "@/lib/types";
 import { parseLinesForInlineFields, splitYamlAndContent } from "@/lib/util";
 import { renameColumn, toFirstUpperCase } from "@/lib2/utils";
 import { App, Menu, Modal, Notice, Setting, TFile } from "obsidian";
-import { Show, createEffect, createMemo, onCleanup } from "solid-js";
+import {
+  JSXElement,
+  Show,
+  createEffect,
+  createMemo,
+  onCleanup,
+} from "solid-js";
 
-type PropertyHeaderProps = {
+export type PropertyHeaderProps = {
   header: string;
   property: string;
   propertyType: PropertyType;
   index: number;
+  children?: JSXElement;
 };
 export const PropertyHeader = (props: PropertyHeaderProps) => {
   const bctx = useBlock();
@@ -136,16 +143,24 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 
   return (
     <div
-      onClick={(e) => !isDefaultIdCol() && menu.showAtMouseEvent(e)}
+      onClick={(e) => {
+        const attr = e.target.getAttribute("data-column-reorder-button");
+        if (attr !== null) return;
+
+        !isDefaultIdCol() && menu.showAtMouseEvent(e);
+      }}
       classList={{ "dataedit-property-header": !isDefaultIdCol() }}
       style={{
+        // position: "relative",
         display: "inline-flex",
         "flex-direction": "row",
         "align-items": "center",
         gap: ".5ch",
         width: "fit-content",
+        position: "static",
       }}
     >
+      {props.children}
       <Show when={bctx.config.typeIcons && bctx.config.typeIconLeft}>
         <PropertyHeaderIcon {...props} isFile={isFile()} />
       </Show>
