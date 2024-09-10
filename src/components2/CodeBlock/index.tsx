@@ -1,6 +1,10 @@
 import { DataviewAPI, DataviewQueryResult, PropertyType } from "@/lib/types";
 import { Table } from "@/components2/Table";
-import { MarkdownPostProcessorContext, Plugin } from "obsidian";
+import {
+  DropdownComponent,
+  MarkdownPostProcessorContext,
+  Plugin,
+} from "obsidian";
 import {
   onMount,
   createEffect,
@@ -14,6 +18,7 @@ import {
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import {
+  ensureFileLinkColumn,
   getIdColumnIndex,
   getPropertyTypes,
   registerDataviewEvents,
@@ -21,6 +26,8 @@ import {
 } from "@/lib/util";
 import { CodeBlockConfig } from "./Config";
 import DataEdit from "@/main";
+import { PropertyWidget } from "obsidian-typings";
+import { toFirstUpperCase } from "@/lib2/utils";
 
 type CodeBlockProps = {
   plugin: DataEdit;
@@ -42,6 +49,7 @@ export type BlockContext = {
   config: CodeBlockConfig;
   dataviewAPI: DataviewAPI;
   uid: string;
+  hideLastId: boolean;
 };
 const defaultBlockContext: BlockContext = {
   plugin: {} as DataEdit,
@@ -52,6 +60,7 @@ const defaultBlockContext: BlockContext = {
   config: {} as CodeBlockConfig,
   dataviewAPI: {} as DataviewAPI,
   uid: "",
+  hideLastId: false,
 };
 const BlockContext = createContext<BlockContext>({ ...defaultBlockContext });
 
@@ -68,7 +77,48 @@ export const CodeBlock = (props: CodeBlockProps) => {
     },
   );
 
+  const registerDropdownType = () => {
+    const typeKey = "dataedit:dropdown-status";
+    const options = ["not started", "in progress", "completed", "abandoned"];
+    const labels = options.reduce(
+      (acc, curr) => {
+        acc[curr] = toFirstUpperCase(curr);
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
+    const record: PropertyWidget<string> & { options: string[] } = {
+      options: options,
+      default: () => options[0],
+      icon: "lucide-chevron-down-circle",
+      name: () => "Status",
+      render: (el, data, ctx) => {
+        el.classList.add("dataedit");
+        new DropdownComponent(el)
+          .addOptions(labels)
+          .setValue(data.value)
+          .onChange(async (v) => {
+            await props.plugin.updateProperty(
+              data.key,
+              v,
+              ctx.sourcePath,
+              data.value,
+              undefined,
+              true,
+            );
+          });
+      },
+      type: typeKey,
+      validate: (v) => options.includes(v),
+    };
+    const { registeredTypeWidgets } = props.plugin.app.metadataTypeManager;
+    if (registeredTypeWidgets.hasOwnProperty(typeKey)) return;
+    registeredTypeWidgets[typeKey] = record;
+  };
+
   const updatePropertyTypes = () => {
+    // registerDropdownType();
     const arr = getPropertyTypes(
       props.propertyNames,
       props.plugin.app.metadataCache,
@@ -128,6 +178,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
           config: props.config,
           dataviewAPI: props.dataviewAPI,
           uid: uid,
+          hideLastId: false,
         }}
       >
         <div style={{ "overflow-x": "auto", height: "fit-content" }}>

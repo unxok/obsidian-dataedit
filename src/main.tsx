@@ -15,6 +15,7 @@ import {
   setIcon,
   Menu,
   MarkdownPreviewRenderer,
+  DropdownComponent,
 } from "obsidian";
 import {
   DataviewAPI,
@@ -24,7 +25,6 @@ import {
 import {
   clampNumber,
   ensureFileLinkColumn,
-  getColumnPropertyNames,
   getPropertyTypes,
   splitQueryOnConfig,
   updateMetadataProperty,
@@ -37,6 +37,13 @@ import {
   CodeBlockConfigModal,
   defaultCodeBlockConfig,
 } from "./components2/CodeBlock/Config/index.tsx";
+import { getColumnPropertyNames } from "./lib2/utils.ts";
+import {
+  DropdownRecord,
+  DropdownRecordKey,
+  DropdownWidgetManager,
+} from "./classes/DropdownWidgetManager/index.tsx";
+import { dataeditDropdownTypePrefix } from "./lib/constants.ts";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -184,8 +191,77 @@ export default class DataEdit extends Plugin {
   propertyUpdatesIndex: number = 0;
 
   onload(): void {
+    this.registerDropdowns();
     this.registerMdCBP();
     this.devReload(); // TODO comment out when releasing
+  }
+
+  async registerDropdowns(
+    dropdownsObject?: Record<DropdownRecordKey, DropdownRecord>,
+  ): Promise<void> {
+    const { metadataTypeManager } = this.app;
+    let dropdowns = { ...dropdownsObject };
+    if (!dropdownsObject) {
+      const settings = (await this.loadData()) ?? {};
+      if (!settings.hasOwnProperty("dropdowns")) return;
+      dropdowns = settings.dropdowns;
+    }
+    const prefix = dataeditDropdownTypePrefix;
+    const keys = Object.keys(dropdowns);
+    const shouldDelete = Object.keys(metadataTypeManager.registeredTypeWidgets)
+      // find types that belong to dataedit but are not in our present keys to register
+      .filter((k, i) => k.startsWith(prefix) && !k.endsWith(keys[i]));
+    shouldDelete.forEach(
+      (k) => delete metadataTypeManager.registeredTypeWidgets[k],
+    );
+    keys.forEach((k) => {
+      const { defaultValue, description, label, options } = dropdowns[k];
+      const typeKey = prefix + k;
+      const optionsObj = options.reduce(
+        (acc, curr) => {
+          // this shouldn't every happen but still
+          if (!curr.value) return acc;
+          const label = curr.label ? curr.label : curr.value;
+          acc[curr.value] = label;
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
+      metadataTypeManager.registeredTypeWidgets[typeKey] = {
+        default: () => defaultValue,
+        icon: "lucide-chevron-down-circle",
+        name: () => label,
+        type: typeKey,
+        validate: (v) => options.some(({ value }) => v === value),
+        render: (el, data, ctx) => {
+          el.classList.add("dataedit");
+          el.setAttribute("data-dataedit-dropdown-type", k); // for CSS purposes
+          el.setAttribute("aria-label", description);
+          const cmp = new DropdownComponent(el)
+            .addOptions(optionsObj)
+            // .setValue(data.value?.toString() ?? defaultValue)
+            .onChange(async (v) => {
+              await this.updateProperty(
+                data.key,
+                v,
+                ctx.sourcePath,
+                data.value,
+                undefined,
+                true,
+              );
+            });
+          // incase it's invalid on render
+          this.updateProperty(
+            data.key,
+            cmp.getValue(),
+            ctx.sourcePath,
+            data.value,
+            undefined,
+            true,
+          );
+        },
+      };
+    });
   }
 
   recordUpdate(update: PropertyUpdateRecord): void {
@@ -258,13 +334,10 @@ export default class DataEdit extends Plugin {
   }
 
   devReload(): void {
-    const { activeEditor } = app.workspace;
-    try {
-      // @ts-expect-error
-      activeEditor.leaf.rebuildView();
-    } catch (_) {
-      console.log("failed dev reload");
-    }
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      // @ts-expect-error Private API not documented in obsidian-typings
+      leaf.rebuildView && leaf.rebuildView();
+    });
   }
 
   async overrideEditButton(
@@ -360,6 +433,15 @@ export default class DataEdit extends Plugin {
             .setTitle("Redo update")
             .setIcon("corner-up-right")
             .onClick(async () => await this.redoUpdate()),
+        )
+        .addSeparator()
+        .addItem((item) =>
+          item
+            .setTitle("Manage dropdowns")
+            .setIcon("chevron-down-circle")
+            .onClick(() => {
+              new DropdownWidgetManager(this).open();
+            }),
         );
 
       menu.showAtMouseEvent(e);

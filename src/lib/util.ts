@@ -20,6 +20,7 @@ import {
 import { DateTime } from "luxon";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "./constants";
 import { CodeBlockInfo } from "@/hooks/useDataEdit";
+import { REGEX_COMMA_NOT_IN_DOUBLE_QUOTES } from "./regex";
 
 export const clampNumber = (
   n: number,
@@ -169,10 +170,6 @@ export const tryDataviewArrayToArray = <T>(val: T) => {
   FROM "/"
   WHERE true 
 */
-
-// TODO move somewhere else
-export const REGEX_COMMA_NOT_IN_DOUBLE_QUOTES =
-  /,(?=(?:[^"]*"[^"]*")*[^"]*$)/gm;
 
 export const getColumnPropertyNames = (source: string) => {
   const line = source.split("\n")[0];

@@ -1,6 +1,8 @@
 import { BlockContext } from "@/components2/CodeBlock";
 import { CodeBlockConfig } from "@/components2/CodeBlock/Config";
-import { REGEX_COMMA_NOT_IN_DOUBLE_QUOTES, ScrollFixer } from "@/lib/util";
+import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
+import { REGEX_COMMA_NOT_IN_DOUBLE_QUOTES } from "@/lib/regex";
+import { ScrollFixer } from "@/lib/util";
 import { MarkdownPostProcessorContext, Plugin, stringifyYaml } from "obsidian";
 
 export const arrayMove = (arr: any[], from: number, to: number) => {
@@ -11,13 +13,26 @@ export const arrayMove = (arr: any[], from: number, to: number) => {
   return copy;
 };
 
-// TODO move this
-const DATAVIEW_KEYWORDS = [
-  // 'TABLE'
-  "FROM",
-  "WHERE",
-  "SORT",
-];
+export const getTableLine = (query: string) => {
+  const reg =
+    /(\n*\s*(?:from|where|sort|limit))(?!(?=[^"]*"[^"]*(?:"[^"]*"[^"]*)*$))/im;
+  const [line, ...rest] = query.split(reg);
+
+  return {
+    tableLine: line,
+    rest: rest.join(""),
+  };
+};
+
+export const splitTableKeyword = (tableLine: string) => {
+  const [_, keyword, ...rest] = tableLine.split(
+    /(^table(?:\s+without\s+id)?\s*)/im,
+  );
+  return {
+    keyword: keyword,
+    rest: rest.join(""),
+  };
+};
 
 type MoveColumnParams = {
   indexFrom: number;
@@ -29,9 +44,8 @@ export const moveColumn = ({
   indexTo,
   blockContext,
 }: MoveColumnParams) => {
-  // TODO technically dataview doesn't require the 'TABLE ...' line to be separated by new lines
   const { query, plugin, source, ctx, el, dataviewAPI } = blockContext;
-  const [preTableLine, ...restLines] = query.split("\n");
+  const { tableLine: preTableLine, rest: restLines } = getTableLine(query);
   let tableLine = preTableLine;
   const preIsWithoutId = tableLine
     .toLocaleLowerCase()
@@ -42,18 +56,17 @@ export const moveColumn = ({
     const { tableIdColumnName } = dataviewAPI.settings;
     tableLine =
       preTableLine.slice(0, 6) +
-      "WITHOUT ID file.link AS " +
+      'WITHOUT ID file.link AS "' +
       tableIdColumnName +
-      ", " +
+      '", ' +
       preTableLine.slice(6);
     isWithoutId = true;
   }
-  const tableKeyword = isWithoutId
-    ? tableLine.slice(0, 17)
-    : tableLine.slice(0, 6);
-  const [_, colsText] = tableLine.split(/table(?:\swithout\sid)?\s/im);
+  const { keyword: tableKeyword, rest: colsText } =
+    splitTableKeyword(tableLine);
   const cols = colsText
     .split(REGEX_COMMA_NOT_IN_DOUBLE_QUOTES)
+    // can't think of a straightforward way to retain trailing spaces, so oh well
     .map((s) => s.trim());
   const [from, to] = isWithoutId
     ? [indexFrom, indexTo]
@@ -61,8 +74,7 @@ export const moveColumn = ({
   if (from === to) return;
   const reordered = arrayMove(cols, from, to);
   const newTableLine = tableKeyword + reordered.join(", ");
-  const newQuery = newTableLine + "\n" + restLines.join("\n");
-  console.log("new query: ", newQuery);
+  const newQuery = newTableLine + restLines;
   const [__, configStr] = source.split(/\n---\n/);
   const newSource = configStr ? newQuery + "\n---\n" + configStr : newQuery;
   const { activeEditor } = plugin.app.workspace;
@@ -95,27 +107,22 @@ export const renameColumn = ({
 }: RenameColumnParams) => {
   // TODO technically dataview doesn't require the 'TABLE ...' line to be separated by new lines
   const { query, plugin, source, ctx, el, dataviewAPI } = blockContext;
-  const [preTableLine, ...restLines] = query.split("\n");
-  let tableLine = preTableLine;
-  const preIsWithoutId = tableLine
-    .toLocaleLowerCase()
-    .includes("table without id");
+  const { tableLine, rest: restLines } = getTableLine(query);
+  const { keyword: preTableKeyword, rest: preColsText } =
+    splitTableKeyword(tableLine);
+  const preIsWithoutId = /table\s*without\s*id\s+/i.test(preTableKeyword);
+
   let isWithoutId = preIsWithoutId;
-  // Reordering id column when NOT using 'WITHOUT ID'
+  let tableKeyword = preTableKeyword;
+  let colsText = preColsText;
+  // Renaming id column when NOT using 'WITHOUT ID'
   if (!preIsWithoutId && index === 0) {
     const { tableIdColumnName } = dataviewAPI.settings;
-    tableLine =
-      preTableLine.slice(0, 6) +
-      "WITHOUT ID file.link AS " +
-      tableIdColumnName +
-      ", " +
-      preTableLine.slice(6);
+    tableKeyword = preTableKeyword + "WITHOUT ID ";
+    colsText = 'file.link AS "' + tableIdColumnName + '", ' + preColsText;
     isWithoutId = true;
   }
-  const tableKeyword = isWithoutId
-    ? tableLine.slice(0, 17)
-    : tableLine.slice(0, 6);
-  const [_, colsText] = tableLine.split(/table(?:\swithout\sid)?\s/im);
+
   const cols: (string | null)[] = colsText
     .split(REGEX_COMMA_NOT_IN_DOUBLE_QUOTES)
     .map((s) => s.trim());
@@ -126,7 +133,7 @@ export const renameColumn = ({
     cols[colIndex] = null;
   }
   const newTableLine = tableKeyword + cols.filter((c) => c !== null).join(", ");
-  const newQuery = newTableLine + "\n" + restLines.join("\n");
+  const newQuery = newTableLine + restLines;
   const [__, configStr] = source.split(/\n---\n/);
   const newSource = configStr ? newQuery + "\n---\n" + configStr : newQuery;
   const { activeEditor } = plugin.app.workspace;
@@ -190,4 +197,53 @@ export const setBlockConfig = ({
 export const toFirstUpperCase = (str: string) => {
   const first = str.charAt(0).toUpperCase();
   return first + str.slice(1);
+};
+
+export const getColumnPropertyNames = (source: string) => {
+  // const line = source.split("\n")[0];
+  const line = getTableLine(source).tableLine;
+  // TODO possible could have this string within a column alias
+  const isWithoutId = line.toLowerCase().includes("without id");
+  const cols = source
+    .split("\n")[0]
+    .substring(isWithoutId ? 17 : 6)
+    .split(REGEX_COMMA_NOT_IN_DOUBLE_QUOTES)
+    .map((c) => {
+      const str = c.trim();
+      const potential = str.split(/\sAS\s/i)[0].trim();
+      // console.log("potential: ", potential);
+      const invalidChars = [
+        "(",
+        ")",
+        "[",
+        "]",
+        "{",
+        "}",
+        "+",
+        // "-", dashes are pretty common in property names
+        "*",
+        "/",
+        "%",
+        "<",
+        ">",
+        "!",
+        "=",
+        '"',
+      ];
+      const isComplex =
+        !Number.isNaN(Number(potential)) ||
+        //prettier-ignore
+        potential
+          .split("")
+          .some((char) => invalidChars.includes(char));
+      if (isComplex) {
+        // property is manipulated in the query
+        // so it can't be edited since it's a calculated value
+        return COMPLEX_PROPERTY_PLACEHOLDER;
+      }
+      return potential;
+    });
+  if (isWithoutId) return cols;
+  // so it matches with what is returned from dataview
+  return ["File", ...cols];
 };

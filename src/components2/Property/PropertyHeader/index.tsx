@@ -1,10 +1,15 @@
 import { Icon } from "@/components/Icon";
 import { Markdown } from "@/components/Markdown";
 import { BlockContext, useBlock } from "@/components2/CodeBlock";
+import {
+  COMPLEX_PROPERTY_PLACEHOLDER,
+  dataeditDropdownTypePrefix,
+} from "@/lib/constants";
 import { DataviewLink, PropertyType } from "@/lib/types";
 import { parseLinesForInlineFields, splitYamlAndContent } from "@/lib/util";
 import { renameColumn, toFirstUpperCase } from "@/lib2/utils";
 import { App, Menu, Modal, Notice, Setting, TFile } from "obsidian";
+import { MetadataTypeManagerRegisteredTypeWidgetsRecord } from "obsidian-typings";
 import {
   JSXElement,
   Show,
@@ -36,10 +41,17 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
     return a && b;
   };
 
+  /* 
+    TODO even though it just won't work, it should probably not show the options
+    to edit/delete property when the property is dot notation (file.something, or a nested yaml property)
+  */
   const createMenu = () => {
     const { metadataTypeManager } = bctx.plugin.app;
-    const typesObj = metadataTypeManager.registeredTypeWidgets;
-    const types: PropertyType[] = [
+    const typesObj = { ...metadataTypeManager.registeredTypeWidgets };
+    const customTypes = Object.keys(typesObj).filter((k) =>
+      k.startsWith(dataeditDropdownTypePrefix),
+    ) as PropertyType[];
+    const deafaultTypes: PropertyType[] = [
       "text",
       "multitext",
       "number",
@@ -47,17 +59,34 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
       "date",
       "datetime",
     ];
-    const typesIcons: [propType: PropertyType, icon: string][] = types.map(
-      (t) => {
-        const obj = typesObj[t];
-        if (!obj) {
-          const msg = "Dataedit: Failed to get icon for property type";
-          new Notice(msg);
-          throw new Error(msg);
-        }
-        return [t, obj.icon];
-      },
+
+    const allowedTypeKeys = [...deafaultTypes, ...customTypes];
+
+    const typeKeys = (Object.keys(typesObj) as PropertyType[]).filter((k) =>
+      allowedTypeKeys.includes(k),
     );
+
+    typeKeys.push("unknown");
+
+    // const types = [...deafaultTypes, ...customTypes];
+
+    // const typesIcons = types.map<[propType: PropertyType, icon: string]>(
+    //   (t) => {
+    //     if (t === "unknown") {
+    //       return [t, "file-question"];
+    //     }
+    //     const obj = typesObj[t];
+    //     if (!obj) {
+    //       const msg = "Dataedit: Failed to get icon for property type";
+    //       new Notice(msg);
+    //       throw new Error(msg);
+    //     }
+    //     const postT = t.startsWith(dataeditDropdownTypePrefix)
+    //       ? (t.slice(dataeditDropdownTypePrefix.length) as PropertyType)
+    //       : t;
+    //     return [postT, obj.icon];
+    //   },
+    // );
 
     menu = new Menu();
 
@@ -67,17 +96,46 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
           .setTitle("Change type")
           .setIcon("more-horizontal")
           .setSubmenu();
-        typesIcons.forEach(([t, icon]) => {
+        typeKeys.forEach((k) => {
+          const {
+            icon,
+            name,
+            type: typeKey,
+          } = typesObj[k] ?? {
+            icon: "file-question",
+            name: () => "Unset",
+            type: "unknown",
+          };
           submenu.addItem((sub) =>
             sub
-              .setTitle(t === "datetime" ? "Date & time" : toFirstUpperCase(t))
+              .setTitle(name())
               .setIcon(icon)
-              .setChecked(t === props.propertyType)
+              .setChecked(typeKey === props.propertyType)
               .onClick(async () => {
-                await metadataTypeManager.setType(props.property, t);
+                if (typeKey === "unknown") {
+                  await metadataTypeManager.unsetType(props.property);
+                  console.log("should be unset");
+                  return;
+                }
+                await metadataTypeManager.setType(props.property, typeKey);
               }),
           );
         });
+        // typesIcons.forEach(([t, icon]) => {
+        //   submenu.addItem((sub) =>
+        //     sub
+        //       .setTitle(t === "datetime" ? "Date & time" : toFirstUpperCase(t))
+        //       .setIcon(icon)
+        //       .setChecked(t === props.propertyType)
+        //       .onClick(async () => {
+        //         if (t === "unknown") {
+        //           await metadataTypeManager.unsetType(props.property);
+        //           return;
+        //         }
+        //         await metadataTypeManager.setType(props.property, t);
+        //       }),
+        //   );
+        // });
       })
       .addItem((item) =>
         item
@@ -196,7 +254,7 @@ const PropertyIcon = (props: { propertyType: PropertyType }) => {
   const iconId = createMemo(() => {
     const typesObj = bctx.plugin.app.metadataTypeManager.registeredTypeWidgets;
     const icon = typesObj[props.propertyType]?.icon;
-    return icon ?? "text";
+    return icon ?? "star";
   });
 
   return <Icon iconId={iconId()} />;

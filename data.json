@@ -1,0 +1,23 @@
+{
+  "dropdowns": {
+    "status": {
+      "description": "",
+      "label": "Status",
+      "options": [
+        {
+          "label": "Not started",
+          "value": "not-started"
+        },
+        {
+          "label": "In progress",
+          "value": "in-progress"
+        },
+        {
+          "label": "Done",
+          "value": "done"
+        }
+      ],
+      "defaultValue": "in-progress"
+    }
+  }
+}

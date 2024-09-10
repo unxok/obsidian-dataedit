@@ -221,3 +221,22 @@ div.dataedit-table-row-btn:hover,
 div.dataedit-table-col-btn:hover {
   opacity: 1;
 }
+
+div.metadata-property-value.dataedit:focus-within {
+  background-color: var(--metadata-input-background);
+}
+
+div.metadata-property-value.dataedit {
+  padding-inline-start: 5px;
+}
+
+div.setting-item.dataedit-setting-item {
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 26px;
+  cursor: pointer;
+}
+
+div.dataedit-nested-setting-container {
+  padding-left: 34px;
+  padding-bottom: 16px;
+}

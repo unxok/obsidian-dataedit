@@ -27,3 +27,5 @@ export const defaultQueryResult: ModifiedDataviewQueryResult = {
 };
 
 export const NO_MATCH_FOUND = "No match found";
+
+export const dataeditDropdownTypePrefix = "dataedit:dropdown-";
