@@ -363,8 +363,8 @@ const ColumnReorderButton = (props: {
   return (
     <div
       ref={async (r) => (ref = r)}
-      data-column-reorder-button={true}
-      class="column-reorder-button"
+      data-dataedit-column-reorder-button={true}
+      class="dataedit-column-reorder-button"
       data-grabbing={isGrabbing().toString()}
       data-hidden={!isGrabbing() && dragCtx.context.draggedIndex !== -1}
       onMouseDown={onMouseDown}

@@ -9,6 +9,8 @@ import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 import discard from "postcss-discard";
 import prefixSelector from "postcss-prefix-selector";
+import nested from "postcss-nested";
+import vars from "postcss-simple-vars";
 
 const prefixList = [
   ".twcss",
@@ -78,13 +80,15 @@ const prefix = prefixSelector({
   },
 });
 
-// export default {
-//   plugins: [
-//     tailwindcss(),
-//     autoprefixer({}),
-//     // prefix,
-//     discard({
-//       rule: ["html", "body"],
-//     }),
-//   ],
-// };
+export default {
+  plugins: [
+    // tailwindcss(),
+    // autoprefixer({}),
+    // prefix,
+    // discard({
+    //   rule: ["html", "body"],
+    // }),
+    vars(),
+    nested(),
+  ],
+};

@@ -1,7 +1,7 @@
 {
   "dropdowns": {
-    "status": {
-      "description": "",
+    "status12": {
+      "description": "progress of thing",
       "label": "Status",
       "options": [
         {
@@ -15,6 +15,10 @@
         {
           "label": "Done",
           "value": "done"
+        },
+        {
+          "label": "Abandoned",
+          "value": "abandoned"
         }
       ],
       "defaultValue": "in-progress"

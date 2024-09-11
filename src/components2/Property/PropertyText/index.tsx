@@ -36,7 +36,7 @@ export const PropertyText = (props: PropertyCommonProps) => {
   return (
     <>
       <div
-        class="property-text-div"
+        class="dataedit-property-text-div"
         ref={(r) => (ref = r)}
         style={{
           "text-align": bctx.config.horizontalAlignment,

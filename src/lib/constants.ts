@@ -28,4 +28,6 @@ export const defaultQueryResult: ModifiedDataviewQueryResult = {
 
 export const NO_MATCH_FOUND = "No match found";
 
-export const dataeditDropdownTypePrefix = "dataedit:dropdown-";
+export const dataeditTypeKeyPrefix = "dataedit:";
+
+export const dataeditDropdownTypePrefix = dataeditTypeKeyPrefix + "dropdown-";

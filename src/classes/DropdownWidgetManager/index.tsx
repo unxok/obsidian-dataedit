@@ -1,3 +1,4 @@
+import { dataeditDropdownTypePrefix } from "@/lib/constants";
 import DataEdit from "@/main";
 import {
   ButtonComponent,
@@ -29,7 +30,6 @@ const defaultDropdownRecord: DropdownRecord = {
 
 export class DropdownWidgetManager extends Modal {
   private plugin: DataEdit;
-  private duplicateErrorEl: HTMLParagraphElement = createEl("p");
   private dropdowns: Record<DropdownRecordKey, DropdownRecord> = {};
 
   constructor(plugin: DataEdit) {
@@ -45,7 +45,7 @@ export class DropdownWidgetManager extends Modal {
       dropdowns[key].options = filtered;
     });
     settings.dropdowns = dropdowns;
-    await this.plugin.saveData(settings);
+    await this.plugin.saveSettings(settings);
     await this.plugin.registerDropdowns(dropdowns);
 
     // TODO this is probably not ideal, but frontmatter property editor els don't rerender on changes to app.metadataTypeManager
@@ -73,7 +73,7 @@ export class DropdownWidgetManager extends Modal {
     contentEl.createEl("p").createEl("em", {
       text: "Simply close the modal to save.",
     });
-    this.duplicateErrorEl = contentEl.createEl("p", {
+    const duplicateErrorEl = contentEl.createEl("p", {
       text: "Dropdown ID already in use!",
       attr: { style: "color: var(--text-error); display: none;" },
     });
@@ -112,11 +112,11 @@ export class DropdownWidgetManager extends Modal {
     addIdTextComponent!.onChange((v) => {
       if (!v) return addIdButtonComponent.setDisabled(true);
       if (!this.dropdowns.hasOwnProperty(v)) {
-        this.duplicateErrorEl.style.display = "none";
+        duplicateErrorEl.style.display = "none";
         addIdButtonComponent.setDisabled(false);
         return;
       }
-      this.duplicateErrorEl.style.display = "block";
+      duplicateErrorEl.style.display = "block";
       addIdButtonComponent.setDisabled(true);
     });
 
@@ -145,7 +145,11 @@ export class DropdownWidgetManager extends Modal {
       attr: { style: "display: none;" },
     });
 
-    setting.addExtraButton((cmp) => cmp.setIcon("pencil"));
+    setting.addExtraButton((cmp) =>
+      cmp.setIcon("pencil").onClick(async () => {
+        await this.modifyDropdownDetails(id, description);
+      }),
+    );
     setting.addExtraButton((cmp) =>
       cmp.setIcon("trash").onClick(() => {
         // TODO add confirmation modal maybe?
@@ -247,5 +251,84 @@ export class DropdownWidgetManager extends Modal {
     );
 
     setting.settingEl.style.borderTopWidth = "0px";
+  }
+
+  private async modifyDropdownDetails(
+    id: string,
+    description: string,
+  ): Promise<void> {
+    const modal = new Modal(this.app);
+    modal.setTitle("Edit dropdown ID: " + id);
+
+    modal.onOpen = () => {
+      const { contentEl } = modal;
+      contentEl.createEl("p", {
+        text: "Edit the id and description of your dropdown. Properties with the type corresponding to the old ID will be updated to use this new ID automatically.",
+      });
+
+      let idTextComponent: TextComponent;
+      let descriptionTextComponent: TextComponent;
+      let addIdButtonComponent: ButtonComponent;
+      new Setting(contentEl)
+        .setName("Unique id")
+        .setDesc(
+          "Enter a unique name for your dropdown. This name will only be visible in these settings.",
+        )
+        .addText((cmp) => {
+          idTextComponent = cmp;
+          cmp.setValue(id);
+        });
+      new Setting(contentEl)
+        .setName("Description (optional)")
+        .setDesc(
+          "Optional description of your dropdown. This will only be visible in these settings.",
+        )
+        .addText((cmp) => {
+          descriptionTextComponent = cmp;
+          cmp.setValue(description);
+        });
+      new Setting(contentEl).addButton((cmp) => {
+        addIdButtonComponent = cmp;
+        cmp
+          .setCta()
+          .setButtonText("update")
+          .onClick(async () => {
+            const newId = idTextComponent.getValue();
+            const newTypeKey = dataeditDropdownTypePrefix + newId;
+            const oldTypeKey = dataeditDropdownTypePrefix + id;
+
+            const description = descriptionTextComponent.getValue() ?? "";
+            const existing = this.dropdowns[id];
+            const record = { ...existing, description };
+            delete this.dropdowns[id];
+            this.dropdowns[newId] = record;
+            const { properties } = this.app.metadataTypeManager;
+            const propNames = Object.keys(properties).filter((key) => {
+              return properties[key].type === oldTypeKey;
+            });
+            // this saves the settings and re-registeres type widgets
+            await this.onClose();
+
+            // update the types for properties that had the oldTypeKey
+            await Promise.all(
+              propNames.map(async (key) => {
+                await this.app.metadataTypeManager.setType(key, newTypeKey);
+              }),
+            );
+
+            // re-open the main modal to ensure fresh data is loaded
+            this.contentEl.empty();
+            await this.onOpen();
+            modal.close();
+          });
+      });
+
+      idTextComponent!.onChange((v) => {
+        if (!v) return addIdButtonComponent.setDisabled(true);
+        addIdButtonComponent.setDisabled(false);
+      });
+    };
+
+    modal.open();
   }
 }

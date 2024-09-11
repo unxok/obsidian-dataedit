@@ -16,6 +16,9 @@ import {
   Menu,
   MarkdownPreviewRenderer,
   DropdownComponent,
+  SliderComponent,
+  ProgressBarComponent,
+  ColorComponent,
 } from "obsidian";
 import {
   DataviewAPI,
@@ -43,7 +46,10 @@ import {
   DropdownRecordKey,
   DropdownWidgetManager,
 } from "./classes/DropdownWidgetManager/index.tsx";
-import { dataeditDropdownTypePrefix } from "./lib/constants.ts";
+import {
+  dataeditDropdownTypePrefix,
+  dataeditTypeKeyPrefix,
+} from "./lib/constants.ts";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -183,7 +189,16 @@ type PropertyUpdateRecord = {
   itemIndex?: number;
 };
 
+export type DataEditSettings = {
+  dropdowns: Record<string, DropdownRecord>;
+};
+
+const defaultDataEditSettings: DataEditSettings = {
+  dropdowns: {},
+};
+
 export default class DataEdit extends Plugin {
+  settings: DataEditSettings = { ...defaultDataEditSettings };
   // TODO make this configurable in plugin settings
   propertyUpdatesLimit: number = 20;
   propertyUpdates: PropertyUpdateRecord[] = [];
@@ -191,18 +206,37 @@ export default class DataEdit extends Plugin {
   propertyUpdatesIndex: number = 0;
 
   onload(): void {
-    this.registerDropdowns();
-    this.registerMdCBP();
-    this.devReload(); // TODO comment out when releasing
+    (async () => {
+      await this.loadSettings();
+      this.registerDropdowns();
+      this.registerSlider();
+      this.registerColor();
+      this.registerMdCBP();
+      this.devReload(); // TODO comment out when releasing
+    })();
   }
 
-  async registerDropdowns(
+  async loadSettings(): Promise<DataEditSettings> {
+    const s = await this.loadData();
+    this.settings = s;
+    return s;
+  }
+
+  async saveSettings(settings: DataEditSettings): Promise<void> {
+    this.settings = settings;
+    await this.saveData(settings);
+  }
+
+  registerDropdowns(
     dropdownsObject?: Record<DropdownRecordKey, DropdownRecord>,
-  ): Promise<void> {
-    const { metadataTypeManager } = this.app;
+  ): void {
+    const {
+      app: { metadataTypeManager },
+      settings,
+    } = this;
     let dropdowns = { ...dropdownsObject };
     if (!dropdownsObject) {
-      const settings = (await this.loadData()) ?? {};
+      // const settings = await this.loadSettings();
       if (!settings.hasOwnProperty("dropdowns")) return;
       dropdowns = settings.dropdowns;
     }
@@ -227,16 +261,19 @@ export default class DataEdit extends Plugin {
         },
         {} as Record<string, string>,
       );
+      const validateFn = (v: string) =>
+        options.some(({ value }) => v === value);
       metadataTypeManager.registeredTypeWidgets[typeKey] = {
         default: () => defaultValue,
-        icon: "lucide-chevron-down-circle",
+        icon: "chevron-down-circle",
         name: () => label,
         type: typeKey,
-        validate: (v) => options.some(({ value }) => v === value),
+        validate: validateFn,
         render: (el, data, ctx) => {
           el.classList.add("dataedit");
-          el.setAttribute("data-dataedit-dropdown-type", k); // for CSS purposes
-          el.setAttribute("aria-label", description);
+          // these persist on the el even if the type changes, so this won't work so easily
+          // el.setAttribute("data-dataedit-dropdown-type", k);
+          // el.setAttribute("aria-label", description);
           const cmp = new DropdownComponent(el)
             .addOptions(optionsObj)
             // .setValue(data.value?.toString() ?? defaultValue)
@@ -251,17 +288,81 @@ export default class DataEdit extends Plugin {
               );
             });
           // incase it's invalid on render
-          this.updateProperty(
+          const value = validateFn(data.value?.toString() ?? "")
+            ? (data.value as string)
+            : options[0].value;
+          // Have to wait for the dropdown to finish rendering
+          setTimeout(() => {
+            cmp.setValue(value);
+          }, 0);
+        },
+      };
+    });
+  }
+
+  registerSlider(): void {
+    const typeKey = dataeditTypeKeyPrefix + "slider";
+    const validateFn = (v: unknown) => !Number.isNaN(Number(v));
+    app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+      default: () => 0,
+      validate: validateFn,
+      icon: "git-commit-horizontal",
+      name: () => "Slider",
+      render: (el, data, ctx) => {
+        el.classList.add("dataedit");
+        const cmp = new SliderComponent(el)
+          .setLimits(0, 100, 1)
+          .setInstant(false)
+          .onChange(async (v) => {
+            await this.updateProperty(
+              data.key,
+              v,
+              ctx.sourcePath,
+              data.value,
+              undefined,
+              true,
+            );
+          });
+
+        cmp.setDynamicTooltip();
+        const value = validateFn(data.value) ? (data.value as number) : 0;
+        // Have to wait for the dropdown to finish rendering
+        setTimeout(() => {
+          cmp.setValue(value);
+        }, 0);
+      },
+      type: typeKey,
+    };
+  }
+
+  registerColor(): void {
+    const typeKey = dataeditTypeKeyPrefix + "color";
+    const validateFn = (v: unknown) => true;
+    app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+      default: () => 0,
+      validate: validateFn,
+      icon: "palette",
+      name: () => "Color",
+      render: (el, data, ctx) => {
+        el.classList.add("dataedit");
+        const cmp = new ColorComponent(el).onChange(async (v) => {
+          await this.updateProperty(
             data.key,
-            cmp.getValue(),
+            v,
             ctx.sourcePath,
             data.value,
             undefined,
             true,
           );
-        },
-      };
-    });
+        });
+
+        // Have to wait for the component to finish rendering
+        setTimeout(() => {
+          cmp.setValue(data.value as string);
+        }, 0);
+      },
+      type: typeKey,
+    };
   }
 
   recordUpdate(update: PropertyUpdateRecord): void {
@@ -505,7 +606,7 @@ export default class DataEdit extends Plugin {
           return;
         }
 
-        el.className += " " + config.containerClass;
+        el.className += " dataedit " + config.containerClass;
         // best practice by Obsidian, but solid may do this anyway
         el.empty();
         // since mouse will often be inside table, the box shadow is annoying to me

@@ -19,7 +19,7 @@ export const PropertyNumber = (props: PropertyCommonProps) => {
       <input
         type="number"
         style={{ width: size() + 0 + "ch" }}
-        class="property-number-input"
+        class="dataedit-property-number-input"
         value={toNumber(props.value, 0)}
         onInput={(e) => {
           setSize(() => e.target.value.length);

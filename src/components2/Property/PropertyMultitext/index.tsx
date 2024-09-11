@@ -30,7 +30,7 @@ export const PropertyMultitext = (props: PropertyCommonProps) => {
   };
 
   return (
-    <ul class="property-multitext-ul">
+    <ul class="dataedit-property-multitext-ul">
       <For each={valueArr()}>
         {(item, index) => (
           <Show when={item !== null && item !== undefined}>

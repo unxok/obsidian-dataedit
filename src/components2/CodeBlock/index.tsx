@@ -77,46 +77,6 @@ export const CodeBlock = (props: CodeBlockProps) => {
     },
   );
 
-  const registerDropdownType = () => {
-    const typeKey = "dataedit:dropdown-status";
-    const options = ["not started", "in progress", "completed", "abandoned"];
-    const labels = options.reduce(
-      (acc, curr) => {
-        acc[curr] = toFirstUpperCase(curr);
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-
-    const record: PropertyWidget<string> & { options: string[] } = {
-      options: options,
-      default: () => options[0],
-      icon: "lucide-chevron-down-circle",
-      name: () => "Status",
-      render: (el, data, ctx) => {
-        el.classList.add("dataedit");
-        new DropdownComponent(el)
-          .addOptions(labels)
-          .setValue(data.value)
-          .onChange(async (v) => {
-            await props.plugin.updateProperty(
-              data.key,
-              v,
-              ctx.sourcePath,
-              data.value,
-              undefined,
-              true,
-            );
-          });
-      },
-      type: typeKey,
-      validate: (v) => options.includes(v),
-    };
-    const { registeredTypeWidgets } = props.plugin.app.metadataTypeManager;
-    if (registeredTypeWidgets.hasOwnProperty(typeKey)) return;
-    registeredTypeWidgets[typeKey] = record;
-  };
-
   const updatePropertyTypes = () => {
     // registerDropdownType();
     const arr = getPropertyTypes(

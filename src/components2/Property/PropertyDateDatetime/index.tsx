@@ -58,7 +58,7 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
               app={bctx.plugin.app}
               markdown={bctx.dataviewAPI.settings.renderNullAs}
               sourcePath={bctx.ctx.sourcePath}
-              class={"property-text-div no-p-margin"}
+              class={"dataedit-property-text-div no-p-margin"}
             />
           )}
         </div>

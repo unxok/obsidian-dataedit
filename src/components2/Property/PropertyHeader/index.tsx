@@ -202,7 +202,9 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
   return (
     <div
       onClick={(e) => {
-        const attr = e.target.getAttribute("data-column-reorder-button");
+        const attr = e.target.getAttribute(
+          "data-dataedit-column-reorder-button",
+        );
         if (attr !== null) return;
 
         !isDefaultIdCol() && menu.showAtMouseEvent(e);
