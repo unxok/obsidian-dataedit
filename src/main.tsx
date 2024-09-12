@@ -19,6 +19,7 @@ import {
   SliderComponent,
   ProgressBarComponent,
   ColorComponent,
+  ToggleComponent,
 } from "obsidian";
 import {
   DataviewAPI,
@@ -29,11 +30,19 @@ import {
   clampNumber,
   ensureFileLinkColumn,
   getPropertyTypes,
+  ScrollFixer,
   splitQueryOnConfig,
   updateMetadataProperty,
 } from "./lib/util.ts";
 import { createStore } from "solid-js/store";
-import { createEffect, createUniqueId, For, onMount, Show } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  createUniqueId,
+  For,
+  onMount,
+  Show,
+} from "solid-js";
 import { BlockContext, CodeBlock } from "./components2/CodeBlock/index.tsx";
 import {
   CodeBlockConfig,
@@ -50,6 +59,7 @@ import {
   dataeditDropdownTypePrefix,
   dataeditTypeKeyPrefix,
 } from "./lib/constants.ts";
+import { PropertyEntryData, PropertyRenderContext } from "obsidian-typings";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -197,6 +207,9 @@ const defaultDataEditSettings: DataEditSettings = {
   dropdowns: {},
 };
 
+export const [settingsSignal, setSettingsSignal] =
+  createSignal<DataEditSettings>({ ...defaultDataEditSettings });
+
 export default class DataEdit extends Plugin {
   settings: DataEditSettings = { ...defaultDataEditSettings };
   // TODO make this configurable in plugin settings
@@ -206,24 +219,53 @@ export default class DataEdit extends Plugin {
   propertyUpdatesIndex: number = 0;
 
   onload(): void {
+    this.registerMdPP();
     (async () => {
       await this.loadSettings();
       this.registerDropdowns();
       this.registerSlider();
       this.registerColor();
+      this.registerToggle();
       this.registerMdCBP();
       this.devReload(); // TODO comment out when releasing
     })();
   }
 
+  registerMdPP(): void {
+    this.registerMarkdownPostProcessor((el, ctx) => {
+      if (el.matches("h2")) {
+        console.log("hi");
+        console.log("got it: ", ctx.getSectionInfo(el));
+        el.textContent += " ***Hello world!!***";
+      } else {
+        // console.log("nope");
+      }
+      const headers = el.findAll("h2");
+      if (!headers.length) {
+        // return console.log("no headers found");
+        return;
+      }
+
+      headers.forEach((e) => {
+        console.log("hi");
+        console.log("got it: ", ctx.getSectionInfo(e));
+        console.log("el section: ", ctx.getSectionInfo(el));
+        console.log("el: ", el);
+        e.textContent += " ***Hello world!***";
+      });
+    });
+  }
+
   async loadSettings(): Promise<DataEditSettings> {
     const s = await this.loadData();
     this.settings = s;
+    setSettingsSignal(() => s);
     return s;
   }
 
   async saveSettings(settings: DataEditSettings): Promise<void> {
     this.settings = settings;
+    setSettingsSignal(() => settings);
     await this.saveData(settings);
   }
 
@@ -248,7 +290,7 @@ export default class DataEdit extends Plugin {
     shouldDelete.forEach(
       (k) => delete metadataTypeManager.registeredTypeWidgets[k],
     );
-    keys.forEach((k) => {
+    const register = (k: string) => {
       const { defaultValue, description, label, options } = dropdowns[k];
       const typeKey = prefix + k;
       const optionsObj = options.reduce(
@@ -263,40 +305,67 @@ export default class DataEdit extends Plugin {
       );
       const validateFn = (v: string) =>
         options.some(({ value }) => v === value);
+      const renderFn = (
+        el: HTMLElement,
+        data: PropertyEntryData<unknown>,
+        ctx: PropertyRenderContext,
+      ) => {
+        // el.classList.add("dataedit");
+        // these persist on the el even if the type changes, so this won't work so easily
+        // el.setAttribute("data-dataedit-dropdown-type", k);
+        // el.setAttribute("aria-label", description);
+        const cmp = new DropdownComponent(el)
+          .addOptions(optionsObj)
+          // .setValue(data.value?.toString() ?? defaultValue)
+          .onChange(async (v) => {
+            await this.updateProperty(
+              data.key,
+              v,
+              ctx.sourcePath,
+              data.value,
+              undefined,
+              true,
+            );
+          });
+        // incase it's invalid on render
+        const value = validateFn(data.value?.toString() ?? "")
+          ? (data.value as string)
+          : options[0].value;
+
+        // Have to wait for the dropdown to finish rendering
+        setTimeout(() => {
+          cmp.setValue(value);
+          cmp.selectEl.classList.add("dataedit");
+          cmp.selectEl.setAttribute("data-dataedit-dropdown-type", k);
+          cmp.selectEl.setAttribute("aria-label", description);
+        }, 0);
+      };
       metadataTypeManager.registeredTypeWidgets[typeKey] = {
         default: () => defaultValue,
         icon: "chevron-down-circle",
         name: () => label,
         type: typeKey,
         validate: validateFn,
-        render: (el, data, ctx) => {
-          el.classList.add("dataedit");
-          // these persist on the el even if the type changes, so this won't work so easily
-          // el.setAttribute("data-dataedit-dropdown-type", k);
-          // el.setAttribute("aria-label", description);
-          const cmp = new DropdownComponent(el)
-            .addOptions(optionsObj)
-            // .setValue(data.value?.toString() ?? defaultValue)
-            .onChange(async (v) => {
-              await this.updateProperty(
-                data.key,
-                v,
-                ctx.sourcePath,
-                data.value,
-                undefined,
-                true,
-              );
-            });
-          // incase it's invalid on render
-          const value = validateFn(data.value?.toString() ?? "")
-            ? (data.value as string)
-            : options[0].value;
-          // Have to wait for the dropdown to finish rendering
-          setTimeout(() => {
-            cmp.setValue(value);
-          }, 0);
-        },
+        render: renderFn,
       };
+
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (!leaf.view.hasOwnProperty("metadataEditor")) return;
+        const propNames = Object.entries(
+          this.app.metadataTypeManager.properties,
+        )
+          .filter(([_, { type: t }]) => t === typeKey)
+          .map(([_, { name }]) => name);
+        propNames.forEach((p) => {
+          // This is to force dropdowns to re-render with updated options
+          // the easiest way I found was to emulate a type change
+          // @ts-expect-error Private API not in obsidian-typings
+          leaf.view.metadataEditor.onMetadataTypeChange(p);
+        });
+      });
+    };
+    keys.forEach((k) => {
+      register(k);
     });
   }
 
@@ -309,9 +378,9 @@ export default class DataEdit extends Plugin {
       icon: "git-commit-horizontal",
       name: () => "Slider",
       render: (el, data, ctx) => {
-        el.classList.add("dataedit");
-        const cmp = new SliderComponent(el)
+        new SliderComponent(el)
           .setLimits(0, 100, 1)
+          .setDynamicTooltip()
           .setInstant(false)
           .onChange(async (v) => {
             await this.updateProperty(
@@ -322,14 +391,38 @@ export default class DataEdit extends Plugin {
               undefined,
               true,
             );
-          });
+          })
+          .setValue(validateFn(data.value) ? (data.value as number) : 0);
+      },
+      type: typeKey,
+    };
+  }
 
-        cmp.setDynamicTooltip();
-        const value = validateFn(data.value) ? (data.value as number) : 0;
-        // Have to wait for the dropdown to finish rendering
-        setTimeout(() => {
-          cmp.setValue(value);
-        }, 0);
+  registerToggle(): void {
+    const typeKey = dataeditTypeKeyPrefix + "toggle";
+    const validateFn = (v: unknown) =>
+      v === "true" || v === "false" || v === true || v === false;
+    app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+      default: () => 0,
+      validate: validateFn,
+      icon: "toggle-left",
+      name: () => "Toggle",
+      render: (el, data, ctx) => {
+        new ToggleComponent(el)
+          .onChange(async (v) => {
+            console.log("onChange");
+            await this.updateProperty(
+              data.key,
+              v,
+              ctx.sourcePath,
+              data.value,
+              undefined,
+              true,
+            );
+          })
+          .setValue(
+            data.value === "false" || data.value === false ? false : true,
+          );
       },
       type: typeKey,
     };
@@ -344,7 +437,6 @@ export default class DataEdit extends Plugin {
       icon: "palette",
       name: () => "Color",
       render: (el, data, ctx) => {
-        el.classList.add("dataedit");
         const cmp = new ColorComponent(el).onChange(async (v) => {
           await this.updateProperty(
             data.key,
@@ -440,6 +532,13 @@ export default class DataEdit extends Plugin {
       leaf.rebuildView && leaf.rebuildView();
     });
   }
+
+  // unregisterMdCBP(): void {
+  //   // @ts-expect-error Private API not documented in obsidian-typings
+  //   MarkdownPreviewRenderer.unregisterCodeBlockPostProcessor("dataedit");
+  //   // @ts-ignore
+  //   MarkdownPreviewRenderer.rerender();
+  // }
 
   async overrideEditButton(
     ...params: ConstructorParameters<typeof CodeBlockConfigModal>
@@ -541,7 +640,7 @@ export default class DataEdit extends Plugin {
             .setTitle("Manage dropdowns")
             .setIcon("chevron-down-circle")
             .onClick(() => {
-              new DropdownWidgetManager(this).open();
+              new DropdownWidgetManager(this, blockContext.el).open();
             }),
         );
 

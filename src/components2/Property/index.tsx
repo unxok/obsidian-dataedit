@@ -20,10 +20,17 @@ import { PropertyDateDatetime } from "./PropertyDateDatetime";
 import {
   COMPLEX_PROPERTY_PLACEHOLDER,
   dataeditDropdownTypePrefix,
+  dataeditTypeKeyPrefix,
 } from "@/lib/constants";
 import { autofocus } from "@solid-primitives/autofocus";
-import { DropdownComponent, MarkdownRenderChild, Notice } from "obsidian";
+import {
+  DropdownComponent,
+  MarkdownRenderChild,
+  Notice,
+  SliderComponent,
+} from "obsidian";
 import { DropdownRecord } from "@/classes/DropdownWidgetManager";
+import { settingsSignal } from "@/main";
 // To prevent treeshaking
 autofocus;
 
@@ -117,65 +124,120 @@ const PropertySwitch = (props: PropertyCommonProps) => {
       <Match when={props.propertyType?.startsWith(dataeditDropdownTypePrefix)}>
         <PropertyDropdown {...props} />
       </Match>
+      <Match when={props.propertyType === dataeditTypeKeyPrefix + "color"}>
+        <PropertyColor {...props} />
+      </Match>
+      <Match when={props.propertyType === dataeditTypeKeyPrefix + "slider"}>
+        <PropertySlider {...props} />
+      </Match>
+      <Match when={props.propertyType === dataeditTypeKeyPrefix + "toggle"}>
+        <PropertyToggle {...props} />
+      </Match>
     </Switch>
   );
 };
 
 const PropertyDropdown = (props: PropertyCommonProps) => {
-  const { plugin } = useBlock();
-  // const [desc, setDesc] = createSignal("");
-  // const [options, setOptions] = createSignal<DropdownRecord["options"]>([]);
-  let ref: HTMLSelectElement;
-
-  // createEffect(() => {
-
-  const { propertyType, updateProperty, value: propValue } = props;
-  const data = plugin.settings ?? {};
-  const { dropdowns } = data as {
-    dropdowns: Record<string, DropdownRecord | undefined>;
+  const defaultRecord = {
+    description: "",
+    options: [],
   };
-  const record =
-    dropdowns?.[propertyType.slice(dataeditDropdownTypePrefix.length)];
-  if (!dropdowns || !record) {
-    const msg = "No saved dropdown settings found. This should never happen.";
-    new Notice(msg);
-    throw new Error(msg);
-  }
 
-  // setDesc(() => record.description);
-  // setOptions(() => record.options);
-  // });
-
-  // createEffect(() => {
-  //   if (!options().length) return;
-  //   if (typeof props.value !== "string") return;
-  //   const value = options().some((opt) => opt.value === props.value)
-  //     ? props.value
-  //     : options()[0].value;
-  //   ref.value = value as string;
-  // });
+  const record = createMemo(
+    () => {
+      const { propertyType } = props;
+      const data = settingsSignal() ?? {};
+      const { dropdowns } = data as {
+        dropdowns: Record<string, DropdownRecord | undefined>;
+      };
+      return (
+        dropdowns?.[propertyType.slice(dataeditDropdownTypePrefix.length)] ?? {
+          ...defaultRecord,
+        }
+      );
+    },
+    {
+      ...defaultRecord,
+    },
+  );
 
   return (
     <select
-      ref={(r) => (ref = r)}
       class="dropdown"
       // aria-label={desc()}
-      aria-label={record.description}
+      aria-label={record().description}
       value={props.value as string}
       onChange={async (e) => {
-        // console.log("change");
-        // const value = options().some((opt) => opt.value === e.target.value)
-        //   ? e.target.value
-        //   : options()[0].value;
-        // console.log("about to updat to: ", value);
-        // await props.updateProperty(value);
         await props.updateProperty(e.target.value);
       }}
     >
-      <For each={record.options}>
+      <For each={record().options}>
         {({ label, value }) => <option value={value}>{label}</option>}
       </For>
     </select>
+  );
+};
+
+const PropertyColor = (props: PropertyCommonProps) => {
+  //
+
+  return (
+    <input
+      type="color"
+      value={props.value as string}
+      onBlur={async (e) => {
+        await props.updateProperty(e.target.value);
+      }}
+    />
+  );
+};
+
+const PropertySlider = (props: PropertyCommonProps) => {
+  let ref: HTMLDivElement;
+
+  onMount(() => {
+    new SliderComponent(ref)
+      .setDynamicTooltip()
+      .setInstant(false)
+      .setLimits(0, 100, 1)
+      .setValue(Number(props.value))
+      .onChange(async (n) => await props.updateProperty(n));
+  });
+
+  return (
+    <div ref={(r) => (ref = r)}></div>
+    // <input
+    //   type="range"
+    //   min={0}
+    //   max={100}
+    //   value={props.value as number}
+    //   onInput={async (e) => {
+    //     await props.updateProperty(e.target.value);
+    //   }}
+    // />
+  );
+};
+
+const PropertyToggle = (props: PropertyCommonProps) => {
+  return (
+    <div
+      classList={{
+        "checkbox-container": true,
+        "is-enabled": !!props.value,
+      }}
+      onClick={async () => {
+        console.log("click");
+        await props.updateProperty(!!!props.value);
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={!!props.value}
+        onClick={async (e) => {
+          // await props.updateProperty(e.currentTarget.checked);
+        }}
+      />
+    </div>
   );
 };
 

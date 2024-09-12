@@ -25,7 +25,7 @@ import {
   unregisterDataviewEvents,
 } from "@/lib/util";
 import { CodeBlockConfig } from "./Config";
-import DataEdit from "@/main";
+import DataEdit, { settingsSignal } from "@/main";
 import { PropertyWidget } from "obsidian-typings";
 import { toFirstUpperCase } from "@/lib2/utils";
 
@@ -68,6 +68,7 @@ export const useBlock = () => useContext(BlockContext);
 
 export const CodeBlock = (props: CodeBlockProps) => {
   const uid = createUniqueId();
+  // const [pluginSignal, setPluginSignal] = createSignal<DataEdit>(props.plugin);
   const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
   const [idColIndex, setIdColIndex] = createSignal(0);
   const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
@@ -106,6 +107,14 @@ export const CodeBlock = (props: CodeBlockProps) => {
     })();
   };
 
+  // createEffect(() => {
+  //   console.log("settings changed");
+  //   setPluginSignal((prev) => {
+  //     prev.settings = settingsSignal();
+  //     return prev;
+  //   });
+  // });
+
   onMount(() => {
     updateResults();
     registerDataviewEvents(props.plugin, updateResults);
@@ -131,6 +140,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
       <BlockContext.Provider
         value={{
           plugin: props.plugin,
+          // plugin: pluginSignal(),
           el: props.el,
           ctx: props.ctx,
           source: props.source,

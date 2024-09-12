@@ -1,4 +1,5 @@
 import { dataeditDropdownTypePrefix } from "@/lib/constants";
+import { ScrollFixer } from "@/lib/util";
 import DataEdit from "@/main";
 import {
   ButtonComponent,
@@ -31,10 +32,12 @@ const defaultDropdownRecord: DropdownRecord = {
 export class DropdownWidgetManager extends Modal {
   private plugin: DataEdit;
   private dropdowns: Record<DropdownRecordKey, DropdownRecord> = {};
+  private codeBlockEl: HTMLElement;
 
-  constructor(plugin: DataEdit) {
+  constructor(plugin: DataEdit, codeBlockEl: HTMLElement) {
     super(plugin.app);
     this.plugin = plugin;
+    this.codeBlockEl = codeBlockEl;
   }
 
   async onClose(): Promise<void> {
@@ -46,13 +49,18 @@ export class DropdownWidgetManager extends Modal {
     });
     settings.dropdowns = dropdowns;
     await this.plugin.saveSettings(settings);
-    await this.plugin.registerDropdowns(dropdowns);
+    this.plugin.registerDropdowns(dropdowns);
 
-    // TODO this is probably not ideal, but frontmatter property editor els don't rerender on changes to app.metadataTypeManager
-    this.plugin.app.workspace.iterateAllLeaves((leaf) => {
-      // @ts-expect-error Private API not documented in obsidian-typings
-      leaf.rebuildView && leaf.rebuildView();
-    });
+    // this.app.workspace.iterateAllLeaves((leaf) => {
+    //   // @ts-expect-error Private API not documented in obsidian-typings
+    //   leaf.rebuildView && leaf.rebuildView();
+    // });
+
+    // probably not ideal...
+    // const sf = new ScrollFixer(this.codeBlockEl);
+    // this.plugin.devReload();
+    // sf.fix();
+    // console.log("dev reload");
   }
 
   async onOpen(): Promise<void> {
