@@ -53,7 +53,8 @@ div.metadata-property-value {
   &:has(select.dropdown),
   &:has(input[type="color"]),
   &:has(input.slider[type="range"]),
-  &:has(div.checkbox-container) {
+  &:has(div.checkbox-container),
+  &:has(div.dataedit-star-container) {
     padding: var(--size-4-1) var(--size-4-2);
     &:focus-within {
       background-color: var(--metadata-input-background);
@@ -117,7 +118,7 @@ div.metadata-property-value {
       overflow: visible;
     }
 
-    & .cm-line,
+    & .cm-line:not(.HyperMD-codeblock),
     & .cm-content {
       max-width: none !important;
       width: fit-content !important;
@@ -127,6 +128,19 @@ div.metadata-property-value {
       width: fit-content;
       text-wrap: nowrap;
     }
+  }
+
+  div&-number-buttons-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-inline: var(--size-2-2);
+  }
+
+  div&-star-container {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
   }
 
   div&-column-reorder-button {

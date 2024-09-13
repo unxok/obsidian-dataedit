@@ -4,6 +4,7 @@ import { BlockContext, useBlock } from "@/components2/CodeBlock";
 import {
   COMPLEX_PROPERTY_PLACEHOLDER,
   dataeditDropdownTypePrefix,
+  dataeditTypeKeyPrefix,
 } from "@/lib/constants";
 import { DataviewLink, PropertyType } from "@/lib/types";
 import { parseLinesForInlineFields, splitYamlAndContent } from "@/lib/util";
@@ -49,7 +50,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
     const { metadataTypeManager } = bctx.plugin.app;
     const typesObj = { ...metadataTypeManager.registeredTypeWidgets };
     const customTypes = Object.keys(typesObj).filter((k) =>
-      k.startsWith(dataeditDropdownTypePrefix),
+      k.startsWith(dataeditTypeKeyPrefix),
     ) as PropertyType[];
     const deafaultTypes: PropertyType[] = [
       "text",
@@ -93,8 +94,8 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
     menu
       .addItem((item) => {
         const submenu = item
-          .setTitle("Change type")
-          .setIcon("more-horizontal")
+          .setTitle("Property type")
+          .setIcon("menu")
           .setSubmenu();
         typeKeys.forEach((k) => {
           const {

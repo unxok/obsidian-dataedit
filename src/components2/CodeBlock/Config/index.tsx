@@ -3,7 +3,7 @@ import { App, Modal, Setting } from "obsidian";
 import { BlockContext } from "..";
 
 export type CodeBlockConfig = {
-  toggles: boolean;
+  // toggles: boolean;
   containerClass: string;
   verticalAlignment: "top" | "middle" | "bottom";
   horizontalAlignment: "left" | "center" | "right";
@@ -12,7 +12,7 @@ export type CodeBlockConfig = {
 };
 
 export const defaultCodeBlockConfig: CodeBlockConfig = {
-  toggles: false,
+  // toggles: false,
   containerClass: "",
   verticalAlignment: "top",
   horizontalAlignment: "left",
@@ -100,14 +100,14 @@ export class CodeBlockConfigModal extends Modal {
     /* toggles */
 
     // form.toggles
-    new Setting(contentEl)
-      .setName("Use toggles for checkboxes")
-      .setDesc(
-        'Renders "checkbox" properties as toggles instead of checkboxes.',
-      )
-      .addToggle((cmp) =>
-        cmp.setValue(form.toggles).onChange((b) => (form.toggles = b)),
-      );
+    // new Setting(contentEl)
+    //   .setName("Use toggles for checkboxes")
+    //   .setDesc(
+    //     'Renders "checkbox" properties as toggles instead of checkboxes.',
+    //   )
+    //   .addToggle((cmp) =>
+    //     cmp.setValue(form.toggles).onChange((b) => (form.toggles = b)),
+    //   );
 
     // form.typeIcons
     new Setting(contentEl)
@@ -121,7 +121,7 @@ export class CodeBlockConfigModal extends Modal {
 
     // form.typeIconLeft
     new Setting(contentEl)
-      .setName("Property type icon position")
+      .setName("Property type icon on left")
       .setDesc(
         "Turn on to display type icons to the left of the header text. Turn off to display on the right.",
       )

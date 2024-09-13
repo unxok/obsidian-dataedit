@@ -12,13 +12,18 @@ export const PropertyText = (props: PropertyCommonProps) => {
   onMount(() => {
     // TODO causing error that I am unsure if I can fix
     // event waiting a long time like 3 seconds won't prevent it so IDK
-    emde = new EmbeddableMarkdownEditor(bctx.plugin.app, ref, {
-      value: props.value?.toString(),
-      onBlur: async (editor) => {
-        const value = editor.editor?.getValue();
-        props.updateProperty(value);
+    emde = new EmbeddableMarkdownEditor(
+      bctx.plugin.app,
+      ref,
+      {
+        value: props.value?.toString(),
+        onBlur: async (editor) => {
+          const value = editor.editor?.getValue();
+          props.updateProperty(value);
+        },
       },
-    });
+      bctx.ctx.sourcePath,
+    );
 
     /*
       Despite the emde indicating it can be used as a Component

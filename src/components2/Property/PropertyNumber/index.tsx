@@ -29,35 +29,37 @@ export const PropertyNumber = (props: PropertyCommonProps) => {
           await props.updateProperty(value);
         }}
       />
-      <Icon
-        iconId="minus"
-        class="clickable-icon"
-        style={{ width: "fit-content" }}
-        onClick={async () => {
-          await props.updateProperty(toNumber(props.value) - 1);
-        }}
-      />
-      <Icon
-        iconId="parentheses"
-        class="clickable-icon"
-        style={{ width: "fit-content" }}
-        onClick={async () => {
-          const modal = new ExpressionModal(
-            bctx.plugin.app,
-            toNumber(props.value),
-            props.updateProperty,
-          );
-          modal.open();
-        }}
-      />
-      <Icon
-        iconId="plus"
-        class="clickable-icon"
-        style={{ width: "fit-content" }}
-        onClick={async () => {
-          await props.updateProperty(toNumber(props.value) + 1);
-        }}
-      />
+      <div class="dataedit-number-buttons-container">
+        <Icon
+          iconId="minus"
+          class="clickable-icon"
+          style={{ width: "fit-content" }}
+          onClick={async () => {
+            await props.updateProperty(toNumber(props.value) - 1);
+          }}
+        />
+        <Icon
+          iconId="variable"
+          class="clickable-icon"
+          style={{ width: "fit-content" }}
+          onClick={async () => {
+            const modal = new ExpressionModal(
+              bctx.plugin.app,
+              toNumber(props.value),
+              props.updateProperty,
+            );
+            modal.open();
+          }}
+        />
+        <Icon
+          iconId="plus"
+          class="clickable-icon"
+          style={{ width: "fit-content" }}
+          onClick={async () => {
+            await props.updateProperty(toNumber(props.value) + 1);
+          }}
+        />
+      </div>
     </div>
   );
 };

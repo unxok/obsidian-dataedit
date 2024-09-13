@@ -14,14 +14,25 @@
  */
 
 /**
- * Implementation is licensed under MIT, as is this project.
+ * Fevol's Implementation is licensed under MIT, as is this project.
  * I have made modifications to implement in SolidJs as well as some other miscellaneous things:
  * - Removed check for now-fixed chrome bug for onBlur()
  * - Added some typescript assertions for editor being existent (ts error if not asserted)
- * - setActiveLeaf() can cause a callstack max range error, so I added a gard to prevent over 5 iterations
+ * - setActiveLeaf() can cause a callstack max range error, so I added a guard to prevent over 5 iterations
+ *  - TODO I actually can't reproduce this issue even without the guard...
+ * - Add `filePath` param to constructor. Without it, rendering links (and possibly other things) breaks and causes issues.
+ *
+ * - @author Unxok
  */
 
-import { App, Constructor, Scope, TFile, WorkspaceLeaf } from "obsidian";
+import {
+  App,
+  Constructor,
+  editorInfoField,
+  Scope,
+  TFile,
+  WorkspaceLeaf,
+} from "obsidian";
 
 import { MarkdownScrollableEditView, WidgetEditorView } from "obsidian-typings";
 
@@ -127,6 +138,7 @@ export class EmbeddableMarkdownEditor
     app: App,
     container: HTMLElement,
     options: Partial<MarkdownEditorProps>,
+    filePath: string,
   ) {
     super(app, container, {
       app,
@@ -157,6 +169,10 @@ export class EmbeddableMarkdownEditor
     // @ts-expect-error (editMode is normally a MarkdownSubView)
     this.owner.editMode = this;
     this.owner.editor = this.editor;
+
+    const f = this.app.vault.getFileByPath(filePath ?? "");
+    // @ts-ignore read-only property. This is needed because otherwise `file` is undefined and rendering links breaks.
+    this.owner.file = f;
 
     this.set(options.value || "", true);
     this.register(
@@ -192,7 +208,7 @@ export class EmbeddableMarkdownEditor
     //		 (Hence why the ._loaded check is necessary)
     if (this.options.onBlur !== defaultProperties.onBlur) {
       this.editor!.cm.contentDOM.addEventListener("blur", () => {
-        // Seems Chrome fixed this
+        // Seems Chrome fixed this -Unxok
         // if (this._loaded) this.options.onBlur(this);
         this.options.onBlur(this);
       });
@@ -248,6 +264,7 @@ export class EmbeddableMarkdownEditor
         },
       }),
     );
+
     extensions.push(
       Prec.highest(
         keymap.of([
@@ -320,32 +337,32 @@ export class EmbeddableMarkdownEditor
   }
 }
 
-export const MarkdownEditor = (props: {
-  app: App;
-  options: Partial<MarkdownEditorProps>;
-  onMount: (eme: EmbeddableMarkdownEditor) => void;
-}) => {
-  let ref: HTMLDivElement;
-  let eme: EmbeddableMarkdownEditor;
+// export const MarkdownEditor = (props: {
+//   app: App;
+//   options: Partial<MarkdownEditorProps>;
+//   onMount: (eme: EmbeddableMarkdownEditor) => void;
+// }) => {
+//   let ref: HTMLDivElement;
+//   let eme: EmbeddableMarkdownEditor;
 
-  onMount(() => {
-    if (!ref) return;
-    eme = new EmbeddableMarkdownEditor(props.app, ref, {
-      ...props.options,
-    });
+//   onMount(() => {
+//     if (!ref) return;
+//     eme = new EmbeddableMarkdownEditor(props.app, ref, {
+//       ...props.options,
+//     });
 
-    props.onMount(eme);
-  });
+//     props.onMount(eme);
+//   });
 
-  onCleanup(() => {
-    eme.destroy();
-  });
+//   onCleanup(() => {
+//     eme.destroy();
+//   });
 
-  return (
-    <div
-      //   onClick={() => eme.editor.focus()}
-      class="[&_[role='textbox']]:w-fit [&_[role='textbox']]:text-nowrap [&_div.cm-gutters]:hidden"
-      ref={(r) => (ref = r)}
-    ></div>
-  );
-};
+//   return (
+//     <div
+//       //   onClick={() => eme.editor.focus()}
+//       class="[&_[role='textbox']]:w-fit [&_[role='textbox']]:text-nowrap [&_div.cm-gutters]:hidden"
+//       ref={(r) => (ref = r)}
+//     ></div>
+//   );
+// };

@@ -157,6 +157,7 @@ export type PropertyType =
   | "multitext"
   | "tags"
   | "aliases"
+  | "cssclasses"
   | "date"
   | "datetime"
   | "checkbox"

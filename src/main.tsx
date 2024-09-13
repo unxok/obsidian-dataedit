@@ -32,6 +32,7 @@ import {
   getPropertyTypes,
   ScrollFixer,
   splitQueryOnConfig,
+  toNumber,
   updateMetadataProperty,
 } from "./lib/util.ts";
 import { createStore } from "solid-js/store";
@@ -228,6 +229,7 @@ export default class DataEdit extends Plugin {
       this.registerColor();
       this.registerToggle();
       this.registerMd();
+      this.registerStars();
       this.registerMdCBP();
       this.devReload(); // TODO comment out when releasing
     })();
@@ -412,7 +414,6 @@ export default class DataEdit extends Plugin {
       render: (el, data, ctx) => {
         new ToggleComponent(el)
           .onChange(async (v) => {
-            console.log("onChange");
             await this.updateProperty(
               data.key,
               v,
@@ -459,6 +460,80 @@ export default class DataEdit extends Plugin {
     };
   }
 
+  registerStars(): void {
+    const factory = (typeSuffix: string, typeName: string, max: number) => {
+      const typeKey = dataeditTypeKeyPrefix + typeSuffix;
+      const validateFn = (v: unknown) => !Number.isNaN(Number(v));
+      this.app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+        default: () => 0,
+        type: typeKey,
+        validate: validateFn,
+        icon: "star",
+        name: () => typeName,
+        render: (el, data, ctx) => {
+          const starCount = toNumber(data.value, 0, 0, max);
+
+          const container = el.createDiv({
+            cls: "dataedit-star-container",
+            attr: { "data-stars": starCount },
+          });
+
+          for (let n = 1; n <= max; n++) {
+            const starEl = container.createDiv({ cls: "clickable-icon" });
+            setIcon(starEl, "star");
+
+            starEl.addEventListener("click", async (e) => {
+              const count = toNumber(
+                container.getAttribute("data-stars"),
+                0,
+                0,
+                max,
+              );
+              // "unclick" star
+              if (count === n) {
+                await this.updateProperty(
+                  data.key,
+                  n - 1,
+                  ctx.sourcePath,
+                  data.value,
+                  undefined,
+                  true,
+                );
+                return;
+              }
+
+              await this.updateProperty(
+                data.key,
+                n,
+                ctx.sourcePath,
+                data.value,
+                undefined,
+                true,
+              );
+            });
+
+            if (n > starCount) continue;
+            const svg = starEl.firstElementChild;
+            if (!svg) continue;
+            svg.setAttribute("fill", "currentColor");
+          }
+
+          // [1, 2, 3, 4, 5].forEach((n) => {
+
+          // });
+
+          // Have to wait for the component to finish rendering
+          // setTimeout(() => {
+          //   cmp.setValue(data.value as string);
+          // }, 0);
+        },
+      };
+    };
+
+    factory("stars-x5", "Stars x5", 5);
+    factory("stars-x10", "Stars x10", 10);
+  }
+
   registerMd(): void {
     const typeKey = dataeditTypeKeyPrefix + "markdown";
     const validateFn = (v: unknown) => true;
@@ -481,24 +556,29 @@ export default class DataEdit extends Plugin {
 
         const container = el.createDiv({ cls: "dataedit-property-text-div" });
 
-        // const emde = new EmbeddableMarkdownEditor(this.app, container, {
-        //   value: data.value?.toString() ?? "",
-        //   onBlur: async (editor) => {
-        //     const value = editor.editor?.getValue();
-        //     await this.updateProperty(
-        //       data.key,
-        //       value ?? "",
-        //       ctx.sourcePath,
-        //       data.value,
-        //       undefined,
-        //       true,
-        //     );
-        //   },
-        // });
+        const emde = new EmbeddableMarkdownEditor(
+          this.app,
+          container,
+          {
+            value: data.value?.toString() ?? "",
+            onBlur: async (editor) => {
+              const value = editor.editor?.getValue();
+              await this.updateProperty(
+                data.key,
+                value ?? "",
+                ctx.sourcePath,
+                data.value,
+                undefined,
+                true,
+              );
+            },
+          },
+          ctx.sourcePath,
+        );
 
-        // ctx.metadataEditor.register(() => {
-        //   emde.destroy();
-        // });
+        ctx.metadataEditor.register(() => {
+          emde.destroy();
+        });
 
         ctx.metadataEditor.register(() => {
           container.remove();

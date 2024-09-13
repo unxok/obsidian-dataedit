@@ -31,6 +31,8 @@ import {
 } from "obsidian";
 import { DropdownRecord } from "@/classes/DropdownWidgetManager";
 import { settingsSignal } from "@/main";
+import { toNumber } from "@/lib/util";
+import { Icon } from "@/components/Icon";
 // To prevent treeshaking
 autofocus;
 
@@ -94,7 +96,11 @@ const PropertySwitch = (props: PropertyCommonProps) => {
   return (
     <Switch fallback={<div>fallback</div>}>
       <Match
-        when={props.propertyType === "text" || props.propertyType === "unknown"}
+        when={
+          props.propertyType === "text" ||
+          props.propertyType === "unknown" ||
+          props.propertyType === dataeditTypeKeyPrefix + "markdown"
+        }
       >
         <PropertyText {...props} />
       </Match>
@@ -109,6 +115,7 @@ const PropertySwitch = (props: PropertyCommonProps) => {
           props.propertyType === "multitext" ||
           props.propertyType === "tags" ||
           props.propertyType === "aliases" ||
+          props.propertyType === "cssclasses" ||
           Array.isArray(props.value)
         }
       >
@@ -132,6 +139,14 @@ const PropertySwitch = (props: PropertyCommonProps) => {
       </Match>
       <Match when={props.propertyType === dataeditTypeKeyPrefix + "toggle"}>
         <PropertyToggle {...props} />
+      </Match>
+      <Match
+        when={props.propertyType?.startsWith(dataeditTypeKeyPrefix + "stars-")}
+      >
+        <PropertyStars
+          {...props}
+          max={props.propertyType.endsWith("x5") ? 5 : 10}
+        />
       </Match>
     </Switch>
   );
@@ -237,6 +252,48 @@ const PropertyToggle = (props: PropertyCommonProps) => {
           // await props.updateProperty(e.currentTarget.checked);
         }}
       />
+    </div>
+  );
+};
+
+const PropertyStars = (props: PropertyCommonProps & { max: number }) => {
+  const getStarCount = () => {
+    return toNumber(props.value, 0, 0, props.max);
+  };
+
+  const getMaxArray = () => {
+    const arr = [];
+    for (let i = 1; i <= props.max; i++) {
+      arr.push(i);
+    }
+    return arr;
+  };
+
+  return (
+    <div class="dataedit-star-container">
+      <For each={getMaxArray()}>
+        {(n) => (
+          <div>
+            <Icon
+              iconId="star"
+              onClick={async () => {
+                if (getStarCount() === n) {
+                  return await props.updateProperty(n - 1);
+                }
+                await props.updateProperty(n);
+              }}
+              effectCallback={(r) => {
+                const div = r.parentElement;
+                if (!div) return;
+                div.classList.add("clickable-icon");
+                const svg = r.firstElementChild;
+                if (!svg || n > getStarCount()) return;
+                svg.setAttribute("fill", "currentColor");
+              }}
+            />
+          </div>
+        )}
+      </For>
     </div>
   );
 };
