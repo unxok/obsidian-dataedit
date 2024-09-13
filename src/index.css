@@ -59,6 +59,18 @@ div.metadata-property-value {
       background-color: var(--metadata-input-background);
     }
   }
+
+  &:has(div.dataedit-property-text-div) {
+    &:focus-within {
+      background-color: var(--metadata-input-background);
+    }
+
+    /* Usually .cm-line but not always. Ensure's alignment with other property editors */
+    & .cm-line,
+    & .cm-line ~ * {
+      padding-inline: var(--size-4-2);
+    }
+  }
 }
 
 .dataedit {
@@ -96,6 +108,8 @@ div.metadata-property-value {
   }
 
   div&-property-text-div {
+    width: 100%;
+
     & div.cm-gutters {
       display: none !important;
     }
@@ -103,10 +117,10 @@ div.metadata-property-value {
       overflow: visible;
     }
 
-    /* TODO probably shouldnt use the "*" operator nor "!important" */
-    & * {
+    & .cm-line,
+    & .cm-content {
       max-width: none !important;
-      width: 100% !important;
+      width: fit-content !important;
       line-height: inherit !important;
     }
     & div[role="textbox"] {

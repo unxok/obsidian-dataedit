@@ -270,12 +270,10 @@ const ColumnReorderButton = (props: {
   const dragCtx = useDragContext();
   const bctx = useBlock();
 
-  const [width, setWidth] = createSignal(0);
   const [isGrabbing, setGrabbing] = createSignal(false);
   const [transform, setTransform] = createSignal(0);
   let lastMousePos = 0;
   let ref: HTMLDivElement;
-  let baseDisplay: string;
 
   const onmousemove = (e: MouseEvent) => {
     console.log("mouse move called from: ", bctx.uid);

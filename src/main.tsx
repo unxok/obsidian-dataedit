@@ -60,6 +60,7 @@ import {
   dataeditTypeKeyPrefix,
 } from "./lib/constants.ts";
 import { PropertyEntryData, PropertyRenderContext } from "obsidian-typings";
+import { EmbeddableMarkdownEditor } from "./components/Markdown/EmbeddableMarkdownEditor.tsx";
 
 const getDataviewAPI = (pApp?: ObsidianApp) => {
   if (pApp) {
@@ -226,6 +227,7 @@ export default class DataEdit extends Plugin {
       this.registerSlider();
       this.registerColor();
       this.registerToggle();
+      this.registerMd();
       this.registerMdCBP();
       this.devReload(); // TODO comment out when releasing
     })();
@@ -372,7 +374,7 @@ export default class DataEdit extends Plugin {
   registerSlider(): void {
     const typeKey = dataeditTypeKeyPrefix + "slider";
     const validateFn = (v: unknown) => !Number.isNaN(Number(v));
-    app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+    this.app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
       default: () => 0,
       validate: validateFn,
       icon: "git-commit-horizontal",
@@ -402,7 +404,7 @@ export default class DataEdit extends Plugin {
     const typeKey = dataeditTypeKeyPrefix + "toggle";
     const validateFn = (v: unknown) =>
       v === "true" || v === "false" || v === true || v === false;
-    app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+    this.app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
       default: () => 0,
       validate: validateFn,
       icon: "toggle-left",
@@ -431,7 +433,7 @@ export default class DataEdit extends Plugin {
   registerColor(): void {
     const typeKey = dataeditTypeKeyPrefix + "color";
     const validateFn = (v: unknown) => true;
-    app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+    this.app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
       default: () => 0,
       validate: validateFn,
       icon: "palette",
@@ -452,6 +454,60 @@ export default class DataEdit extends Plugin {
         setTimeout(() => {
           cmp.setValue(data.value as string);
         }, 0);
+      },
+      type: typeKey,
+    };
+  }
+
+  registerMd(): void {
+    const typeKey = dataeditTypeKeyPrefix + "markdown";
+    const validateFn = (v: unknown) => true;
+    this.app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
+      default: () => "",
+      validate: validateFn,
+      icon: "m-square",
+      name: () => "Markdown",
+      render: (el, data, ctx) => {
+        // const cmp = new ColorComponent(el).onChange(async (v) => {
+        //   await this.updateProperty(
+        //     data.key,
+        //     v,
+        //     ctx.sourcePath,
+        //     data.value,
+        //     undefined,
+        //     true,
+        //   );
+        // });
+
+        const container = el.createDiv({ cls: "dataedit-property-text-div" });
+
+        // const emde = new EmbeddableMarkdownEditor(this.app, container, {
+        //   value: data.value?.toString() ?? "",
+        //   onBlur: async (editor) => {
+        //     const value = editor.editor?.getValue();
+        //     await this.updateProperty(
+        //       data.key,
+        //       value ?? "",
+        //       ctx.sourcePath,
+        //       data.value,
+        //       undefined,
+        //       true,
+        //     );
+        //   },
+        // });
+
+        // ctx.metadataEditor.register(() => {
+        //   emde.destroy();
+        // });
+
+        ctx.metadataEditor.register(() => {
+          container.remove();
+        });
+
+        // Have to wait for the component to finish rendering
+        // setTimeout(() => {
+        //   cmp.setValue(data.value as string);
+        // }, 0);
       },
       type: typeKey,
     };

@@ -44,6 +44,7 @@ export const moveColumn = ({
   indexTo,
   blockContext,
 }: MoveColumnParams) => {
+  console.log("move col");
   const { query, plugin, source, ctx, el, dataviewAPI } = blockContext;
   const { tableLine: preTableLine, rest: restLines } = getTableLine(query);
   let tableLine = preTableLine;

@@ -10,6 +10,8 @@ export const PropertyText = (props: PropertyCommonProps) => {
   let emde: EmbeddableMarkdownEditor;
 
   onMount(() => {
+    // TODO causing error that I am unsure if I can fix
+    // event waiting a long time like 3 seconds won't prevent it so IDK
     emde = new EmbeddableMarkdownEditor(bctx.plugin.app, ref, {
       value: props.value?.toString(),
       onBlur: async (editor) => {
@@ -18,11 +20,11 @@ export const PropertyText = (props: PropertyCommonProps) => {
       },
     });
 
-    /* 
-      Despite the emde indicating it can be used as a Component 
+    /*
+      Despite the emde indicating it can be used as a Component
       and thus lifecylcle managed by Contexts, doing that causes
       obsidian to lag immensely.
-    */
+      */
     // bctx.ctx.addChild(emde);
     const mdrc = new MarkdownRenderChild(ref);
     mdrc.register(() => emde.destroy());
