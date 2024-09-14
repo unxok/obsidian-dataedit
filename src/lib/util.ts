@@ -400,7 +400,7 @@ const tryUpdateInlineProperty = async (
     return false;
   }
   const newValue = Array.isArray(value) ? value[itemIndex ?? 0] : value;
-  console.log("found: ", foundInline);
+  // console.log("found: ", foundInline);
   const newFieldValue = foundInline.match.replaceAll(
     previousValue?.toString() ?? "",
     newValue,

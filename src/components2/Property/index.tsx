@@ -33,6 +33,7 @@ import { DropdownRecord } from "@/classes/DropdownWidgetManager";
 import { settingsSignal } from "@/main";
 import { toNumber } from "@/lib/util";
 import { Icon } from "@/components/Icon";
+import { PropertyMarkdown } from "./PropertyMarkdown";
 // To prevent treeshaking
 autofocus;
 
@@ -68,8 +69,6 @@ export const PropertyData = (props: PropertyDataProps) => {
       props.property,
       value,
       props.filePath,
-      // bctx.plugin,
-      // bctx.el,
       props.value,
     );
   };
@@ -96,11 +95,7 @@ const PropertySwitch = (props: PropertyCommonProps) => {
   return (
     <Switch fallback={<div>fallback</div>}>
       <Match
-        when={
-          props.propertyType === "text" ||
-          props.propertyType === "unknown" ||
-          props.propertyType === dataeditTypeKeyPrefix + "markdown"
-        }
+        when={props.propertyType === "text" || props.propertyType === "unknown"}
       >
         <PropertyText {...props} />
       </Match>
@@ -147,6 +142,9 @@ const PropertySwitch = (props: PropertyCommonProps) => {
           {...props}
           max={props.propertyType.endsWith("x5") ? 5 : 10}
         />
+      </Match>
+      <Match when={props.propertyType === dataeditTypeKeyPrefix + "markdown"}>
+        <PropertyMarkdown {...props} />
       </Match>
     </Switch>
   );
@@ -270,31 +268,56 @@ const PropertyStars = (props: PropertyCommonProps & { max: number }) => {
   };
 
   return (
-    <div class="dataedit-star-container">
-      <For each={getMaxArray()}>
-        {(n) => (
-          <div>
-            <Icon
-              iconId="star"
-              onClick={async () => {
-                if (getStarCount() === n) {
-                  return await props.updateProperty(n - 1);
-                }
-                await props.updateProperty(n);
-              }}
-              effectCallback={(r) => {
-                const div = r.parentElement;
-                if (!div) return;
-                div.classList.add("clickable-icon");
-                const svg = r.firstElementChild;
-                if (!svg || n > getStarCount()) return;
-                svg.setAttribute("fill", "currentColor");
-              }}
-            />
-          </div>
-        )}
-      </For>
-    </div>
+    <>
+      <div class="dataedit-star-container">
+        <For each={getMaxArray()}>
+          {(n) =>
+            n <= 5 && (
+              <Icon
+                class="clickable-icon"
+                aria-label={n.toString()}
+                iconId="star"
+                onClick={async () => {
+                  if (getStarCount() === n) {
+                    return await props.updateProperty(n - 1);
+                  }
+                  await props.updateProperty(n);
+                }}
+                effectCallback={(r) => {
+                  const svg = r.firstElementChild;
+                  if (!svg || n > getStarCount()) return;
+                  svg.setAttribute("fill", "currentColor");
+                }}
+              />
+            )
+          }
+        </For>
+      </div>
+      <div class="dataedit-star-container">
+        <For each={getMaxArray()}>
+          {(n) =>
+            n > 5 && (
+              <Icon
+                class="clickable-icon"
+                aria-label={n.toString()}
+                iconId="star"
+                onClick={async () => {
+                  if (getStarCount() === n) {
+                    return await props.updateProperty(n - 1);
+                  }
+                  await props.updateProperty(n);
+                }}
+                effectCallback={(r) => {
+                  const svg = r.firstElementChild;
+                  if (!svg || n > getStarCount()) return;
+                  svg.setAttribute("fill", "currentColor");
+                }}
+              />
+            )
+          }
+        </For>
+      </div>
+    </>
   );
 };
 

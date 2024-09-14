@@ -61,7 +61,7 @@ div.metadata-property-value {
     }
   }
 
-  &:has(div.dataedit-property-text-div) {
+  &:has(div.dataedit-property-markdown-div) {
     &:focus-within {
       background-color: var(--metadata-input-background);
     }
@@ -101,6 +101,11 @@ div.metadata-property-value {
       & > li {
         margin-inline-start: calc(var(--list-indent) / 2);
         padding-top: 5px; /* when rendering tags, will overlap without this */
+        & > div.dataedit-property-text-div {
+          display: inline-flex;
+          justify-content: start;
+          align-items: center;
+        }
         & div.cm-active.cm-line {
           padding-inline-end: 1ch; /* when rendering tags, makes it easier to click to edit instead of clicking to search for tag */
         }
@@ -108,7 +113,7 @@ div.metadata-property-value {
     }
   }
 
-  div&-property-text-div {
+  div&-property-markdown-div {
     width: 100%;
 
     & div.cm-gutters {
@@ -130,6 +135,18 @@ div.metadata-property-value {
     }
   }
 
+  div&-property-text-div {
+    width: fit-content;
+    min-width: 100%;
+    display: inline-block;
+    white-space: pre;
+    min-height: 1lh;
+    & div.metadata-input-longtext.mod-truncate {
+      padding: 0 !important;
+      font-size: inherit;
+    }
+  }
+
   div&-number-buttons-container {
     display: flex;
     justify-content: center;
@@ -140,6 +157,19 @@ div.metadata-property-value {
   div&-star-container {
     display: inline-flex;
     justify-content: center;
+    align-items: center;
+  }
+
+  div&-toolbar {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    padding-inline-start: var(--size-4-4);
+  }
+
+  div&-pagination-container {
+    display: flex;
+    justify-content: start;
     align-items: center;
   }
 

@@ -68,27 +68,6 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
     );
 
     typeKeys.push("unknown");
-
-    // const types = [...deafaultTypes, ...customTypes];
-
-    // const typesIcons = types.map<[propType: PropertyType, icon: string]>(
-    //   (t) => {
-    //     if (t === "unknown") {
-    //       return [t, "file-question"];
-    //     }
-    //     const obj = typesObj[t];
-    //     if (!obj) {
-    //       const msg = "Dataedit: Failed to get icon for property type";
-    //       new Notice(msg);
-    //       throw new Error(msg);
-    //     }
-    //     const postT = t.startsWith(dataeditDropdownTypePrefix)
-    //       ? (t.slice(dataeditDropdownTypePrefix.length) as PropertyType)
-    //       : t;
-    //     return [postT, obj.icon];
-    //   },
-    // );
-
     menu = new Menu();
 
     menu
@@ -257,7 +236,7 @@ const PropertyIcon = (props: { propertyType: PropertyType }) => {
   const iconId = createMemo(() => {
     const typesObj = bctx.plugin.app.metadataTypeManager.registeredTypeWidgets;
     const icon = typesObj[props.propertyType]?.icon;
-    return icon ?? "star";
+    return icon ?? "file-question";
   });
 
   return <Icon iconId={iconId()} />;

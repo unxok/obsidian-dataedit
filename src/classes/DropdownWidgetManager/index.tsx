@@ -32,12 +32,10 @@ const defaultDropdownRecord: DropdownRecord = {
 export class DropdownWidgetManager extends Modal {
   private plugin: DataEdit;
   private dropdowns: Record<DropdownRecordKey, DropdownRecord> = {};
-  private codeBlockEl: HTMLElement;
 
-  constructor(plugin: DataEdit, codeBlockEl: HTMLElement) {
+  constructor(plugin: DataEdit) {
     super(plugin.app);
     this.plugin = plugin;
-    this.codeBlockEl = codeBlockEl;
   }
 
   async onClose(): Promise<void> {

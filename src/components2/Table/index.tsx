@@ -114,6 +114,7 @@ export const Table = (props: {
       value={{ context: dragContext, setContext: setDragContext }}
     >
       <div
+        data-dataedit-scroll-el={true}
         style={{
           position: "relative",
           padding: "var(--size-4-4)",
@@ -122,8 +123,8 @@ export const Table = (props: {
           "word-break": "normal",
           "white-space": "normal",
           margin: "0 calc(-1 * var(--size-4-4)) !important",
-          "overflow-x": "auto",
-          "overflow-y": "hidden",
+          // "overflow-x": "auto",
+          // "overflow-y": "hidden",
         }}
       >
         <div

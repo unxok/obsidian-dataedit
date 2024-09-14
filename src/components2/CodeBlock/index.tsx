@@ -28,6 +28,7 @@ import { CodeBlockConfig } from "./Config";
 import DataEdit, { settingsSignal } from "@/main";
 import { PropertyWidget } from "obsidian-typings";
 import { toFirstUpperCase } from "@/lib2/utils";
+import { Icon } from "@/components/Icon";
 
 type CodeBlockProps = {
   plugin: DataEdit;
@@ -159,8 +160,25 @@ export const CodeBlock = (props: CodeBlockProps) => {
             propertyTypes={propertyTypes()}
             idColIndex={idColIndex()}
           />
+          <Toolbar resultCount={dataviewResult().value!.values.length} />
         </div>
       </BlockContext.Provider>
     </Show>
+  );
+};
+
+const Toolbar = (props: { resultCount: number }) => {
+  //
+  return (
+    <div class="dataedit-toolbar">
+      <div class="clickable-icon">
+        {props.resultCount} {props.resultCount === 1 ? "result" : "results"}
+      </div>
+      <div class="dataedit-pagination-container">
+        <Icon iconId="chevron-left" class="clickable-icon" />
+        <div class="clickable-icon">1 of 4</div>
+        <Icon iconId="chevron-right" class="clickable-icon" />
+      </div>
+    </div>
   );
 };

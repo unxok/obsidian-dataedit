@@ -1,7 +1,17 @@
-import { App } from "obsidian";
+// import { App, MarkdownPreviewRenderer } from "obsidian";
 
-export {};
+// export {};
 
-declare global {
-  const app: App;
-}
+// type Handler = Parameters<
+//   typeof MarkdownPreviewRenderer.createCodeBlockPostProcessor
+// >[1];
+// declare module "obsidian" {
+//   global {
+//     const app: App;
+//   }
+
+//   interface MarkdownPreviewRenderer {
+//     codeBlockPostProcessors: Record<string, Handler>;
+//     unregisterCodeBlockPostProcessor: (language: string) => void;
+//   }
+// }

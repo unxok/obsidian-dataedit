@@ -13,6 +13,6 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["obsidian-typings"]
+    "types": ["obsidian-typings", "src", "types.d.ts"]
   }
 }

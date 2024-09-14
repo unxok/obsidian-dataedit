@@ -1,50 +1,27 @@
 // @refresh reload
 
 import { render } from "solid-js/web";
-import App from "./App.tsx";
 import "./index.css";
 import {
   App as ObsidianApp,
   Notice,
   Plugin,
   MarkdownRenderChild,
-  MarkdownView,
-  MarkdownPostProcessor,
   parseYaml,
-  MarkdownPostProcessorContext,
   setIcon,
   Menu,
-  MarkdownPreviewRenderer,
   DropdownComponent,
   SliderComponent,
-  ProgressBarComponent,
   ColorComponent,
   ToggleComponent,
+  PluginSettingTab,
+  App,
+  Setting,
 } from "obsidian";
-import {
-  DataviewAPI,
-  DataviewQueryResult,
-  ModifiedDataviewQueryResult,
-} from "./lib/types.ts";
-import {
-  clampNumber,
-  ensureFileLinkColumn,
-  getPropertyTypes,
-  ScrollFixer,
-  splitQueryOnConfig,
-  toNumber,
-  updateMetadataProperty,
-} from "./lib/util.ts";
-import { createStore } from "solid-js/store";
-import {
-  createEffect,
-  createSignal,
-  createUniqueId,
-  For,
-  onMount,
-  Show,
-} from "solid-js";
-import { BlockContext, CodeBlock } from "./components2/CodeBlock/index.tsx";
+import { DataviewAPI } from "./lib/types.ts";
+import { clampNumber, toNumber, updateMetadataProperty } from "./lib/util.ts";
+import { createSignal } from "solid-js";
+import { CodeBlock } from "./components2/CodeBlock/index.tsx";
 import {
   CodeBlockConfig,
   CodeBlockConfigModal,
@@ -221,19 +198,27 @@ export default class DataEdit extends Plugin {
   propertyUpdatesIndex: number = 0;
 
   onload(): void {
+    this.addSettingTab(new DataeditSettingTab(this.app, this));
+    this.addCommand({
+      id: "manage-dropdowns",
+      name: "Manage dropdowns",
+      callback: () => new DropdownWidgetManager(this).open(),
+    });
     this.registerMdPP();
     (async () => {
       await this.loadSettings();
       this.registerDropdowns();
+      this.registerMd();
       this.registerSlider();
+      this.registerStars();
       this.registerColor();
       this.registerToggle();
-      this.registerMd();
-      this.registerStars();
       this.registerMdCBP();
       this.devReload(); // TODO comment out when releasing
     })();
   }
+
+  registerSettingTab(): void {}
 
   registerMdPP(): void {
     this.registerMarkdownPostProcessor((el, ctx) => {
@@ -479,7 +464,10 @@ export default class DataEdit extends Plugin {
           });
 
           for (let n = 1; n <= max; n++) {
-            const starEl = container.createDiv({ cls: "clickable-icon" });
+            const starEl = container.createDiv({
+              cls: "clickable-icon",
+              attr: { "aria-label": n.toString() },
+            });
             setIcon(starEl, "star");
 
             starEl.addEventListener("click", async (e) => {
@@ -554,7 +542,9 @@ export default class DataEdit extends Plugin {
         //   );
         // });
 
-        const container = el.createDiv({ cls: "dataedit-property-text-div" });
+        const container = el.createDiv({
+          cls: "dataedit-property-markdown-div",
+        });
 
         const emde = new EmbeddableMarkdownEditor(
           this.app,
@@ -604,7 +594,7 @@ export default class DataEdit extends Plugin {
     }
     arr.unshift(update);
     this.propertyUpdates = arr;
-    console.log(arr);
+    // console.log(arr);
   }
 
   async getUpdate(): Promise<
@@ -776,7 +766,7 @@ export default class DataEdit extends Plugin {
             .setTitle("Manage dropdowns")
             .setIcon("chevron-down-circle")
             .onClick(() => {
-              new DropdownWidgetManager(this, blockContext.el).open();
+              new DropdownWidgetManager(this).open();
             }),
         );
 
@@ -871,5 +861,31 @@ export default class DataEdit extends Plugin {
         ctx.addChild(mdr);
       },
     );
+  }
+}
+
+class DataeditSettingTab extends PluginSettingTab {
+  plugin: DataEdit;
+
+  constructor(app: App, plugin: DataEdit) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  display(): void {
+    const { containerEl } = this;
+
+    containerEl.empty();
+
+    new Setting(containerEl)
+      .setName("Dropdowns")
+      .setDesc(
+        "Click the button to open the Dropdown Manager where you can add, edit, and delete custom dropdown configurations for use in frontmatter properties and Dataedit blocks.",
+      )
+      .addButton((cmp) =>
+        cmp.setButtonText("manage").onClick(() => {
+          new DropdownWidgetManager(this.plugin).open();
+        }),
+      );
   }
 }
