@@ -20,7 +20,7 @@ export const Icon = (
   return (
     <span
       style={{
-        display: "flex",
+        display: "inline-flex",
         "justify-content": "center",
         "align-items": "center",
       }}

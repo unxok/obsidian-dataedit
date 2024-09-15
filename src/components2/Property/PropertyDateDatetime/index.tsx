@@ -5,6 +5,16 @@ import { DateTime } from "luxon";
 import { createSignal, createMemo, Show } from "solid-js";
 import { PropertyCommonProps } from "..";
 import { autofocus } from "@solid-primitives/autofocus";
+import { Icon } from "@/components/Icon";
+import {
+  MarkdownFileInfo,
+  MarkdownView,
+  Notice,
+  TFile,
+  WorkspaceLeaf,
+} from "obsidian";
+import { DailyNotesPluginInstance } from "obsidian-typings";
+import moment from "moment";
 // To prevent treeshaking
 autofocus;
 
@@ -21,6 +31,12 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
     if (!luxon.DateTime.isDateTime(props.value)) return false;
     return checkIfDateHasTime(props.value);
   });
+
+  const isDailyNotesEnabled = () => {
+    return !!bctx.plugin.app.internalPlugins.getEnabledPluginById(
+      "daily-notes",
+    );
+  };
 
   const dt = createMemo(() => {
     const {
@@ -50,7 +66,7 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
 
   return (
     <Show
-      when={isEditing()}
+      when={isEditing() || !bctx.config.formatDates}
       fallback={
         <div onClick={() => setEditing(true)}>
           {dt()?.toFormat(getDvFormat()) ?? (
@@ -65,9 +81,9 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
       }
     >
       <input
-        use:autofocus
+        use:autofocus={!!bctx.config.formatDates}
         autofocus
-        class=""
+        class="dataedit-date-datetime-input"
         type={isTime() ? "datetime-local" : "date"}
         // 2018-06-12T19:30
         value={preProcess(dt())}
@@ -91,6 +107,50 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
           setEditing(false);
         }}
       />
+      <Show
+        when={
+          isDailyNotesEnabled() &&
+          !isTime() &&
+          bctx.config.dateLinkDaily &&
+          dt()
+        }
+      >
+        <Icon
+          iconId="link"
+          aria-label="Create or open daily note"
+          class="clickable-icon"
+          onClick={async () => {
+            const datetime = dt()!;
+            const dailyNotePlugin =
+              bctx.plugin.app.internalPlugins.getEnabledPluginById(
+                "daily-notes",
+              ) as
+                | null
+                | (DailyNotesPluginInstance & {
+                    options: { format: string };
+                    getDailyNote: (fileName?: string) => Promise<TFile>;
+                  });
+            if (!dailyNotePlugin) {
+              // daily notes plugin was disabled after already rendered
+              new Notice("Daily notes internal plugin is currently disabled!");
+              return;
+            }
+            const format = dailyNotePlugin.options.format;
+            // const fileName = datetime.toFormat(format);
+            const fileName = moment(datetime).format(format);
+            const file = await dailyNotePlugin.getDailyNote(fileName);
+
+            const activeEditor = bctx.plugin.app.workspace.activeEditor as
+              | undefined
+              | (MarkdownFileInfo & { leaf: WorkspaceLeaf });
+            if (!activeEditor?.leaf) {
+              return;
+            }
+
+            activeEditor.leaf.openFile(file);
+          }}
+        />
+      </Show>
     </Show>
   );
 };

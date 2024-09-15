@@ -1,23 +1,33 @@
 import { setBlockConfig, SetBlockConfigProps } from "@/lib2/utils";
 import { App, Modal, Setting } from "obsidian";
 import { BlockContext } from "..";
+import { toNumber } from "@/lib/util";
 
 export type CodeBlockConfig = {
   // toggles: boolean;
   containerClass: string;
+  pageSize: number;
   verticalAlignment: "top" | "middle" | "bottom";
   horizontalAlignment: "left" | "center" | "right";
   typeIcons: boolean;
   typeIconLeft: boolean;
+  dateLinkDaily: boolean;
+  formatDates: boolean;
+  /** Not meant to be modified in modal */
+  currentPage: number;
 };
 
 export const defaultCodeBlockConfig: CodeBlockConfig = {
   // toggles: false,
   containerClass: "",
+  pageSize: 10,
   verticalAlignment: "top",
   horizontalAlignment: "left",
   typeIcons: true,
   typeIconLeft: true,
+  dateLinkDaily: true,
+  formatDates: false,
+  currentPage: 0,
 };
 
 export class CodeBlockConfigModal extends Modal {
@@ -57,6 +67,30 @@ export class CodeBlockConfigModal extends Modal {
           .setPlaceholder("cls-one clsTwo")
           .onChange((v) => (form.containerClass = v)),
       );
+
+    const pageSizeParser = (v: unknown) => {
+      const possibleNaN = Number(v);
+      const possibleFloat = Number.isNaN(possibleNaN) ? 0 : possibleNaN;
+      const integer = Math.floor(possibleFloat);
+      if (integer < 0) return 0;
+      return integer;
+    };
+
+    new Setting(contentEl)
+      .setName("Page size")
+      .setDesc(
+        "Set the number of results that will display per page. Set to zero to have no limit and to hide pagination controls.",
+      )
+      .addText((cmp) => {
+        cmp
+          .setValue(pageSizeParser(form.pageSize).toString())
+          .onChange((v) => (form.pageSize = pageSizeParser(v)))
+          .setPlaceholder("unlimited");
+
+        cmp.inputEl.setAttribute("type", "number");
+        cmp.inputEl.setAttribute("min", "0");
+      });
+
     /* dropdowns */
     // form.verticalAlignment
     new Setting(contentEl)
@@ -129,6 +163,28 @@ export class CodeBlockConfigModal extends Modal {
         cmp
           .setValue(form.typeIconLeft)
           .onChange((b) => (form.typeIconLeft = b)),
+      );
+
+    // form.dateLinkDaily
+    new Setting(contentEl)
+      .setName("Link to daily note for dates")
+      .setDesc(
+        "Turn on to show an icon with a link to the dialy note for date properties.",
+      )
+      .addToggle((cmp) =>
+        cmp
+          .setValue(form.dateLinkDaily)
+          .onChange((b) => (form.dateLinkDaily = b)),
+      );
+
+    // form.formatDates
+    new Setting(contentEl)
+      .setName("Format dates from Dataview")
+      .setDesc(
+        "Turn on to format date and datetime properties according to your settings in the Dataview plugin when not actively editing the property.",
+      )
+      .addToggle((cmp) =>
+        cmp.setValue(form.formatDates).onChange((b) => (form.formatDates = b)),
       );
 
     /* footer buttons */

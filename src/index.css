@@ -113,6 +113,23 @@ div.metadata-property-value {
     }
   }
 
+  input&-date-datetime-input {
+    background-color: transparent;
+    /* padding: 0; */
+    border: none;
+    font-size: var(--metadata-input-font-size);
+    width: fit-content;
+    & + .clickable-icon {
+      --icon-size: var(--icon-xs);
+      --icon-stroke: var(--icon-xs-stroke-width);
+      /* margin-inline-end: 2px; */
+      /* TODO I'm not confident that this will always work... */
+      margin-inline-start: -30px;
+      position: relative;
+      z-index: 5;
+    }
+  }
+
   div&-property-markdown-div {
     width: 100%;
 
@@ -128,10 +145,14 @@ div.metadata-property-value {
       max-width: none !important;
       width: fit-content !important;
       line-height: inherit !important;
+      display: inline-block;
     }
     & div[role="textbox"] {
       width: fit-content;
       text-wrap: nowrap;
+    }
+    & * {
+      text-align: inherit;
     }
   }
 
@@ -165,6 +186,22 @@ div.metadata-property-value {
     justify-content: start;
     align-items: center;
     padding-inline-start: var(--size-4-4);
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  div&-toolbar-separator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    position: relative;
+    color: var(--icon-color);
+    & div {
+      height: 100%;
+      width: 0.25rem;
+      background-color: var(--icon-color);
+    }
   }
 
   div&-pagination-container {

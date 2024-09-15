@@ -17,6 +17,7 @@ import {
   PluginSettingTab,
   App,
   Setting,
+  MarkdownPreviewRenderer,
 } from "obsidian";
 import { DataviewAPI } from "./lib/types.ts";
 import { clampNumber, toNumber, updateMetadataProperty } from "./lib/util.ts";
