@@ -1,11 +1,7 @@
 import {
-  App,
-  MarkdownView,
   MetadataCache,
   Notice,
-  parseYaml,
   Plugin,
-  stringifyYaml,
   TFile,
   Vault,
 } from "obsidian";
@@ -18,51 +14,10 @@ import {
   PropertyType,
 } from "./types";
 import { DateTime } from "luxon";
-import { COMPLEX_PROPERTY_PLACEHOLDER } from "./constants";
-import { CodeBlockInfo } from "@/hooks/useDataEdit";
-import { REGEX_COMMA_NOT_IN_DOUBLE_QUOTES } from "./regex";
+import { checkIfDateHasTime } from "@/util/pure";
 
-export const clampNumber = (
-  n: number,
-  min: number,
-  max: number,
-  inclusive?: boolean,
-) => {
-  if (inclusive ? n <= min : n < min) return min;
-  if (inclusive ? n >= max : n > max) return max;
-  return n;
-};
 
-export const toNumber = (
-  v: unknown,
-  defaultNumber?: number,
-  min?: number,
-  max?: number,
-  validator?: (val: unknown, num: number) => boolean,
-) => {
-  const num = Number(v);
-  if (Number.isNaN(num)) return defaultNumber ?? 0;
-  if (validator) {
-    if (!validator(v, num)) return defaultNumber ?? 0;
-  }
-  if (min !== undefined) {
-    if (num < min) return min;
-  }
-  if (max !== undefined) {
-    if (num > max) return max;
-  }
-  return num;
-};
 
-/**
- * Checks if a luxon DateTime has a non-zero time value
- * @param dt luxon DateTime
- * @returns `true` if time is not all zeroes, false otherwise
- */
-export const checkIfDateHasTime = (dt: DateTime) => {
-  const isTime = dt.hour !== 0 || dt.minute !== 0 || dt.second !== 0;
-  return isTime;
-};
 
 export const getValueType: (
   value: unknown,
@@ -171,54 +126,58 @@ export const tryDataviewArrayToArray = <T>(val: T) => {
   WHERE true 
 */
 
-export const getColumnPropertyNames = (source: string) => {
-  const line = source.split("\n")[0];
-  // TODO possible could have this string within a column alias
-  const isWithoutId = line.toLowerCase().includes("without id");
-  const cols = source
-    .split("\n")[0]
-    .substring(isWithoutId ? 17 : 6)
-    .split(REGEX_COMMA_NOT_IN_DOUBLE_QUOTES)
-    .map((c) => {
-      const str = c.trim();
-      const potential = str.split(/\sAS\s/i)[0].trim();
-      // console.log("potential: ", potential);
-      const invalidChars = [
-        "(",
-        ")",
-        "[",
-        "]",
-        "{",
-        "}",
-        "+",
-        // "-", dashes are pretty common in property names
-        "*",
-        "/",
-        "%",
-        "<",
-        ">",
-        "!",
-        "=",
-        '"',
-      ];
-      const isComplex =
-        !Number.isNaN(Number(potential)) ||
-        //prettier-ignore
-        potential
-          .split("")
-          .some((char) => invalidChars.includes(char));
-      if (isComplex) {
-        // property is manipulated in the query
-        // so it can't be edited since it's a calculated value
-        return COMPLEX_PROPERTY_PLACEHOLDER;
-      }
-      return potential;
-    });
-  if (isWithoutId) return cols;
-  // so it matches with what is returned from dataview
-  return ["File", ...cols];
-};
+// export const getColumnPropertyNames = (source: string) => {
+//   const line = source.split("\n")[0];
+//   // TODO possible could have this string within a column alias
+//   const isWithoutId = line.toLowerCase().includes("without id");
+//   const cols = source
+//     .split("\n")[0]
+//     .substring(isWithoutId ? 17 : 6)
+//     .split(REGEX_COMMA_NOT_IN_DOUBLE_QUOTES)
+//     .map((c) => {
+//       const str = c.trim();
+//       const potential = str.split(/\sAS\s/i)[0].trim();
+//       // console.log("potential: ", potential);
+//       const invalidChars = [
+//         "(",
+//         ")",
+//         "[",
+//         "]",
+//         "{",
+//         "}",
+//         "+",
+//         // "-", dashes are pretty common in property names
+//         "*",
+//         "/",
+//         "%",
+//         "<",
+//         ">",
+//         "!",
+//         "=",
+//         '"',
+//       ];
+//       const isComplex =
+//         !Number.isNaN(Number(potential)) ||
+//         //prettier-ignore
+//         potential
+//           .split("")
+//           .some((char) => invalidChars.includes(char));
+//       if (isComplex) {
+//         // property is manipulated in the query
+//         // so it can't be edited since it's a calculated value
+//         return COMPLEX_PROPERTY_PLACEHOLDER;
+//       }
+//       return potential;
+//     });
+//   if (isWithoutId) return cols;
+//   // so it matches with what is returned from dataview
+//   return ["File", ...cols];
+// };
 
+
+/**
+ * Updates a frontmatter or inline property
+ */
 export const updateMetadataProperty = async (
   property: string,
   newValue: unknown,
@@ -418,203 +377,174 @@ const tryUpdateInlineProperty = async (
   return true;
 };
 
-export const getExistingProperties = (app: App) => {
-  const { metadataCache } = app;
-  return metadataCache.getAllPropertyInfos() as Record<string, PropertyInfo>;
-};
+// export const getExistingProperties = (app: App) => {
+//   const { metadataCache } = app;
+//   return metadataCache.getAllPropertyInfos() as Record<string, PropertyInfo>;
+// };
 
-export const getTableLine = (codeBlockText: string) => {
-  const lines = codeBlockText.split("\n");
-  let index = 0;
-  for (index; index < lines.length; index++) {
-    const line = lines[index];
-    if (!line.toLowerCase().startsWith("table")) continue;
-    return {
-      line,
-      index,
-    };
-  }
-  throw new Error(
-    "Unable to find table line from codeBlockText. This should be impossible.",
-  );
-};
+// export const getTableLine = (codeBlockText: string) => {
+//   const lines = codeBlockText.split("\n");
+//   let index = 0;
+//   for (index; index < lines.length; index++) {
+//     const line = lines[index];
+//     if (!line.toLowerCase().startsWith("table")) continue;
+//     return {
+//       line,
+//       index,
+//     };
+//   }
+//   throw new Error(
+//     "Unable to find table line from codeBlockText. This should be impossible.",
+//   );
+// };
 
-export type DataEditBlockConfig = {
-  showToolbar: boolean;
-  toolbarTop: boolean;
-  lockEditing: boolean;
-  headerIcons: boolean;
-  newNoteTemplatePath: string;
-  newNoteFolderPath: string;
-  tableClassName: string;
-  horizontalAlignment: "left" | "center" | "right";
-  verticalAlignment: "top" | "middle" | "bottom";
-};
+// export type DataEditBlockConfig = {
+//   showToolbar: boolean;
+//   toolbarTop: boolean;
+//   lockEditing: boolean;
+//   headerIcons: boolean;
+//   newNoteTemplatePath: string;
+//   newNoteFolderPath: string;
+//   tableClassName: string;
+//   horizontalAlignment: "left" | "center" | "right";
+//   verticalAlignment: "top" | "middle" | "bottom";
+// };
 
-export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
+// export type DataEditBlockConfigKey = keyof DataEditBlockConfig;
 
-export const defaultDataEditBlockConfig: DataEditBlockConfig = {
-  showToolbar: true,
-  toolbarTop: true,
-  lockEditing: false,
-  headerIcons: true,
-  newNoteTemplatePath: "",
-  newNoteFolderPath: "",
-  tableClassName: "",
-  horizontalAlignment: "left",
-  verticalAlignment: "top",
-};
+// export const defaultDataEditBlockConfig: DataEditBlockConfig = {
+//   showToolbar: true,
+//   toolbarTop: true,
+//   lockEditing: false,
+//   headerIcons: true,
+//   newNoteTemplatePath: "",
+//   newNoteFolderPath: "",
+//   tableClassName: "",
+//   horizontalAlignment: "left",
+//   verticalAlignment: "top",
+// };
 
 // TODO adds one extra line of space (not incrementally) which doesn't break anything but looks weird
-export const splitQueryOnConfig: (codeBlockText: string) => {
-  query: string;
-  config: DataEditBlockConfig;
-} = (codeBlockText: string) => {
-  const [query, configStr] = codeBlockText.split(/\n^---$\n/m);
-  try {
-    const config = parseYaml(configStr);
-    if (typeof config !== "object") throw new Error();
-    return {
-      query,
-      config: {
-        ...defaultDataEditBlockConfig,
-        ...(config as DataEditBlockConfig),
-      },
-    };
-  } catch (e) {
-    // const msg = "invalid YAML detected in config";
-    // console.error(msg);
-    return { query, config: defaultDataEditBlockConfig };
-  }
-};
+// export const splitQueryOnConfig: (codeBlockText: string) => {
+//   query: string;
+//   config: DataEditBlockConfig;
+// } = (codeBlockText: string) => {
+//   const [query, configStr] = codeBlockText.split(/\n^---$\n/m);
+//   try {
+//     const config = parseYaml(configStr);
+//     if (typeof config !== "object") throw new Error();
+//     return {
+//       query,
+//       config: {
+//         ...defaultDataEditBlockConfig,
+//         ...(config as DataEditBlockConfig),
+//       },
+//     };
+//   } catch (e) {
+//     // const msg = "invalid YAML detected in config";
+//     // console.error(msg);
+//     return { query, config: defaultDataEditBlockConfig };
+//   }
+// };
 
-/**
- * Records the current scroll on instantiation, and provides the `fix()` method to revert back to that scroll position.
- *
- * Editing a note with the `Editor` API will usually result in a weird scroll down. Not sure why, but this class can be used to fix that.
- *
- * Having to do this feels like I am doing something wrong but for now it works.
- */
-export class ScrollFixer {
-  private scroller: HTMLElement;
-  private prevScroll: number;
 
-  constructor(el: HTMLElement) {
-    const scroller = el.closest(".cm-scroller") as HTMLElement | null;
-    if (!scroller) {
-      throw new Error("Could not find scroller");
-    }
-    this.scroller = scroller;
-    this.prevScroll = scroller.scrollTop;
-  }
-
-  /**
-   * Restores scroll position back to the previously recorded position.
-   */
-  fix(): void {
-    // this will be used after a immediately after a DOM mutation so we run this next in the event queue to give it time to update
-    setTimeout(() => {
-      this.scroller.scrollTo({ top: this.prevScroll, behavior: "instant" });
-    }, 0);
-  }
-}
 
 // TODO fix scroll issue
-export const updateBlockConfig = (
-  key: DataEditBlockConfigKey,
-  value: DataEditBlockConfig[typeof key],
-  codeBlockInfo: CodeBlockInfo,
-) => {
-  const {
-    config,
-    ctx,
-    el,
-    plugin: {
-      app: { workspace },
-    },
-    query: preQuery,
-    hideFileCol,
-  } = codeBlockInfo;
-  // update the old config
-  const newConfig = { ...config, [key]: value };
-  // turn into yaml text. Always includes a newline character at the end
-  const newConfigStr = stringifyYaml(newConfig);
-  // text is the entire notes text and is essentially a synchronous read
-  const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
-  // remove the ', file.link' we added if so
-  const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
+// export const updateBlockConfig = (
+//   key: DataEditBlockConfigKey,
+//   value: DataEditBlockConfig[typeof key],
+//   codeBlockInfo: CodeBlockInfo,
+// ) => {
+//   const {
+//     config,
+//     ctx,
+//     el,
+//     plugin: {
+//       app: { workspace },
+//     },
+//     query: preQuery,
+//     hideFileCol,
+//   } = codeBlockInfo;
+//   // update the old config
+//   const newConfig = { ...config, [key]: value };
+//   // turn into yaml text. Always includes a newline character at the end
+//   const newConfigStr = stringifyYaml(newConfig);
+//   // text is the entire notes text and is essentially a synchronous read
+//   const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
+//   // remove the ', file.link' we added if so
+//   const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
 
-  const newCodeBlockText =
-    "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
-  const editor = workspace.activeEditor?.editor;
-  if (!editor) {
-    return;
-  }
-  const scrollFixer = new ScrollFixer(el);
-  editor.replaceRange(
-    newCodeBlockText,
-    { line: lineStart, ch: 0 },
-    { line: lineEnd, ch: NaN },
-  );
-  scrollFixer.fix();
-};
+//   const newCodeBlockText =
+//     "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
+//   const editor = workspace.activeEditor?.editor;
+//   if (!editor) {
+//     return;
+//   }
+//   const scrollFixer = new ScrollFixer(el);
+//   editor.replaceRange(
+//     newCodeBlockText,
+//     { line: lineStart, ch: 0 },
+//     { line: lineEnd, ch: NaN },
+//   );
+//   scrollFixer.fix();
+// };
 
-// TODO could probably combine this with the updater func since it's literally just one line difference
-// but typing the overloads is seeming more difficult than I thought
-// TODO fix scroll issue
-export const setBlockConfig = (
-  config: DataEditBlockConfig,
-  codeBlockInfo: CodeBlockInfo,
-) => {
-  const {
-    ctx,
-    el,
-    plugin: {
-      app: { workspace },
-    },
-    query: preQuery,
-    hideFileCol,
-  } = codeBlockInfo;
-  // turn into yaml text. Always includes a newline character at the end
-  const newConfigStr = stringifyYaml(config);
-  // text is the entire notes text and is essentially a synchronous read
-  const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
-  // remove the ', file.link' we added if so
-  const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
-  const newCodeBlockText =
-    "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
-  const editor = workspace.activeEditor?.editor;
-  if (!editor) {
-    return;
-  }
+// // TODO could probably combine this with the updater func since it's literally just one line difference
+// // but typing the overloads is seeming more difficult than I thought
+// // TODO fix scroll issue
+// export const setBlockConfig = (
+//   config: DataEditBlockConfig,
+//   codeBlockInfo: CodeBlockInfo,
+// ) => {
+//   const {
+//     ctx,
+//     el,
+//     plugin: {
+//       app: { workspace },
+//     },
+//     query: preQuery,
+//     hideFileCol,
+//   } = codeBlockInfo;
+//   // turn into yaml text. Always includes a newline character at the end
+//   const newConfigStr = stringifyYaml(config);
+//   // text is the entire notes text and is essentially a synchronous read
+//   const { lineStart, lineEnd } = ctx.getSectionInfo(el)!;
+//   // remove the ', file.link' we added if so
+//   const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
+//   const newCodeBlockText =
+//     "```dataedit\n" + query + "\n---\n" + newConfigStr + "```";
+//   const editor = workspace.activeEditor?.editor;
+//   if (!editor) {
+//     return;
+//   }
 
-  const scrollFixer = new ScrollFixer(el);
-  editor.replaceRange(
-    newCodeBlockText,
-    { line: lineStart, ch: 0 },
-    { line: lineEnd, ch: NaN },
-  );
-  scrollFixer.fix();
-};
+//   const scrollFixer = new ScrollFixer(el);
+//   editor.replaceRange(
+//     newCodeBlockText,
+//     { line: lineStart, ch: 0 },
+//     { line: lineEnd, ch: NaN },
+//   );
+//   scrollFixer.fix();
+// };
 
-export const getTemplateFiles = (app: App) => {
-  const folderPath =
-    // @ts-expect-error
-    app.internalPlugins.plugins.templates.instance.options.folder;
-  if (!folderPath) return;
-  const folder = app.vault.getFolderByPath(folderPath);
-  if (!folder) return;
-  if (!folder.children.length) return;
-  return folder.children.filter((t) => t instanceof TFile);
-};
+// export const getTemplateFiles = (app: App) => {
+//   const folderPath =
+//     // @ts-expect-error
+//     app.internalPlugins.plugins.templates.instance.options.folder;
+//   if (!folderPath) return;
+//   const folder = app.vault.getFolderByPath(folderPath);
+//   if (!folder) return;
+//   if (!folder.children.length) return;
+//   return folder.children.filter((t) => t instanceof TFile);
+// };
 
-export const getAllFiles = (app: App) => {
-  return app.vault.getAllLoadedFiles().filter((f) => f instanceof TFile);
-};
+// export const getAllFiles = (app: App) => {
+//   return app.vault.getAllLoadedFiles().filter((f) => f instanceof TFile);
+// };
 
-export const getAllFolders = (app: App) => {
-  return app.vault.getAllFolders(false);
-};
+// export const getAllFolders = (app: App) => {
+//   return app.vault.getAllFolders(false);
+// };
 
 export const ensureFileLinkColumn = (source: string) => {
   if (!source.toLowerCase().startsWith("table without id"))
