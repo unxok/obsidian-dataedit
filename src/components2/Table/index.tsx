@@ -1,4 +1,5 @@
 import {
+  DataviewAPI,
   DataviewLink,
   DataviewPropertyValue,
   DataviewQueryResultValues,
@@ -33,10 +34,13 @@ import {
   TFolder,
 } from "obsidian";
 import { createStore } from "solid-js/store";
-import { moveColumn } from "@/lib2/utils";
+import { getTableLine, moveColumn } from "@/lib2/utils";
 import { PropertyHeader } from "../Property/PropertyHeader";
 import { relative } from "path";
 import { createFilter } from "@kobalte/core";
+import { FileFolderSuggest } from "@/classes/FileFolderSuggest";
+import { CodeBlockConfig } from "../CodeBlock/Config";
+import { PropertySuggest } from "@/classes/PropertySuggest";
 
 type DragContextValue = {
   draggedIndex: number;
@@ -124,32 +128,10 @@ export const Table = (props: {
     <DragContext.Provider
       value={{ context: dragContext, setContext: setDragContext }}
     >
-      <div
-        data-dataedit-scroll-el={true}
-        style={{
-          position: "relative",
-          padding: "var(--size-4-4)",
-          contain: "paint !important",
-          "overflow-wrap": "normal",
-          "word-break": "normal",
-          "white-space": "normal",
-          margin: "0 calc(-1 * var(--size-4-4)) !important",
-          "overflow-x": "auto",
-          "overflow-y": "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            width: "fit-content",
-            overflow: "visible",
-          }}
-        >
+      <div data-dataedit-scroll-el={true}>
+        <div>
           <table class="dataedit-table" style={{ width: "fit-content" }}>
             <thead>
-              {/* <tr>
-              <ColumnReorderButtonContainer properties={props.properties} />
-            </tr> */}
               <tr>
                 <For each={props.properties}>
                   {(item, index) => (
@@ -158,6 +140,7 @@ export const Table = (props: {
                       style={{
                         "vertical-align": getVertical(),
                         "text-align": getHorizontal(),
+                        // ensure that column reorder buttons are able to style correctly
                         position: "relative",
                         overflow: "visible",
                       }}
@@ -226,7 +209,24 @@ export const Table = (props: {
           >
             <Icon iconId="plus" />
           </div>
-          <div class="dataedit-table-col-btn" aria-label="Add column after">
+          <div
+            class="dataedit-table-col-btn"
+            aria-label="Add column after"
+            onClick={() => {
+              const { lineStart, lineEnd } =
+                bctx.ctx.getSectionInfo(bctx.el) ?? {};
+              if (!lineStart || !lineEnd) {
+                throw new Error("Could not find position of block");
+              }
+              const modal = new AddColumnModal(
+                bctx.plugin.app,
+                bctx.dataviewAPI,
+                bctx.source,
+                { start: lineStart, end: lineEnd },
+              );
+              modal.open();
+            }}
+          >
             <Icon iconId="plus" />
           </div>
         </div>
@@ -251,7 +251,6 @@ const ColumnReorderButton = (props: {
   let ref: HTMLDivElement;
 
   const onmousemove = (e: MouseEvent) => {
-    console.log("mouse move called from: ", bctx.uid);
     if (!isGrabbing()) return;
     const diff = e.pageX - lastMousePos;
     setTransform(diff);
@@ -307,7 +306,6 @@ const ColumnReorderButton = (props: {
     setGrabbing(true);
     setTransform(0);
     lastMousePos = e.pageX;
-    console.log("about to add listeners");
     document.addEventListener("mouseup", onmouseup);
     document.addEventListener("mousemove", onmousemove);
   };
@@ -376,8 +374,6 @@ class AddRowModal extends Modal {
     containerEl: HTMLElement,
     // rowData: typeof this.rowData,
   ): void {
-    // TODO why is `this` always undefined in this method??
-    // console.log("this: ", this);
     const index = this.rowData.push({ folder: "", name: "", template: "" }) - 1;
     const setting = new Setting(containerEl)
       .addSearch((cmp) => {
@@ -413,8 +409,6 @@ class AddRowModal extends Modal {
     });
 
     const ul = contentEl.createEl("ul");
-    ul.createEl("li", { text: 'Do not include trailing slashes ("/")' });
-    ul.createEl("li", { text: 'Do not include file extension (".md")' });
     ul.createEl("li", {
       text: "Duplicate folder  + note name combinations will not be created.",
     });
@@ -450,8 +444,13 @@ class AddRowModal extends Modal {
 
     rowData.forEach((o) => {
       if (!o.name) return;
-      noteMap.set(o.folder + "/" + o.name, o);
-      templateSet.add(o.template);
+      const folder = o.folder.endsWith("/") ? o.folder : o.folder + "/";
+      const name = o.name.endsWith(".md") ? o.name : o.name + ".md";
+      const template = o.template.endsWith(".md")
+        ? o.template
+        : o.template + ".md";
+      noteMap.set(folder + name, { folder, name, template });
+      templateSet.add(template);
     });
 
     const templateMap = new Map<string, string>();
@@ -467,12 +466,12 @@ class AddRowModal extends Modal {
     );
 
     await Promise.all(
-      Array.from(noteMap).map(async ([key, o]) => {
+      Array.from(noteMap).map(async ([filepath, o]) => {
         try {
-          await vault.create(key + ".md", templateMap.get(o.template) ?? "");
+          await vault.create(filepath, templateMap.get(o.template) ?? "");
         } catch (e) {
           // file may already exist and will throw
-          const msg = (e as Error).message + " -- " + key + ".md";
+          const msg = (e as Error).message + " -- " + filepath;
           new Notice(msg);
           console.error(msg);
         }
@@ -483,46 +482,136 @@ class AddRowModal extends Modal {
   }
 }
 
-class FileFolderSuggest extends AbstractInputSuggest<TFile | TFolder> {
-  searchCmp: SearchComponent;
-  type: "files" | "folders";
-  filter = createFilter({ sensitivity: "base", usage: "search" });
+class AddColumnModal extends Modal {
+  dv: DataviewAPI;
+  blockSource: string;
+  blockPos: { start: number; end: number };
 
-  constructor(app: App, searchCmp: SearchComponent, type: "files" | "folders") {
-    super(app, searchCmp.inputEl);
-    this.searchCmp = searchCmp;
-    this.type = type;
+  rowData: { property: string; alias: string }[] = [];
+
+  constructor(
+    app: App,
+    dv: DataviewAPI,
+    blockSource: string,
+    blockPos: { start: number; end: number },
+  ) {
+    super(app);
+    this.dv = dv;
+    this.blockSource = blockSource;
+    this.blockPos = blockPos;
   }
 
-  protected getSuggestions(
-    query: string,
-  ): (TFile | TFolder)[] | Promise<(TFile | TFolder)[]> {
-    const {
-      type,
-      app: { vault },
-      filter,
-    } = this;
-    const arr = type === "files" ? vault.getFiles() : vault.getAllFolders();
-    return arr.filter(
-      (f) => filter.contains(f.name, query) || filter.contains(f.path, query),
+  createSettingRow(
+    containerEl: HTMLElement,
+    value?: (typeof this.rowData)[0],
+  ): void {
+    const index = this.rowData.push({ property: "", alias: "" }) - 1;
+    const setting = new Setting(containerEl)
+      .addSearch((cmp) => {
+        cmp.setPlaceholder("property-name");
+        cmp.onChange((v) => (this.rowData[index].property = v));
+        if (value) {
+          cmp.setValue(value.property);
+        }
+        new PropertySuggest(this.app, cmp);
+      })
+      .addText((cmp) => {
+        cmp
+          .setPlaceholder("Property Alias (optional)")
+          .onChange((v) => (this.rowData[index].alias = v));
+        if (value) {
+          cmp.setValue(value.alias);
+        }
+      });
+
+    setting.addExtraButton((cmp) => {
+      cmp.setIcon("cross").setTooltip("remove");
+      cmp.onClick(() => {
+        this.rowData = this.rowData.filter((_, i) => i !== index);
+        setting.settingEl.remove();
+      });
+    });
+
+    console.log("setting made");
+  }
+
+  onOpen(): void {
+    this.setTitle("Add column");
+    const { contentEl, app, dv } = this;
+    contentEl.empty();
+
+    contentEl.createEl("p", {
+      text: 'Add additional columns to the table. Duplicates will not be removed. Do not include any double quotes (") in aliases.',
+    });
+
+    let templateCmp: SearchComponent;
+
+    new Setting(contentEl)
+      .setName("Import from note")
+      .setDesc(
+        "Find all properties in the given note and import them here to be added.",
+      )
+      .addSearch((cmp) => {
+        templateCmp = cmp;
+        new FileFolderSuggest(app, cmp, "files");
+      })
+      .addButton((cmp) =>
+        cmp.setButtonText("import").onClick(() => {
+          const filepath = templateCmp.getValue();
+          const data = dv.page(filepath);
+          const keys = Object.keys(data).filter((k) => k !== "file");
+          keys.forEach((key) =>
+            this.createSettingRow(rowContainer, { property: key, alias: "" }),
+          );
+        }),
+      );
+
+    new Setting(contentEl).setName("Columns to add").setHeading();
+
+    const rowContainer = contentEl.createDiv();
+    this.createSettingRow(rowContainer);
+
+    new Setting(contentEl).addButton((cmp) =>
+      cmp.setIcon("plus").onClick(() => this.createSettingRow(rowContainer)),
+    );
+
+    new Setting(contentEl).addButton((cmp) =>
+      cmp
+        .setCta()
+        .setButtonText("add columns")
+        .onClick(() => this.addColums()),
     );
   }
 
-  renderSuggestion(value: TFile | TFolder, el: HTMLElement): void {
-    const { name, path } = value;
-    const basename = name.endsWith(".md") ? name.slice(0, -3) : name;
-    el.classList.add("mod-complex");
-    const contentEl = el.createDiv({ cls: "suggestion-content" });
-    contentEl.createDiv({ cls: "suggestion-title", text: basename });
-    contentEl.createDiv({ cls: "suggestion-note", text: path });
-  }
-
-  selectSuggestion(
-    value: TFile | TFolder,
-    _: MouseEvent | KeyboardEvent,
-  ): void {
-    this.searchCmp.setValue(value.path);
-    this.searchCmp.onChanged();
+  addColums(): void {
+    const {
+      app: { workspace },
+      rowData,
+      blockSource,
+      blockPos: { start, end },
+    } = this;
+    if (!rowData.length) {
+      return this.close();
+    }
+    const editor = workspace.activeEditor?.editor;
+    if (!editor) {
+      // TODO handle better?
+      throw new Error("No editor for active editor found.");
+    }
+    const [query, config] = blockSource.split(/\n^---$\n/m);
+    const { tableLine, rest } = getTableLine(query);
+    const newCols = rowData.reduce((acc, { property, alias }) => {
+      const str = alias ? property + ' AS "' + alias + '"' : property;
+      return acc + ", " + str;
+    }, "");
+    const newTable = tableLine + newCols;
+    const newSource = newTable + rest + "\n---\n" + config;
+    console.log("new source: ", newSource);
+    editor.replaceRange(
+      newSource,
+      { line: start + 1, ch: 0 },
+      { line: end - 1, ch: NaN },
+    );
     this.close();
   }
 }

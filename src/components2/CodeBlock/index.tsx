@@ -6,8 +6,10 @@ import {
   MarkdownPostProcessorContext,
   Menu,
   Modal,
+  Notice,
   Plugin,
   PopoverSuggest,
+  setIcon,
   Setting,
   TextComponent,
 } from "obsidian";
@@ -32,11 +34,12 @@ import {
   toNumber,
   unregisterDataviewEvents,
 } from "@/lib/util";
-import { CodeBlockConfig } from "./Config";
+import { CodeBlockConfig, CodeBlockConfigModal } from "./Config";
 import DataEdit, { settingsSignal } from "@/main";
 import { PropertyWidget } from "obsidian-typings";
 import { setBlockConfig, toFirstUpperCase } from "@/lib2/utils";
 import { Icon } from "@/components/Icon";
+import { DropdownWidgetManager } from "@/classes/DropdownWidgetManager";
 
 type CodeBlockProps = {
   plugin: DataEdit;
@@ -123,6 +126,139 @@ export const CodeBlock = (props: CodeBlockProps) => {
     setIdColIndex(id);
   };
 
+  const overrideEditButton = async () =>
+    // ...params: ConstructorParameters<typeof CodeBlockConfigModal>
+    {
+      // Have to wait for obsidian to render the usual button
+      await Promise.resolve();
+      const { source, el, plugin, ctx, config } = props;
+      const [queryStr, configStr] = source.split(/\n^---$\n/m);
+      const btnEl = el.parentElement!.find("div.edit-block-button");
+      if (!btnEl) return;
+      const newBtn = document.createElement("div");
+      newBtn.className = "edit-block-button";
+      newBtn.onclick = (e) => {
+        const menu = new Menu()
+          .addItem((item) =>
+            item
+              .setTitle("Edit")
+              .setIcon("code-2")
+              .onClick(() => {
+                btnEl.click();
+              }),
+          )
+          .addItem((item) =>
+            item
+              .setTitle("Copy")
+              .setIcon("copy")
+              .setSubmenu()
+              .addItem((sub) =>
+                sub
+                  .setTitle("Block")
+                  .setIcon("code")
+                  .onClick(async () => {
+                    await navigator.clipboard.writeText(
+                      "```dataedit\n" + source + "\n```",
+                    );
+                    new Notice("Copied block text to clipboard!");
+                  }),
+              )
+              .addItem((sub) =>
+                sub
+                  .setTitle("Query")
+                  .setIcon("server")
+                  .onClick(() => {
+                    navigator.clipboard.writeText(queryStr);
+                    new Notice("Copied query to clipboard!");
+                  }),
+              )
+              .addItem((sub) =>
+                sub
+                  .setTitle("Config")
+                  .setIcon("wrench")
+                  .onClick(() => {
+                    navigator.clipboard.writeText(configStr);
+                    new Notice("Copied config to clipboard!");
+                  }),
+              ),
+          )
+          .addItem((item) =>
+            item
+              .setTitle("Delete")
+              .setIcon("trash")
+              .setWarning(true)
+              .onClick(() => {
+                const info = ctx.getSectionInfo(el);
+                const editor = plugin.app.workspace.activeEditor?.editor;
+                if (!info || !editor)
+                  return new Notice("Failed to delete block");
+                const { lineStart, lineEnd } = info;
+                editor.replaceRange(
+                  "",
+                  { ch: 0, line: lineStart },
+                  { ch: NaN, line: lineEnd },
+                );
+              }),
+          )
+          .addSeparator()
+          .addItem((item) =>
+            item
+              .setTitle("Configure")
+              .setIcon("wrench")
+              .onClick(() => {
+                new CodeBlockConfigModal(plugin.app, config, {
+                  ctx,
+                  el,
+                  plugin,
+                  source,
+                }).open();
+              }),
+          )
+          .addItem((item) =>
+            item
+              .setTitle(config.showToolbar ? "Hide toolbar" : "Show toolbar")
+              .setIcon(config.showToolbar ? "eye-off" : "eye")
+              .onClick(() =>
+                setBlockConfig({
+                  ctx,
+                  el,
+                  plugin,
+                  source,
+                  newConfig: { ...config, showToolbar: !config.showToolbar },
+                }),
+              ),
+          )
+          .addItem((item) =>
+            item
+              .setTitle("Undo update")
+              .setIcon("corner-up-left")
+              .onClick(async () => await plugin.undoUpdate()),
+          )
+          .addItem((item) =>
+            item
+              .setTitle("Redo update")
+              .setIcon("corner-up-right")
+              .onClick(async () => await plugin.redoUpdate()),
+          )
+          .addSeparator()
+          .addItem((item) =>
+            item
+              .setTitle("Manage dropdowns")
+              .setIcon("chevron-down-circle")
+              .onClick(() => {
+                new DropdownWidgetManager(plugin).open();
+              }),
+          );
+
+        menu.showAtMouseEvent(e);
+      };
+
+      setIcon(newBtn, "settings");
+
+      btnEl.insertAdjacentElement("afterend", newBtn);
+      btnEl.style.display = "none";
+    };
+
   // memoizing isn't playing nice with dataview event callbacks...?
   // for now it doesn't matter since these props should never actually change without obsidian causing a rerender automatically
   const updateResults = () => {
@@ -166,6 +302,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
   // });
 
   onMount(() => {
+    overrideEditButton();
     updateResults();
     registerDataviewEvents(props.plugin, updateResults);
     props.plugin.app.metadataTypeManager.on(
@@ -209,24 +346,26 @@ export const CodeBlock = (props: CodeBlockProps) => {
             propertyTypes={propertyTypes()}
             idColIndex={idColIndex()}
           />
-          <Toolbar
-            {...pagination()}
-            app={props.plugin.app}
-            config={props.config}
-            updateBlockConfig={(
-              cb: (config: CodeBlockConfig) => CodeBlockConfig,
-            ) => {
-              const { ctx, el, plugin, source } = props;
-              const newConfig = cb(props.config);
-              setBlockConfig({
-                newConfig,
-                ctx,
-                el,
-                plugin,
-                source,
-              });
-            }}
-          />
+          <Show when={props.config.showToolbar}>
+            <Toolbar
+              {...pagination()}
+              app={props.plugin.app}
+              config={props.config}
+              updateBlockConfig={(
+                cb: (config: CodeBlockConfig) => CodeBlockConfig,
+              ) => {
+                const { ctx, el, plugin, source } = props;
+                const newConfig = cb(props.config);
+                setBlockConfig({
+                  newConfig,
+                  ctx,
+                  el,
+                  plugin,
+                  source,
+                });
+              }}
+            />
+          </Show>
         </div>
       </BlockContext.Provider>
     </Show>

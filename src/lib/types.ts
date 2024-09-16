@@ -149,6 +149,11 @@ export type DataviewAPI = {
   ): Promise<
     { successful: true; value: unknown } | { successful: false; error: string }
   >;
+  /**
+   * @remark `.md` is optional
+   * @remark if filename is unique, then the full path isn't needed
+   */
+  page(filename: string): Record<string, string>;
 };
 
 export type PropertyType =

@@ -15,6 +15,7 @@ export type CodeBlockConfig = {
   formatDates: boolean;
   /** Not meant to be modified in modal */
   currentPage: number;
+  showToolbar: boolean;
 };
 
 export const defaultCodeBlockConfig: CodeBlockConfig = {
@@ -28,6 +29,7 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
   dateLinkDaily: true,
   formatDates: false,
   currentPage: 0,
+  showToolbar: true,
 };
 
 export class CodeBlockConfigModal extends Modal {

@@ -147,6 +147,11 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
       )
       .addSeparator()
       .addItem((item) =>
+        item.setTitle("Copy property").setIcon("clipboard-type"),
+      )
+      .addItem((item) => item.setTitle("Copy alias").setIcon("clipboard-list"))
+      .addSeparator()
+      .addItem((item) =>
         item
           .setTitle("Remove column")
           .setIcon("cross")
@@ -451,15 +456,19 @@ class PropertyEditModal extends Modal {
     contentEl.empty();
     contentEl
       .createEl("p")
-      .setText("Edit the property name for all notes that contain it.");
+      .setText(
+        "Edit the property name and modfiy all notes that have the old name in their fronmatter or inline properties.",
+      );
     contentEl
       .createEl("p")
       .setText(
-        "The specified column will be swapped out with the new name within the 'TABLE ...' line upon completion, but you may still need to update any other lines that used the old property name.",
+        "The specified column will be swapped out with the new name within the 'TABLE ...' line upon completion.",
       );
     contentEl
       .createEl("p", { attr: { style: "color: var(--text-error);" } })
-      .setText("This update will be permanent! Use with caution.");
+      .setText(
+        "This update will be permanent and may modify many notes at once. Use with caution!",
+      );
 
     new Setting(contentEl)
       .setName("New property name")
@@ -471,7 +480,7 @@ class PropertyEditModal extends Modal {
     new Setting(contentEl)
       .setName("Replace all occurrences")
       .setDesc(
-        "Turn on to replace all instances of the old property name with the new name.",
+        "Turn on to replace all instances of the old property name with the new name within the other lines of this block's query.",
       )
       .addToggle((cmp) =>
         cmp.setValue(false).onChange((b) => (this.replaceAll = b)),
@@ -627,7 +636,8 @@ class ColumnRemoveModal extends Modal {
 
   onOpen(): void {
     const { contentEl, colIndex, property, alias } = this;
-    const combined = alias ? property + ' AS "' + alias + '"' : property;
+    const combined =
+      property === alias ? property : property + ' AS "' + alias + '"';
     this.setTitle("Remove column: " + combined);
     contentEl.empty();
     contentEl.createEl("p").setText("Removes the column from the table.");

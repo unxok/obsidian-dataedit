@@ -189,7 +189,7 @@ div.metadata-property-value {
     display: flex;
     justify-content: start;
     align-items: center;
-    padding-inline-start: var(--size-4-4);
+    /* padding-inline-start: var(--size-4-4); */
     gap: 0.25rem;
     flex-wrap: wrap;
   }
@@ -358,4 +358,22 @@ div.metadata-property-value {
   /* input[type="range"]::-webkit-slider-runnable-track {
     background-color: green;
   } */
+}
+
+div[data-dataedit-scroll-el="true"] {
+  position: relative;
+  padding: var(--size-4-4) var(--size-4-4) var(--size-4-4) 0;
+  /* contain: paint !important; */
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: normal;
+  /* margin: 0 calc(-1 * var(--size-4-4)) !important; */
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  & > div {
+    position: relative;
+    width: fit-content;
+    overflow: visible;
+  }
 }

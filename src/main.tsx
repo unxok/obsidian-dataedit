@@ -667,118 +667,124 @@ export default class DataEdit extends Plugin {
   //   MarkdownPreviewRenderer.rerender();
   // }
 
-  async overrideEditButton(
-    ...params: ConstructorParameters<typeof CodeBlockConfigModal>
-  ): Promise<void> {
-    await Promise.resolve();
-    const [app, form, blockContext] = params;
-    const [queryStr, configStr] = blockContext.source.split(/\n^---$\n/m);
-    const btnEl = blockContext.el.parentElement!.find("div.edit-block-button");
-    if (!btnEl) return;
-    const newBtn = document.createElement("div");
-    newBtn.className = "edit-block-button";
-    newBtn.onclick = (e) => {
-      const menu = new Menu()
-        .addItem((item) =>
-          item
-            .setTitle("Edit")
-            .setIcon("code-2")
-            .onClick(() => {
-              btnEl.click();
-            }),
-        )
-        .addItem((item) =>
-          item
-            .setTitle("Copy")
-            .setIcon("copy")
-            .setSubmenu()
-            .addItem((sub) =>
-              sub
-                .setTitle("Block")
-                .setIcon("code")
-                .onClick(async () => {
-                  await navigator.clipboard.writeText(
-                    "```dataedit\n" + blockContext.source + "\n```",
-                  );
-                  new Notice("Copied block text to clipboard!");
-                }),
-            )
-            .addItem((sub) =>
-              sub
-                .setTitle("Query")
-                .setIcon("server")
-                .onClick(() => {
-                  navigator.clipboard.writeText(queryStr);
-                  new Notice("Copied query to clipboard!");
-                }),
-            )
-            .addItem((sub) =>
-              sub
-                .setTitle("Config")
-                .setIcon("wrench")
-                .onClick(() => {
-                  navigator.clipboard.writeText(configStr);
-                  new Notice("Copied config to clipboard!");
-                }),
-            ),
-        )
-        .addItem((item) =>
-          item
-            .setTitle("Delete")
-            .setIcon("trash")
-            .setWarning(true)
-            .onClick(() => {
-              const { ctx, el } = blockContext;
-              const info = ctx.getSectionInfo(el);
-              const editor = this.app.workspace.activeEditor?.editor;
-              if (!info || !editor) return new Notice("Failed to delete block");
-              const { lineStart, lineEnd } = info;
-              editor.replaceRange(
-                "",
-                { ch: 0, line: lineStart },
-                { ch: NaN, line: lineEnd },
-              );
-            }),
-        )
-        .addSeparator()
-        .addItem((item) =>
-          item
-            .setTitle("Configure")
-            .setIcon("sliders-horizontal")
-            .onClick(() => {
-              new CodeBlockConfigModal(...params).open();
-            }),
-        )
-        .addItem((item) =>
-          item
-            .setTitle("Undo update")
-            .setIcon("corner-up-left")
-            .onClick(async () => await this.undoUpdate()),
-        )
-        .addItem((item) =>
-          item
-            .setTitle("Redo update")
-            .setIcon("corner-up-right")
-            .onClick(async () => await this.redoUpdate()),
-        )
-        .addSeparator()
-        .addItem((item) =>
-          item
-            .setTitle("Manage dropdowns")
-            .setIcon("chevron-down-circle")
-            .onClick(() => {
-              new DropdownWidgetManager(this).open();
-            }),
-        );
+  // async overrideEditButton(
+  //   ...params: ConstructorParameters<typeof CodeBlockConfigModal>
+  // ): Promise<void> {
+  //   await Promise.resolve();
+  //   const [app, form, blockContext] = params;
+  //   const [queryStr, configStr] = blockContext.source.split(/\n^---$\n/m);
+  //   const btnEl = blockContext.el.parentElement!.find("div.edit-block-button");
+  //   if (!btnEl) return;
+  //   const newBtn = document.createElement("div");
+  //   newBtn.className = "edit-block-button";
+  //   newBtn.onclick = (e) => {
+  //     const menu = new Menu()
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle("Edit")
+  //           .setIcon("code-2")
+  //           .onClick(() => {
+  //             btnEl.click();
+  //           }),
+  //       )
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle("Copy")
+  //           .setIcon("copy")
+  //           .setSubmenu()
+  //           .addItem((sub) =>
+  //             sub
+  //               .setTitle("Block")
+  //               .setIcon("code")
+  //               .onClick(async () => {
+  //                 await navigator.clipboard.writeText(
+  //                   "```dataedit\n" + blockContext.source + "\n```",
+  //                 );
+  //                 new Notice("Copied block text to clipboard!");
+  //               }),
+  //           )
+  //           .addItem((sub) =>
+  //             sub
+  //               .setTitle("Query")
+  //               .setIcon("server")
+  //               .onClick(() => {
+  //                 navigator.clipboard.writeText(queryStr);
+  //                 new Notice("Copied query to clipboard!");
+  //               }),
+  //           )
+  //           .addItem((sub) =>
+  //             sub
+  //               .setTitle("Config")
+  //               .setIcon("wrench")
+  //               .onClick(() => {
+  //                 navigator.clipboard.writeText(configStr);
+  //                 new Notice("Copied config to clipboard!");
+  //               }),
+  //           ),
+  //       )
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle("Delete")
+  //           .setIcon("trash")
+  //           .setWarning(true)
+  //           .onClick(() => {
+  //             const { ctx, el } = blockContext;
+  //             const info = ctx.getSectionInfo(el);
+  //             const editor = this.app.workspace.activeEditor?.editor;
+  //             if (!info || !editor) return new Notice("Failed to delete block");
+  //             const { lineStart, lineEnd } = info;
+  //             editor.replaceRange(
+  //               "",
+  //               { ch: 0, line: lineStart },
+  //               { ch: NaN, line: lineEnd },
+  //             );
+  //           }),
+  //       )
+  //       .addSeparator()
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle("Configure")
+  //           .setIcon("wrench")
+  //           .onClick(() => {
+  //             new CodeBlockConfigModal(...params).open();
+  //           }),
+  //       )
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle(isToolbarShow() ? "Hide toolbar" : "Show toolbar")
+  //           .setIcon(isToolbarShow() ? "eye-off" : "eye")
+  //           .onClick(() => setToolbarShow((b) => !b)),
+  //       )
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle("Undo update")
+  //           .setIcon("corner-up-left")
+  //           .onClick(async () => await this.undoUpdate()),
+  //       )
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle("Redo update")
+  //           .setIcon("corner-up-right")
+  //           .onClick(async () => await this.redoUpdate()),
+  //       )
+  //       .addSeparator()
+  //       .addItem((item) =>
+  //         item
+  //           .setTitle("Manage dropdowns")
+  //           .setIcon("chevron-down-circle")
+  //           .onClick(() => {
+  //             new DropdownWidgetManager(this).open();
+  //           }),
+  //       );
 
-      menu.showAtMouseEvent(e);
-    };
+  //     menu.showAtMouseEvent(e);
+  //   };
 
-    setIcon(newBtn, "settings");
+  //   setIcon(newBtn, "settings");
 
-    btnEl.insertAdjacentElement("afterend", newBtn);
-    btnEl.style.display = "none";
-  }
+  //   btnEl.insertAdjacentElement("afterend", newBtn);
+  //   btnEl.style.display = "none";
+  // }
 
   async updateProperty(
     property: string,
@@ -817,12 +823,12 @@ export default class DataEdit extends Plugin {
           ...preConfig,
         } as CodeBlockConfig;
 
-        this.overrideEditButton(this.app, config, {
-          ctx,
-          el,
-          source,
-          plugin: this,
-        });
+        // this.overrideEditButton(this.app, config, {
+        //   ctx,
+        //   el,
+        //   source,
+        //   plugin: this,
+        // });
 
         const dataviewAPI = getDataviewAPI(this.app);
         if (!dataviewAPI) {
