@@ -10,11 +10,6 @@ export const PropertyNumber = (props: PropertyCommonProps) => {
   const [size, setSize] = createSignal(props.value?.toString().length ?? 3);
   return (
     <div
-      style={{
-        display: "flex",
-        "flex-direction": "row",
-        "align-items": "center",
-      }}
     >
       <input
         type="number"
