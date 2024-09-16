@@ -21,11 +21,22 @@ import { useBlock } from "../CodeBlock";
 import { checkIfDataviewLink } from "@/lib/util";
 import { Icon } from "@/components/Icon";
 import { DOMElement } from "solid-js/jsx-runtime";
-import { debounce } from "obsidian";
+import {
+  AbstractInputSuggest,
+  App,
+  debounce,
+  Modal,
+  Notice,
+  SearchComponent,
+  Setting,
+  TFile,
+  TFolder,
+} from "obsidian";
 import { createStore } from "solid-js/store";
 import { moveColumn } from "@/lib2/utils";
 import { PropertyHeader } from "../Property/PropertyHeader";
 import { relative } from "path";
+import { createFilter } from "@kobalte/core";
 
 type DragContextValue = {
   draggedIndex: number;
@@ -205,7 +216,14 @@ export const Table = (props: {
               </For>
             </tbody>
           </table>
-          <div class="dataedit-table-row-btn" aria-label="Add row after">
+          <div
+            class="dataedit-table-row-btn"
+            aria-label="Add row after"
+            onClick={() => {
+              const modal = new AddRowModal(bctx.plugin.app);
+              modal.open();
+            }}
+          >
             <Icon iconId="plus" />
           </div>
           <div class="dataedit-table-col-btn" aria-label="Add column after">
@@ -214,50 +232,6 @@ export const Table = (props: {
         </div>
       </div>
     </DragContext.Provider>
-  );
-};
-
-const ColumnReorderButtonContainer = (props: { properties: string[] }) => {
-  // const [draggedOverIndex, setDraggedOverIndex] = createSignal(NaN);
-  const [boundsArr, setBoundsArr] = createSignal<
-    [left: number, right: number][]
-  >(props.properties.map(() => [0, 0]));
-
-  const recordBounds = (left: number, right: number, index: number) => {
-    setBoundsArr((prev) => {
-      const copy = [...prev];
-      copy[index] = [left, right];
-      return copy;
-    });
-  };
-
-  const dctx = useDragContext();
-
-  createEffect(() => {
-    dctx.context.draggedIndex;
-    console.log("dragged index changed");
-  });
-
-  return (
-    <For each={props.properties}>
-      {(item, index) => (
-        <th
-        // style={{ position: "relative" }}
-        >
-          <ColumnReorderButton
-            index={index()}
-            property={item}
-            recordBounds={recordBounds}
-            boundsArr={boundsArr()}
-          />
-          {/* <Icon
-            iconId="grip-horizontal"
-            aria-hidden={true}
-            style={{ color: "transparent", background: "transparent" }}
-          /> */}
-        </th>
-      )}
-    </For>
   );
 };
 
@@ -389,3 +363,166 @@ const ColumnReorderButton = (props: {
     </div>
   );
 };
+
+class AddRowModal extends Modal {
+  rowData: { folder: string; name: string; template: string }[] = [];
+
+  constructor(app: App) {
+    super(app);
+    // this.createSettingRow.bind(this);
+  }
+
+  createSettingRow(
+    containerEl: HTMLElement,
+    // rowData: typeof this.rowData,
+  ): void {
+    // TODO why is `this` always undefined in this method??
+    // console.log("this: ", this);
+    const index = this.rowData.push({ folder: "", name: "", template: "" }) - 1;
+    const setting = new Setting(containerEl)
+      .addSearch((cmp) => {
+        cmp.setPlaceholder("folder");
+        new FileFolderSuggest(this.app, cmp, "folders");
+        cmp.onChange((v) => (this.rowData[index].folder = v));
+      })
+      .addText((cmp) =>
+        cmp
+          .setPlaceholder("note name")
+          .onChange((v) => (this.rowData[index].name = v)),
+      )
+      .addSearch((cmp) => {
+        cmp.setPlaceholder("template");
+        new FileFolderSuggest(this.app, cmp, "files");
+        cmp.onChange((v) => (this.rowData[index].template = v));
+      });
+    setting.addExtraButton((cmp) =>
+      cmp.setIcon("cross").onClick(() => {
+        this.rowData = this.rowData.filter((_, i) => i !== index);
+        setting.settingEl.remove();
+      }),
+    );
+  }
+
+  onOpen(): void {
+    this.setTitle("Create note");
+    const { contentEl } = this;
+    contentEl.empty();
+
+    contentEl.createEl("p", {
+      text: "Enter the details for a new note or notes. You can set default folder and template in the block configuration.",
+    });
+
+    const ul = contentEl.createEl("ul");
+    ul.createEl("li", { text: 'Do not include trailing slashes ("/")' });
+    ul.createEl("li", { text: 'Do not include file extension (".md")' });
+    ul.createEl("li", {
+      text: "Duplicate folder  + note name combinations will not be created.",
+    });
+    ul.createEl("li", {
+      text: "If note already exists, the creation of that note will fail.",
+    });
+
+    const rowContainer = contentEl.createDiv();
+
+    this.createSettingRow(rowContainer);
+
+    new Setting(contentEl).addButton((cmp) =>
+      cmp.setIcon("plus").onClick(() => this.createSettingRow(rowContainer)),
+    );
+
+    new Setting(contentEl).addButton((cmp) =>
+      cmp
+        .setCta()
+        .setButtonText("create")
+        .onClick(() => {
+          this.createNotes();
+        }),
+    );
+  }
+
+  async createNotes(): Promise<void> {
+    const {
+      app: { vault },
+      rowData,
+    } = this;
+    const noteMap = new Map<string, (typeof this.rowData)[0]>();
+    const templateSet = new Set<string>();
+
+    rowData.forEach((o) => {
+      if (!o.name) return;
+      noteMap.set(o.folder + "/" + o.name, o);
+      templateSet.add(o.template);
+    });
+
+    const templateMap = new Map<string, string>();
+    await Promise.all(
+      Array.from(templateSet).map(async (v) => {
+        const file = vault.getFileByPath(v);
+        if (!file) {
+          return templateMap.set(v, "");
+        }
+        const content = await vault.cachedRead(file);
+        templateMap.set(v, content);
+      }),
+    );
+
+    await Promise.all(
+      Array.from(noteMap).map(async ([key, o]) => {
+        try {
+          await vault.create(key + ".md", templateMap.get(o.template) ?? "");
+        } catch (e) {
+          // file may already exist and will throw
+          const msg = (e as Error).message + " -- " + key + ".md";
+          new Notice(msg);
+          console.error(msg);
+        }
+      }),
+    );
+
+    this.close();
+  }
+}
+
+class FileFolderSuggest extends AbstractInputSuggest<TFile | TFolder> {
+  searchCmp: SearchComponent;
+  type: "files" | "folders";
+  filter = createFilter({ sensitivity: "base", usage: "search" });
+
+  constructor(app: App, searchCmp: SearchComponent, type: "files" | "folders") {
+    super(app, searchCmp.inputEl);
+    this.searchCmp = searchCmp;
+    this.type = type;
+  }
+
+  protected getSuggestions(
+    query: string,
+  ): (TFile | TFolder)[] | Promise<(TFile | TFolder)[]> {
+    const {
+      type,
+      app: { vault },
+      filter,
+    } = this;
+    const arr = type === "files" ? vault.getFiles() : vault.getAllFolders();
+    return arr.filter(
+      (f) => filter.contains(f.name, query) || filter.contains(f.path, query),
+    );
+  }
+
+  renderSuggestion(value: TFile | TFolder, el: HTMLElement): void {
+    const { name, path } = value;
+    const basename = name.endsWith(".md") ? name.slice(0, -3) : name;
+    el.classList.add("mod-complex");
+    const contentEl = el.createDiv({ cls: "suggestion-content" });
+    contentEl.createDiv({ cls: "suggestion-title", text: basename });
+    contentEl.createDiv({ cls: "suggestion-note", text: path });
+  }
+
+  selectSuggestion(
+    value: TFile | TFolder,
+    _: MouseEvent | KeyboardEvent,
+  ): void {
+    this.searchCmp.setValue(value.path);
+    this.searchCmp.onChanged();
+    this.close();
+  }
+}

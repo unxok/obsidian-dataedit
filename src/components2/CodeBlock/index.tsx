@@ -431,9 +431,9 @@ const VerticalAlignmentButton = (props: {
   updateBlockConfig: UpdateBlockConfig;
 }) => {
   const iconMap: Record<typeof props.alignment, string> = {
-    bottom: "chevrons-down",
-    middle: "chevrons-down-up",
     top: "chevrons-up",
+    middle: "chevrons-down-up",
+    bottom: "chevrons-down",
   };
 
   const onClick = (e: MouseEvent) => {

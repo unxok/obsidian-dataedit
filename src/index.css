@@ -115,7 +115,7 @@ div.metadata-property-value {
 
   input&-date-datetime-input {
     background-color: transparent;
-    /* padding: 0; */
+    padding: 0;
     border: none;
     font-size: var(--metadata-input-font-size);
     width: fit-content;
@@ -124,10 +124,14 @@ div.metadata-property-value {
       --icon-stroke: var(--icon-xs-stroke-width);
       /* margin-inline-end: 2px; */
       /* TODO I'm not confident that this will always work... */
-      margin-inline-start: -30px;
+      margin-inline-start: -20px;
       position: relative;
       z-index: 5;
     }
+  }
+
+  div&-formatted-date {
+    display: inline-block;
   }
 
   div&-property-markdown-div {

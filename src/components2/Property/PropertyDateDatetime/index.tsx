@@ -65,48 +65,50 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
   };
 
   return (
-    <Show
-      when={isEditing() || !bctx.config.formatDates}
-      fallback={
-        <div onClick={() => setEditing(true)}>
-          {dt()?.toFormat(getDvFormat()) ?? (
-            <Markdown
-              app={bctx.plugin.app}
-              markdown={bctx.dataviewAPI.settings.renderNullAs}
-              sourcePath={bctx.ctx.sourcePath}
-              class={"dataedit-property-markdown-div no-p-margin"}
-            />
-          )}
-        </div>
-      }
-    >
-      <input
-        use:autofocus={!!bctx.config.formatDates}
-        autofocus
-        class="dataedit-date-datetime-input"
-        type={isTime() ? "datetime-local" : "date"}
-        // 2018-06-12T19:30
-        value={preProcess(dt())}
-        onBlur={async (e) => {
-          const isValid = e.target.validity;
-          if (!isValid) return setEditing(false);
-          const format = isTime() ? datetimeFormat : dateFormat;
-          // const dt = DateTime.fromFormat(e.target.value, format);
-          // const newValue = dt.toFormat(format);
-          const newValue = e.target.value;
-          const oldDt = dt();
-          const formattedOld = oldDt ? oldDt.toFormat(format) : "";
-          await updateMetadataProperty(
-            props.property,
-            newValue,
-            props.filePath,
-            bctx.plugin,
-            bctx.el,
-            formattedOld,
-          );
-          setEditing(false);
-        }}
-      />
+    <>
+      <Show
+        when={isEditing() || !bctx.config.formatDates}
+        fallback={
+          <div class="dataedit-formatted-date" onClick={() => setEditing(true)}>
+            {dt()?.toFormat(getDvFormat()) ?? (
+              <Markdown
+                app={bctx.plugin.app}
+                markdown={bctx.dataviewAPI.settings.renderNullAs}
+                sourcePath={bctx.ctx.sourcePath}
+                class={"dataedit-property-markdown-div no-p-margin"}
+              />
+            )}
+          </div>
+        }
+      >
+        <input
+          use:autofocus={!!bctx.config.formatDates}
+          autofocus
+          class="dataedit-date-datetime-input"
+          type={isTime() ? "datetime-local" : "date"}
+          // 2018-06-12T19:30
+          value={preProcess(dt())}
+          onBlur={async (e) => {
+            const isValid = e.target.validity;
+            if (!isValid) return setEditing(false);
+            const format = isTime() ? datetimeFormat : dateFormat;
+            // const dt = DateTime.fromFormat(e.target.value, format);
+            // const newValue = dt.toFormat(format);
+            const newValue = e.target.value;
+            const oldDt = dt();
+            const formattedOld = oldDt ? oldDt.toFormat(format) : "";
+            await updateMetadataProperty(
+              props.property,
+              newValue,
+              props.filePath,
+              bctx.plugin,
+              bctx.el,
+              formattedOld,
+            );
+            setEditing(false);
+          }}
+        />
+      </Show>
       <Show
         when={
           isDailyNotesEnabled() &&
@@ -139,18 +141,19 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
             // const fileName = datetime.toFormat(format);
             const fileName = moment(datetime).format(format);
             const file = await dailyNotePlugin.getDailyNote(fileName);
+            bctx.plugin.app.workspace.openLinkText("", file.path);
 
-            const activeEditor = bctx.plugin.app.workspace.activeEditor as
-              | undefined
-              | (MarkdownFileInfo & { leaf: WorkspaceLeaf });
-            if (!activeEditor?.leaf) {
-              return;
-            }
+            // const activeEditor = bctx.plugin.app.workspace.activeEditor as
+            //   | undefined
+            //   | (MarkdownFileInfo & { leaf: WorkspaceLeaf });
+            // if (!activeEditor?.leaf) {
+            //   return;
+            // }
 
-            activeEditor.leaf.openFile(file);
+            // activeEditor.leaf.openFile(file);
           }}
         />
       </Show>
-    </Show>
+    </>
   );
 };

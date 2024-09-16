@@ -5,14 +5,7 @@ import {
   DataviewQueryResultFail,
   PropertyType,
 } from "@/lib/types";
-import {
-  createSignal,
-  For,
-  Show,
-  createMemo,
-  Setter,
-  createComputed,
-} from "solid-js";
+import { createSignal, Show, createMemo, Setter } from "solid-js";
 import { TableBody } from "./TableBody";
 import { TableHead } from "./TableHead";
 import Plus from "lucide-solid/icons/Plus";
@@ -24,16 +17,13 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import {
-  getAllFolders,
   getExistingProperties,
   getTableLine,
-  getTemplateFiles,
   ScrollFixer,
   setBlockConfig,
-  updateBlockConfig,
 } from "@/lib/util";
 import { Markdown } from "../Markdown";
-import { MarkdownView, Notice } from "obsidian";
+import { App, Modal, Notice, Setting } from "obsidian";
 import { useCodeBlock } from "@/hooks/useDataEdit";
 import {
   Combobox,
@@ -44,9 +34,7 @@ import {
   FilepathComboBox,
   FolderpathComboBox,
 } from "../ui/combo-box";
-import { createStore } from "solid-js/store";
 import { PropertyIcon } from "../PropertyIcon";
-import { MarkdownEditor } from "../Markdown/EmbeddableMarkdownEditor";
 // prevents from being tree-shaken by TS
 autofocus;
 
@@ -115,7 +103,7 @@ export const Table = (props: TableProps) => {
           <span
             onClick={() => setAddRowDialogOpen(true)}
             aria-label="Add row after"
-            class="absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-solid border-border opacity-0 hover:opacity-50"
+            class="border-border absolute bottom-[-1rem] left-0 flex w-full cursor-ns-resize items-center justify-center rounded-[1px] border border-t-0 border-solid opacity-0 hover:opacity-50"
           >
             <Plus size="1rem" />
           </span>
@@ -201,7 +189,7 @@ const AddColumnButton = (props: {
     <Dialog open={props.open} onOpenChange={(b) => props.setOpen(b)}>
       <DialogTrigger
         aria-label="Add column after"
-        class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] m-0 flex size-fit h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center rounded-none border border-l-0 border-solid border-border bg-transparent p-0 opacity-0 shadow-none hover:opacity-50"
+        class="border-border absolute right-[-1rem] top-[calc(1rem+var(--border-width))] m-0 flex size-fit h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center rounded-none border border-l-0 border-solid bg-transparent p-0 opacity-0 shadow-none hover:opacity-50"
       >
         {/* <span
           class="absolute right-[-1rem] top-[calc(1rem+var(--border-width))] flex h-[calc(100%-1rem-var(--border-width))] cursor-ew-resize items-center justify-center border border-l-0 border-border opacity-0 hover:opacity-50"
@@ -258,7 +246,7 @@ const AddColumnButton = (props: {
               addCol();
               props.setOpen(false);
             }}
-            class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"
+            class="bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover float-right disabled:cursor-not-allowed"
           >
             add
           </button>
@@ -434,7 +422,7 @@ const AddRowButton = (props: { open: boolean; setOpen: Setter<boolean> }) => {
               type="submit"
               disabled={!titleValue()}
               // onClick={}
-              class="float-right bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover disabled:cursor-not-allowed"
+              class="bg-interactive-accent p-button text-on-accent hover:bg-interactive-accent-hover hover:text-accent-hover float-right disabled:cursor-not-allowed"
             >
               add
             </button>
