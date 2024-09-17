@@ -54,20 +54,6 @@ Each 'type' will change what type of input and how values are updated in frontma
 - [x] nested\*
   - [x] These can behave like any normal 'type' but their updating process is different
 
-#### Autocomplete
-
-- [ ] combox prompt component
-  - [x] wikilinks
-  - [x] tags
-  - [x] blocks
-    - done for now. Will only link blocks with explicit ids
-- [ ] replace inputs with comboxbox
-  - [ ] text
-  - [ ] list
-- [ ] allow
-  - [ ] custom
-  - [ ] previously used
-
 ### Configuration
 
 - [x] column reordering
@@ -76,32 +62,22 @@ Each 'type' will change what type of input and how values are updated in frontma
 - [x] property type icons
 - [x] default template for add row button
 - [x] default folder for add row button
-- [ ] custom options for column
+- [x] custom options for column
 - [ ] column options
-  - [ ] alignment
-    - I think this would have to be the same for repeats in the table
-  - [ ] set/change alias
-  - [ ] set/change property type
-  - [ ] rename property
-  - [ ] remove column
-- [ ] alignment
-  - [ ] all rows
-  - [ ] all columns
-  - [ ] specific row
-  - [ ] specific column
-- [ ] pagination
-  - [ ] page size
-  - [ ] current page
-  - [ ] page navigation
-    - [ ] first
-    - [ ] previous
-    - [ ] next
-    - [ ] last
-    - [ ] input page number
-
-### Misc
-
-Random tasks
-
-- [ ] Lock editing when in reading mode (but don't change config)
-  - This stopped working after switching to using markdown editors rather than inputs :/
+  - [x] ~~alignment~~
+    - Due to the dynamic nature of the column order, I don't think I'll do this
+    - It can also be achieved with CSS snippets if the user really wants
+  - [x] set/change alias
+  - [x] set/change property type
+  - [x] rename property
+  - [x] remove column
+- [x] alignment
+- [x] pagination
+  - [x] page size
+  - [x] current page
+  - [x] page navigation
+    - [x] first
+    - [x] previous
+    - [x] ~~next~~ decided it clutters more than it's worth
+    - [x] ~~last~~ decided it clutters more than it's worth
+    - [x] input page number
