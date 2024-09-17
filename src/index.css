@@ -3,7 +3,7 @@
 @tailwind utilities; */
 
 .no-p-margin p {
-  margin: 0;
+	margin: 0;
 }
 
 /* th:has(div.column-reorder-button) {
@@ -50,330 +50,354 @@ div.metadata-property-value.dataedit {
 
 /* METADATA INPUTS */
 div.metadata-property-value {
-  &:has(select.dropdown),
-  &:has(input[type="color"]),
-  &:has(input.slider[type="range"]),
-  &:has(div.checkbox-container),
-  &:has(div.dataedit-star-container) {
-    padding: var(--size-4-1) var(--size-4-2);
-    &:focus-within {
-      background-color: var(--metadata-input-background);
-    }
-  }
+	&:has(select.dropdown),
+	&:has(input[type="color"]),
+	&:has(input.slider[type="range"]),
+	&:has(div.checkbox-container),
+	&:has(div.dataedit-star-container) {
+		padding: var(--size-4-1) var(--size-4-2);
+		&:focus-within {
+			background-color: var(--metadata-input-background);
+		}
+	}
 
-  &:has(div.dataedit-property-markdown-div) {
-    &:focus-within {
-      background-color: var(--metadata-input-background);
-    }
+	&:has(div.dataedit-property-markdown-div) {
+		&:focus-within {
+			background-color: var(--metadata-input-background);
+		}
 
-    /* Usually .cm-line but not always. Ensure's alignment with other property editors */
-    & .cm-line,
-    & .cm-line ~ * {
-      padding-inline: var(--size-4-2);
-    }
-  }
+		/* Usually .cm-line but not always. Ensure's alignment with other property editors */
+		& .cm-line,
+		& .cm-line ~ * {
+			padding-inline: var(--size-4-2);
+		}
+	}
 }
 
 .dataedit {
-  div&-nested-setting-container {
-    padding-left: 34px;
-    padding-bottom: 16px;
-  }
-  div&-setting-item.setting-item {
-    border-bottom: 1px solid var(--background-modifier-border);
-    margin-bottom: 26px;
-    cursor: pointer;
-  }
+	div&-nested-setting-container {
+		padding-left: 34px;
+		padding-bottom: 16px;
+	}
+	div&-setting-item.setting-item {
+		border-bottom: 1px solid var(--background-modifier-border);
+		margin-bottom: 26px;
+		cursor: pointer;
+	}
 
-  input&-property-number-input[type="number"] {
-    background-color: transparent;
-    border: none;
-    width: fit-content;
-    font-size: var(--font-table-text-size);
-    box-shadow: none;
-    padding: 0px;
-    height: fit-content;
-  }
+	input&-property-number-input[type="number"] {
+		background-color: transparent;
+		border: none;
+		width: fit-content;
+		font-size: var(--font-table-text-size);
+		box-shadow: none;
+		padding: 0px;
+		height: fit-content;
+	}
 
-  ul& {
-    &-property-multitext-ul {
-      margin-block: 0px 0px;
-      & > li {
-        margin-inline-start: calc(var(--list-indent) / 2);
-        padding-top: 5px; /* when rendering tags, will overlap without this */
-        & > div.dataedit-property-text-div {
-          display: inline-flex;
-          justify-content: start;
-          align-items: center;
-        }
-        & div.cm-active.cm-line {
-          padding-inline-end: 1ch; /* when rendering tags, makes it easier to click to edit instead of clicking to search for tag */
-        }
-      }
-    }
-  }
+	ul& {
+		&-property-multitext-ul {
+			margin-block: 0px 0px;
+			& > li {
+				margin-inline-start: calc(var(--list-indent) / 2);
+				padding-top: 5px; /* when rendering tags, will overlap without this */
+				& > div.dataedit-property-text-div {
+					display: inline-flex;
+					justify-content: start;
+					align-items: center;
+				}
+				& div.cm-active.cm-line {
+					padding-inline-end: 1ch; /* when rendering tags, makes it easier to click to edit instead of clicking to search for tag */
+				}
+			}
+		}
+	}
 
-  input&-date-datetime-input {
-    background-color: transparent;
-    padding: 0;
-    border: none;
-    font-size: var(--metadata-input-font-size);
-    width: fit-content;
-    & + .clickable-icon {
-      --icon-size: var(--icon-xs);
-      --icon-stroke: var(--icon-xs-stroke-width);
-      /* margin-inline-end: 2px; */
-      /* TODO I'm not confident that this will always work... */
-      margin-inline-start: -20px;
-      position: relative;
-      z-index: 5;
-    }
-  }
+	input&-date-datetime-input {
+		background-color: transparent;
+		padding: 0;
+		border: none;
+		font-size: var(--metadata-input-font-size);
+		width: fit-content;
+		& + .clickable-icon {
+			--icon-size: var(--icon-xs);
+			--icon-stroke: var(--icon-xs-stroke-width);
+			/* margin-inline-end: 2px; */
+			/* TODO I'm not confident that this will always work... */
+			margin-inline-start: -20px;
+			position: relative;
+			z-index: 5;
+		}
+	}
 
-  div&-formatted-date {
-    display: inline-block;
-  }
+	&-formatted-date {
+		display: inline-block;
+		text-wrap: nowrap;
+	}
 
-  div&-property-markdown-div {
-    width: 100%;
+	&-setting-content {
+		position: relative;
+	}
 
-    & div.cm-gutters {
-      display: none !important;
-    }
-    & div.cm-scroller {
-      overflow: visible;
-    }
+	&-scrollable-setting-container {
+		max-height: 56vh;
+		padding-inline-end: 10px;
+		overflow-y: auto;
+	}
 
-    & .cm-line:not(.HyperMD-codeblock),
-    & .cm-content {
-      max-width: none !important;
-      width: fit-content !important;
-      line-height: inherit !important;
-      display: inline-block;
-    }
-    & div[role="textbox"] {
-      width: fit-content;
-      text-wrap: nowrap;
-    }
-    & * {
-      text-align: inherit;
-    }
-  }
+	div&-property-markdown-div {
+		width: 100%;
 
-  div&-property-text-div {
-    width: fit-content;
-    min-width: 100%;
-    display: inline-block;
-    white-space: pre;
-    min-height: 1lh;
-    & div.metadata-input-longtext.mod-truncate {
-      padding: 0 !important;
-      font-size: inherit;
-    }
-  }
+		& div.cm-gutters {
+			display: none !important;
+		}
+		& div.cm-scroller {
+			overflow: visible;
+		}
 
-  div&-number-buttons-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding-inline: var(--size-2-2);
-  }
+		& .cm-line:not(.HyperMD-codeblock),
+		& .cm-content {
+			max-width: none !important;
+			width: fit-content !important;
+			line-height: inherit !important;
+			display: inline-block;
+		}
+		& div[role="textbox"] {
+			width: fit-content;
+			text-wrap: nowrap;
+		}
+		& * {
+			text-align: inherit;
+		}
+	}
 
-  div&-star-container {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-  }
+	div&-property-text-div {
+		width: fit-content;
+		min-width: 100%;
+		display: inline-block;
+		white-space: pre;
+		min-height: 1lh;
+		& div.metadata-input-longtext.mod-truncate {
+			padding: 0 !important;
+			font-size: inherit;
+		}
+	}
 
-  div&-toolbar {
-    display: flex;
-    justify-content: start;
-    align-items: center;
-    /* padding-inline-start: var(--size-4-4); */
-    gap: 0.25rem;
-    flex-wrap: wrap;
-  }
+	div&-number-buttons-container {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding-inline: var(--size-2-2);
+	}
 
-  div&-toolbar-separator {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    position: relative;
-    color: var(--icon-color);
-    & div {
-      height: 100%;
-      width: 0.25rem;
-      background-color: var(--icon-color);
-    }
-  }
+	div&-datedatetime-container {
+		display: inline-flex;
+		/* justify-content: ; */
+		align-items: center;
+	}
 
-  div&-pagination-container {
-    display: flex;
-    justify-content: start;
-    align-items: center;
-  }
+	div&-star-container {
+		display: inline-flex;
+		justify-content: center;
+		align-items: center;
+	}
 
-  div&-column-reorder-button {
-    /* position: absolute; */
-    position: relative;
-    width: 100%;
-    height: fit-content;
-    display: flex;
-    flex-direction: row;
-    align-items: end;
-    justify-content: center;
-    border-radius: var(--radius-s) var(--radius-s) 0 0;
-    background-color: var(--table-drag-handle-background);
-    color: transparent;
-    user-select: none;
-    touch-action: none;
-    z-index: 1;
-    &:hover {
-      color: var(--table-drag-handle-color);
-      cursor: grab;
-    }
-    /* This doesn't work for some reason... natvie obsidian tables have same issue */
-    &[data-grabbing="true"] {
-      background-color: var(--color-accent);
-      /* position: absolute; */
-      color: var(--text-normal);
-      cursor: grabbing;
-      z-index: 5;
-    }
-    [data-hidden="true"] {
-      z-index: -1;
-    }
-  }
+	div&-toolbar {
+		display: flex;
+		justify-content: start;
+		align-items: center;
+		/* padding-inline-start: var(--size-4-4); */
+		gap: 0.25rem;
+		flex-wrap: wrap;
+	}
 
-  td&-is-selected,
-  th&-is-selected {
-    position: relative;
-    &::after {
-      pointer-events: none;
-      content: "";
-      display: block;
-      position: absolute;
-      top: calc(-1 * var(--table-border-width));
-      inset-inline-end: calc(-1 * var(--table-border-width));
-      bottom: calc(-1 * var(--table-border-width));
-      inset-inline-start: calc(-1 * var(--table-border-width));
-      background-color: var(--table-selection);
-      border: 0px solid var(--table-selection-border-color);
-      mix-blend-mode: var(--table-selection-blend-mode);
-      z-index: 1;
-      border-inline-end-width: var(--table-selection-border-width);
-      border-inline-start-width: var(--table-selection-border-width);
-    }
-    &.top::after {
-      border-start-start-radius: var(--table-selection-border-radius);
-      border-start-end-radius: var(--table-selection-border-radius);
-      border-top-width: var(--table-selection-border-width);
-      /* top: calc(-1 * var(--table-selection-border-width)); */
-    }
-    &.bottom::after {
-      border-end-start-radius: var(--table-selection-border-radius);
-      border-end-end-radius: var(--table-selection-border-radius);
-      border-bottom-width: var(--table-selection-border-width);
-      /* bottom: calc(-1 * var(--table-selection-border-width)); */
-    }
-  }
+	div&-toolbar-separator {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		height: 100%;
+		position: relative;
+		color: var(--icon-color);
+		& div {
+			height: 100%;
+			width: 0.25rem;
+			background-color: var(--icon-color);
+		}
+	}
 
-  td&-is-dragged-over,
-  th&-is-dragged-over {
-    position: relative;
-    &:not(.dataedit-is-selected) {
-      &::after {
-        pointer-events: none;
-        content: "";
-        display: block;
-        position: absolute;
-        top: 0;
-        height: 100%;
-        z-index: 1;
-        width: var(--table-selection-border-width);
-        background-color: var(--table-selection-border-color);
-      }
+	div&-pagination-container {
+		display: flex;
+		justify-content: start;
+		align-items: center;
+	}
 
-      &.right::after {
-        right: 0;
-      }
-      &.left::after {
-        left: 0;
-      }
-    }
-  }
+	div&-column-reorder-button {
+		/* position: absolute; */
+		position: relative;
+		width: 100%;
+		height: fit-content;
+		display: flex;
+		flex-direction: row;
+		align-items: end;
+		justify-content: center;
+		border-radius: var(--radius-s) var(--radius-s) 0 0;
+		background-color: var(--table-drag-handle-background);
+		color: transparent;
+		user-select: none;
+		touch-action: none;
+		z-index: 1;
+		&:hover {
+			color: var(--table-drag-handle-color);
+			cursor: grab;
+		}
+		/* This doesn't work for some reason... natvie obsidian tables have same issue */
+		&[data-grabbing="true"] {
+			background-color: var(--color-accent);
+			/* position: absolute; */
+			color: var(--text-normal);
+			cursor: grabbing;
+			z-index: 5;
+		}
+		[data-hidden="true"] {
+			z-index: -1;
+		}
+	}
 
-  &-property-header {
-    border-radius: var(--clickable-icon-radius);
-    padding: 0 var(--size-2-3);
-    &:hover {
-      opacity: var(--icon-opacity-hover);
-      color: var(--icon-color-hover);
-      background-color: var(--background-modifier-hover);
-      cursor: var(--cursor);
-    }
-  }
+	&-config-toolbar-item-container {
+		/* color: var(--text-faint); */
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
 
-  &-table-col-btn,
-  &-table-row-btn {
-    --icon-size: var(--icon-s);
-    --icon-stroke: var(--icon-s-stroke-width);
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: var(--table-drag-handle-size);
-    width: var(--table-drag-handle-size);
-    background-color: var(--table-add-button-background);
-    border: var(--table-add-button-border-width) solid
-      var(--table-add-button-border-color);
-    color: var(--text-faint);
-    transition: opacity 0s 0.1s;
-    opacity: 0;
-    user-select: none;
-    -webkit-user-select: none;
-    &:hover {
-      opacity: 1;
-    }
-  }
+	td&-is-selected,
+	th&-is-selected {
+		position: relative;
+		&::after {
+			pointer-events: none;
+			content: "";
+			display: block;
+			position: absolute;
+			top: calc(-1 * var(--table-border-width));
+			inset-inline-end: calc(-1 * var(--table-border-width));
+			bottom: calc(-1 * var(--table-border-width));
+			inset-inline-start: calc(-1 * var(--table-border-width));
+			background-color: var(--table-selection);
+			border: 0px solid var(--table-selection-border-color);
+			mix-blend-mode: var(--table-selection-blend-mode);
+			z-index: 1;
+			border-inline-end-width: var(--table-selection-border-width);
+			border-inline-start-width: var(--table-selection-border-width);
+		}
+		&.top::after {
+			border-start-start-radius: var(--table-selection-border-radius);
+			border-start-end-radius: var(--table-selection-border-radius);
+			border-top-width: var(--table-selection-border-width);
+			/* top: calc(-1 * var(--table-selection-border-width)); */
+		}
+		&.bottom::after {
+			border-end-start-radius: var(--table-selection-border-radius);
+			border-end-end-radius: var(--table-selection-border-radius);
+			border-bottom-width: var(--table-selection-border-width);
+			/* bottom: calc(-1 * var(--table-selection-border-width)); */
+		}
+	}
 
-  &-table-row-btn {
-    top: 100%;
-    inset-inline-start: 0;
-    width: 100%;
-    border-top: none;
-    cursor: s-resize;
-    max-height: var(--icon-s);
-  }
+	td&-is-dragged-over,
+	th&-is-dragged-over {
+		position: relative;
+		&:not(.dataedit-is-selected) {
+			&::after {
+				pointer-events: none;
+				content: "";
+				display: block;
+				position: absolute;
+				top: 0;
+				height: 100%;
+				z-index: 1;
+				width: var(--table-selection-border-width);
+				background-color: var(--table-selection-border-color);
+			}
 
-  &-table-col-btn {
-    top: 0;
-    height: 100%;
-    inset-inline-start: 100%;
-    border-inline-start: none;
-    cursor: e-resize;
-  }
+			&.right::after {
+				right: 0;
+			}
+			&.left::after {
+				left: 0;
+			}
+		}
+	}
 
-  /* input[type="range"]::-webkit-slider-runnable-track {
+	&-property-header {
+		border-radius: var(--clickable-icon-radius);
+		padding: 0 var(--size-2-3);
+		&:hover {
+			opacity: var(--icon-opacity-hover);
+			color: var(--icon-color-hover);
+			background-color: var(--background-modifier-hover);
+			cursor: var(--cursor);
+		}
+	}
+
+	&-table-col-btn,
+	&-table-row-btn {
+		--icon-size: var(--icon-s);
+		--icon-stroke: var(--icon-s-stroke-width);
+		position: absolute;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: var(--table-drag-handle-size);
+		width: var(--table-drag-handle-size);
+		background-color: var(--table-add-button-background);
+		border: var(--table-add-button-border-width) solid
+			var(--table-add-button-border-color);
+		color: var(--text-faint);
+		transition: opacity 0s 0.1s;
+		opacity: 0;
+		user-select: none;
+		-webkit-user-select: none;
+		&:hover {
+			opacity: 1;
+		}
+	}
+
+	&-table-row-btn {
+		top: 100%;
+		inset-inline-start: 0;
+		width: 100%;
+		border-top: none;
+		cursor: s-resize;
+		max-height: var(--icon-s);
+	}
+
+	&-table-col-btn {
+		top: 0;
+		height: 100%;
+		inset-inline-start: 100%;
+		border-inline-start: none;
+		cursor: e-resize;
+	}
+
+	/* input[type="range"]::-webkit-slider-runnable-track {
     background-color: green;
   } */
 }
 
 div[data-dataedit-scroll-el="true"] {
-  position: relative;
-  padding: var(--size-4-4) var(--size-4-4) var(--size-4-4) 0;
-  /* contain: paint !important; */
-  overflow-wrap: normal;
-  word-break: normal;
-  white-space: normal;
-  /* margin: 0 calc(-1 * var(--size-4-4)) !important; */
-  overflow-x: auto;
-  overflow-y: hidden;
+	position: relative;
+	padding: var(--size-4-4) var(--size-4-4) var(--size-4-4) 0;
+	/* contain: paint !important; */
+	overflow-wrap: normal;
+	word-break: normal;
+	white-space: normal;
+	/* margin: 0 calc(-1 * var(--size-4-4)) !important; */
+	overflow-x: auto;
+	overflow-y: hidden;
 
-  & > div {
-    position: relative;
-    width: fit-content;
-    overflow: visible;
-  }
+	& > div {
+		position: relative;
+		width: fit-content;
+		overflow: visible;
+	}
 }

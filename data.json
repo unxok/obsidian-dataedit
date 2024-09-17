@@ -15,10 +15,6 @@
         {
           "label": "Done",
           "value": "done"
-        },
-        {
-          "label": "Testttt",
-          "value": "testtt"
         }
       ],
       "defaultValue": "in-progress"

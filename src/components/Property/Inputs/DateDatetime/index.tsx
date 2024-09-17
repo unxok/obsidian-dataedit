@@ -59,11 +59,11 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
   };
 
   return (
-    <>
+    <div class='dataedit-datedatetime-container' style={{"justify-content": bctx.config.horizontalAlignment}}>
       <Show
         when={isEditing() || !bctx.config.formatDates}
         fallback={
-          <div class="dataedit-formatted-date" onClick={() => setEditing(true)}>
+          <span class="dataedit-formatted-date" onClick={() => setEditing(true)}>
             {dt()?.toFormat(getDvFormat()) ?? (
               <Markdown
                 app={bctx.plugin.app}
@@ -72,7 +72,7 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
                 class={"dataedit-property-markdown-div no-p-margin"}
               />
             )}
-          </div>
+          </span>
         }
       >
         <input
@@ -137,6 +137,6 @@ export const PropertyDateDatetime = (props: PropertyCommonProps) => {
           }}
         />
       </Show>
-    </>
+    </div>
   );
 };

@@ -235,6 +235,15 @@ const ColumnReorderButton = (props: {
 
   const onmousemove = (e: MouseEvent) => {
     if (!isGrabbing()) return;
+
+    // TODO it should probably scroll if moving column and hits edge of what's in view
+    // const scrollerEl = ref.closest('div[data-dataedit-scroll-el]');
+    // if (scrollerEl) {
+    //   const left = scrollerEl.clientLeft;
+    //   console.log('left: ', left);
+    //   console.log('mouse: ', e.offsetX)
+    // }
+
     const diff = e.pageX - lastMousePos;
     setTransform(diff);
     const [left, right] = props.boundsArr[props.index];
@@ -262,7 +271,7 @@ const ColumnReorderButton = (props: {
 
     if (!isGrabbing()) return;
     const { draggedIndex, draggedOverIndex } = dragCtx.context;
-    console.log(draggedIndex, " ", draggedOverIndex);
+    // console.log(draggedIndex, " ", draggedOverIndex);
     if (draggedIndex === -1 || draggedOverIndex === -1) return cleanup();
     if (draggedIndex === draggedOverIndex) return cleanup();
 
