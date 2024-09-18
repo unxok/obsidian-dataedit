@@ -263,7 +263,7 @@ const ColumnReorderButton = (props: {
 		});
 	};
 
-	const onmouseup = (e: MouseEvent) => {
+	const onmouseup = () => {
 		const cleanup = () => {
 			lastMousePos = 0;
 			setTransform(0);

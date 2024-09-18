@@ -14,7 +14,6 @@ import {
 	useContext,
 	onCleanup,
 	createUniqueId,
-	createMemo,
 } from "solid-js";
 import {
 	getIdColumnIndex,
