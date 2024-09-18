@@ -128,7 +128,7 @@ export type ModifiedDataviewQueryResult = DataviewQueryResult & {
 
 export type DataviewAPI = {
 	settings: DataviewSettings;
-	query(source: string): Promise<DataviewQueryResult>;
+	query(source: string, originFile?: string): Promise<DataviewQueryResult>;
 	luxon: { DateTime: typeof DateTime };
 	evaluate(
 		source: string

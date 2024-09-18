@@ -58,10 +58,6 @@ export const PropertyData = (props: PropertyDataProps) => {
 		return dt.toFormat(dateFormat);
 	};
 
-	createEffect(() => {
-		console.log("got value: ", props.value);
-	});
-
 	return (
 		<Show
 			when={!isIdCol() && isEditable()}

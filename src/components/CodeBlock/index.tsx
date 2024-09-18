@@ -1,6 +1,11 @@
-import { DataviewAPI, DataviewQueryResult, PropertyType } from "@/lib/types";
+import {
+	DataviewAPI,
+	DataviewLink,
+	DataviewQueryResult,
+	PropertyType,
+} from "@/lib/types";
 import { Table } from "@/components/Table";
-import { debounce, MarkdownPostProcessorContext } from "obsidian";
+import { debounce, MarkdownPostProcessorContext, Notice } from "obsidian";
 import {
 	onMount,
 	Show,
@@ -15,6 +20,7 @@ import {
 	getIdColumnIndex,
 	getPropertyTypes,
 	registerDataviewEvents,
+	tryDataviewLinkToMarkdown,
 	unregisterDataviewEvents,
 } from "@/lib/util";
 import { CodeBlockConfig } from "./Config";
@@ -64,7 +70,7 @@ export const useBlock = () => useContext(BlockContext);
 export const CodeBlock = (props: CodeBlockProps) => {
 	const uid = createUniqueId();
 	const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
-	const [idColIndex, setIdColIndex] = createSignal(0);
+	// const [idColIndex, setIdColIndex] = createSignal(0);
 	const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
 		{
 			successful: true,
@@ -87,20 +93,83 @@ export const CodeBlock = (props: CodeBlockProps) => {
 		setPropertyTypes(() => arr);
 	};
 
-	const updateIdColIndex = (dataviewResult: DataviewQueryResult) => {
-		if (!dataviewResult.successful) return;
+	// TODO pretty sure this doesn't need to be a signal since if this ever changes, obsidian will have rerendered the block
+	// const updateIdColIndex = (dataviewResult: DataviewQueryResult) => {
+	// 	if (!dataviewResult.successful) return;
+	// 	const id = getIdColumnIndex(
+	// 		dataviewResult.value.headers,
+	// 		props.dataviewAPI.settings.tableIdColumnName
+	// 	);
+	// 	setIdColIndex(id);
+	// };
+
+	const findIdColIndex = (dataviewResult: DataviewQueryResult) => {
+		if (!dataviewResult.successful) return 0;
 		const id = getIdColumnIndex(
 			dataviewResult.value.headers,
 			props.dataviewAPI.settings.tableIdColumnName
 		);
-		setIdColIndex(id);
+		return id;
+	};
+
+	const updateResultLinks = (results: DataviewQueryResult) => {
+		console.log("updateResultLinks");
+		if (!results.successful) return;
+		const idColIndex = findIdColIndex(results);
+		const newResultLinks = results.value.values
+			.map((arr) => (arr[idColIndex] as DataviewLink).markdown())
+			.toSorted();
+
+		const {
+			ctx: { sourcePath },
+			config: { frontmatterLinks },
+			plugin: {
+				app: { fileManager, vault, metadataCache, metadataTypeManager },
+			},
+		} = props;
+		if (!frontmatterLinks) return;
+		// Make sure property is an array type
+		metadataTypeManager.setType(frontmatterLinks, "multitext");
+		const file = vault.getFileByPath(sourcePath);
+		if (!file) {
+			const msg = "Could not find current file form source path";
+			new Notice(msg);
+			throw new Error(msg);
+		}
+		const preCurrentLinksArr =
+			metadataCache.getCache(sourcePath)?.frontmatter?.[frontmatterLinks];
+		const currentLinksArr = Array.isArray(preCurrentLinksArr)
+			? preCurrentLinksArr
+			: [];
+		const currentLinks = currentLinksArr
+			.map((v) => tryDataviewLinkToMarkdown(v))
+			.toSorted();
+		if (!currentLinks.length || currentLinks.length !== newResultLinks.length) {
+			fileManager.processFrontMatter(
+				file,
+				(fm) => (fm[frontmatterLinks] = newResultLinks)
+			);
+		}
+		// if they are the same length, check that each value is the same
+		const isSame = currentLinksArr.every((v, i) => v === newResultLinks[i]);
+		if (isSame) return;
+		// They aren't the same, so overwrite it
+		fileManager.processFrontMatter(
+			file,
+			(fm) => (fm[frontmatterLinks] = newResultLinks)
+		);
 	};
 
 	// memoizing isn't playing nice with dataview event callbacks...?
 	// for now it doesn't matter since these props should never actually change without obsidian causing a rerender automatically
 	const updateResults = async () => {
 		const { pageSize, currentPage: preCurrentPage } = props.config;
-		const results = await props.dataviewAPI.query(props.query);
+		const results = await props.dataviewAPI.query(
+			props.query,
+			props.ctx.sourcePath
+		);
+
+		updateResultLinks(results);
 
 		const defaultEditButton = props.el.parentElement!.querySelector(
 			"div.edit-block-button[data-dataedit-edit-button=false]"
@@ -142,7 +211,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			}
 		}
 		setDataviewResult(results);
-		updateIdColIndex(results);
+		// updateIdColIndex(results);
 		updatePropertyTypes();
 	};
 
@@ -181,7 +250,6 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			}
 			fallback={<ErrorBlock results={dataviewResult()} />}
 		>
-			{/* ID: {uid} */}
 			<BlockContext.Provider
 				value={{
 					plugin: props.plugin,
@@ -202,7 +270,8 @@ export const CodeBlock = (props: CodeBlockProps) => {
 						headers={dataviewResult().value!.headers}
 						values={dataviewResult().value!.values}
 						propertyTypes={propertyTypes()}
-						idColIndex={idColIndex()}
+						// idColIndex={idColIndex()}
+						idColIndex={findIdColIndex(dataviewResult())}
 					/>
 					<Show when={props.config.showToolbar}>
 						<Toolbar

@@ -1,3 +1,4 @@
+import { FileFolderSuggest } from "@/classes";
 import { SaveModal } from "@/classes/SaveModal";
 import { setBlockConfig, SetBlockConfigProps } from "@/util/mutation";
 import { toFirstUpperCase } from "@/util/pure";
@@ -21,6 +22,8 @@ export type CodeBlockConfig = {
 	formatDates: boolean;
 	showToolbar: boolean;
 	frontmatterLinks: string;
+	defaultFolder: string;
+	defaultTemplate: string;
 	/** Not meant to be modified in modal */
 	currentPage: number;
 };
@@ -43,6 +46,8 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
 	currentPage: 0,
 	showToolbar: true,
 	frontmatterLinks: "",
+	defaultFolder: "",
+	defaultTemplate: "",
 };
 
 export class CodeBlockConfigModal extends SaveModal {
@@ -101,6 +106,42 @@ export class CodeBlockConfigModal extends SaveModal {
 		// form.toolbarOrder.forEach((v) =>
 		// 	createToolbarItem(toolbarItemContainer, v)
 		// );
+
+		/* search */
+
+		new Setting(contentEl)
+			.setName("Default folder")
+			.setDesc(
+				"The full path to the default folder to use when creating new notes from the block."
+			)
+			.addSearch((cmp) => {
+				cmp
+					.setValue(form.defaultFolder)
+					.setPlaceholder("path/to/folder")
+					.onChange((v) => {
+						form.defaultFolder = v;
+						this.isChanged = true;
+					});
+
+				new FileFolderSuggest(this.app, cmp, "folders");
+			});
+
+		new Setting(contentEl)
+			.setName("Default template")
+			.setDesc(
+				"The full path to the default template to use when creating new notes from the block."
+			)
+			.addSearch((cmp) => {
+				cmp
+					.setValue(form.defaultTemplate)
+					.setPlaceholder("path/to/template.md")
+					.onChange((v) => {
+						form.defaultTemplate = v;
+						this.isChanged = true;
+					});
+
+				new FileFolderSuggest(this.app, cmp, "files");
+			});
 
 		/* text */
 		new Setting(contentEl)
