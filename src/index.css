@@ -176,7 +176,7 @@ div.metadata-property-value {
 
 	div&-property-text-div {
 		width: fit-content;
-		min-width: 100%;
+		width: 100%;
 		display: inline-block;
 		white-space: pre;
 		min-height: 1lh;
@@ -434,6 +434,12 @@ div.metadata-property-value {
 		background-color: var(--color-yellow);
 		color: black;
 		font-weight: 500;
+	}
+
+	&-property-text-div-wrapper {
+		display: inline-flex;
+		align-items: center;
+		max-width: 100%;
 	}
 }
 
