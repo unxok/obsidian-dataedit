@@ -1,8 +1,7 @@
-import { FileFolderSuggest } from "@/classes";
+import { FileFolderSuggest, PropertySuggest } from "@/classes";
 import { SaveModal } from "@/classes/SaveModal";
 import { setBlockConfig, SetBlockConfigProps } from "@/util/mutation";
-import { toFirstUpperCase } from "@/util/pure";
-import { App, Modal, setIcon, Setting } from "obsidian";
+import { App, Modal, Setting } from "obsidian";
 
 export type ToolbarItemName =
 	| "results"
@@ -164,12 +163,22 @@ export class CodeBlockConfigModal extends SaveModal {
 			.setDesc(
 				"If not blank, the block will update this note's frontmatter with links to all files returned in the query. The property it update's will be what you set here."
 			)
-			.addText((cmp) =>
+			.addSearch((cmp) => {
 				cmp.setValue(form.frontmatterLinks).onChange((v) => {
 					form.frontmatterLinks = v;
 					this.isChanged = true;
-				})
-			);
+				});
+
+				new PropertySuggest(this.app, cmp);
+			})
+			.then((s) => {
+				s.descEl.createEl("br");
+				s.descEl.createEl("br");
+				s.descEl.createDiv({
+					attr: { style: "color: var(--text-error)" },
+					text: "Warning: If you have two blocks in the same note with the same property name for this setting, it will cause an inifinite loop and crash Obsidian!",
+				});
+			});
 		const pageSizeParser = (v: unknown) => {
 			const possibleNaN = Number(v);
 			const possibleFloat = Number.isNaN(possibleNaN) ? 0 : possibleNaN;
