@@ -105,6 +105,9 @@ div.metadata-property-value {
 					display: inline-flex;
 					justify-content: start;
 					align-items: center;
+					& div.metadata-input-longtext.mod-truncate {
+						text-wrap: nowrap;
+					}
 				}
 				& div.cm-active.cm-line {
 					padding-inline-end: 1ch; /* when rendering tags, makes it easier to click to edit instead of clicking to search for tag */
@@ -180,6 +183,7 @@ div.metadata-property-value {
 		& div.metadata-input-longtext.mod-truncate {
 			padding: 0 !important;
 			font-size: inherit;
+			text-wrap: nowrap;
 		}
 	}
 
