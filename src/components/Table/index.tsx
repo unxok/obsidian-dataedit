@@ -528,6 +528,7 @@ class AddColumnModal extends Modal {
 				cmp.onChange((v) => (this.rowData[index].property = v));
 				if (value) {
 					cmp.setValue(value.property);
+					cmp.onChanged();
 				}
 				new PropertySuggest(this.app, cmp);
 			})
@@ -537,6 +538,7 @@ class AddColumnModal extends Modal {
 					.onChange((v) => (this.rowData[index].alias = v));
 				if (value) {
 					cmp.setValue(value.alias);
+					cmp.onChanged();
 				}
 			});
 

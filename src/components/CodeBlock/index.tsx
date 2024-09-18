@@ -113,7 +113,6 @@ export const CodeBlock = (props: CodeBlockProps) => {
 	};
 
 	const updateResultLinks = (results: DataviewQueryResult) => {
-		console.log("updateResultLinks");
 		if (!results.successful) return;
 		const idColIndex = findIdColIndex(results);
 		const newResultLinks = results.value.values
