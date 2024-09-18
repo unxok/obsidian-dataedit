@@ -253,7 +253,7 @@ export default class DataEdit extends Plugin {
 
 	registerColor(): void {
 		const typeKey = dataeditTypeKeyPrefix + "color";
-		const validateFn = (v: unknown) => true;
+		const validateFn = () => true;
 		this.app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
 			default: () => 0,
 			validate: validateFn,
@@ -305,7 +305,7 @@ export default class DataEdit extends Plugin {
 						});
 						setIcon(starEl, "star");
 
-						starEl.addEventListener("click", async (e) => {
+						starEl.addEventListener("click", async () => {
 							const count = toNumber(
 								container.getAttribute("data-stars"),
 								0,
@@ -359,7 +359,7 @@ export default class DataEdit extends Plugin {
 
 	registerMd(): void {
 		const typeKey = dataeditTypeKeyPrefix + "markdown";
-		const validateFn = (v: unknown) => true;
+		const validateFn = () => true;
 		this.app.metadataTypeManager.registeredTypeWidgets[typeKey] = {
 			default: () => "",
 			validate: validateFn,
@@ -527,13 +527,6 @@ export default class DataEdit extends Plugin {
 				...defaultCodeBlockConfig,
 				...preConfig,
 			} as CodeBlockConfig;
-
-			// this.overrideEditButton(this.app, config, {
-			//   ctx,
-			//   el,
-			//   source,
-			//   plugin: this,
-			// });
 
 			const dataviewAPI = getDataviewAPI(this.app);
 			if (!dataviewAPI) {

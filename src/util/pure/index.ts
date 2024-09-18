@@ -126,7 +126,10 @@ export const getColumnPropertyNames = (source: string) => {
 		.map((c) => {
 			const str = c.trim();
 			const potential = str.split(/\sAS\s/i)[0].trim();
-			// console.log("potential: ", potential);
+			if (!potential) {
+				// should only happen when there are no columns specified at all
+				return null;
+			}
 			const invalidChars = [
 				"(",
 				")",
@@ -157,7 +160,8 @@ export const getColumnPropertyNames = (source: string) => {
 				return COMPLEX_PROPERTY_PLACEHOLDER;
 			}
 			return potential;
-		});
+		})
+		.filter((v) => v !== null);
 	if (isWithoutId) return cols;
 	// so it matches with what is returned from dataview
 	return ["File", ...cols];
