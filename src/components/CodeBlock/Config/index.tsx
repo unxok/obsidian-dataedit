@@ -20,6 +20,7 @@ export type CodeBlockConfig = {
 	dateLinkDaily: boolean;
 	formatDates: boolean;
 	showToolbar: boolean;
+	frontmatterLinks: string;
 	/** Not meant to be modified in modal */
 	currentPage: number;
 };
@@ -41,6 +42,7 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
 	formatDates: false,
 	currentPage: 0,
 	showToolbar: true,
+	frontmatterLinks: "",
 };
 
 export class CodeBlockConfigModal extends SaveModal {
@@ -116,6 +118,17 @@ export class CodeBlockConfigModal extends SaveModal {
 					})
 			);
 
+		new Setting(contentEl)
+			.setName("Frontmatter links property name")
+			.setDesc(
+				"If not blank, the block will update this note's frontmatter with links to all files returned in the query. The property it update's will be what you set here."
+			)
+			.addText((cmp) =>
+				cmp.setValue(form.frontmatterLinks).onChange((v) => {
+					form.frontmatterLinks = v;
+					this.isChanged = true;
+				})
+			);
 		const pageSizeParser = (v: unknown) => {
 			const possibleNaN = Number(v);
 			const possibleFloat = Number.isNaN(possibleNaN) ? 0 : possibleNaN;

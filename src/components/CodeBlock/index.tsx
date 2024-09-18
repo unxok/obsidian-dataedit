@@ -1,6 +1,6 @@
 import { DataviewAPI, DataviewQueryResult, PropertyType } from "@/lib/types";
 import { Table } from "@/components/Table";
-import { MarkdownPostProcessorContext } from "obsidian";
+import { debounce, MarkdownPostProcessorContext } from "obsidian";
 import {
 	onMount,
 	Show,
@@ -9,6 +9,7 @@ import {
 	useContext,
 	onCleanup,
 	createUniqueId,
+	createMemo,
 } from "solid-js";
 import {
 	getIdColumnIndex,
@@ -20,6 +21,8 @@ import { CodeBlockConfig } from "./Config";
 import DataEdit from "@/main";
 import { overrideEditButton, setBlockConfig } from "@/util/mutation";
 import { Pagination, Toolbar } from "../Toolbar";
+import { Icon } from "../Icon";
+import { settingsSignal } from "@/classes/DataeditSettingTab";
 
 type CodeBlockProps = {
 	plugin: DataEdit;
@@ -95,37 +98,59 @@ export const CodeBlock = (props: CodeBlockProps) => {
 
 	// memoizing isn't playing nice with dataview event callbacks...?
 	// for now it doesn't matter since these props should never actually change without obsidian causing a rerender automatically
-	const updateResults = () => {
-		(async () => {
-			const { pageSize, currentPage: preCurrentPage } = props.config;
-			const results = await props.dataviewAPI.query(props.query);
-			if (results.value?.values) {
-				const resultCount = results.value.values.length;
-				const pageCount = Math.ceil(resultCount / pageSize);
-				const currentPage = preCurrentPage > pageCount ? 0 : preCurrentPage;
-				const start = pageSize * currentPage;
-				const preEnd = pageSize * (currentPage + 1);
-				const end = preEnd > resultCount ? resultCount : preEnd;
+	const updateResults = async () => {
+		const { pageSize, currentPage: preCurrentPage } = props.config;
+		const results = await props.dataviewAPI.query(props.query);
 
-				setPagination(() => ({
-					shownStart: start,
-					shownEnd: end,
-					resultCount: resultCount,
-					pageCount: pageCount,
-				}));
+		const defaultEditButton = props.el.parentElement!.querySelector(
+			"div.edit-block-button[data-dataedit-edit-button=false]"
+		);
+		const customEditButton = props.el.parentElement!.querySelector(
+			'div.edit-block-button[data-dataedit-edit-button="true"]'
+		);
 
-				if (pageSize > 0) {
-					const paginated = results.value?.values.filter(
-						(_, i) => i >= start && i < end
-					);
-					results.value.values = paginated;
-				}
+		if (defaultEditButton && customEditButton) {
+			if (results.successful) {
+				defaultEditButton.setAttribute("style", "display: none;");
+				customEditButton.setAttribute("style", "display: flex;");
+			} else {
+				defaultEditButton.setAttribute("style", "display: flex;");
+				customEditButton.setAttribute("style", "display: none;");
 			}
-			setDataviewResult(results);
-			updateIdColIndex(results);
-			updatePropertyTypes();
-		})();
+		}
+
+		if (results.value?.values) {
+			const resultCount = results.value.values.length;
+			const pageCount = Math.ceil(resultCount / pageSize);
+			const currentPage = preCurrentPage > pageCount ? 0 : preCurrentPage;
+			const start = pageSize * currentPage;
+			const preEnd = pageSize * (currentPage + 1);
+			const end = preEnd > resultCount ? resultCount : preEnd;
+
+			setPagination(() => ({
+				shownStart: start,
+				shownEnd: end,
+				resultCount: resultCount,
+				pageCount: pageCount,
+			}));
+
+			if (pageSize > 0) {
+				const paginated = results.value?.values.filter(
+					(_, i) => i >= start && i < end
+				);
+				results.value.values = paginated;
+			}
+		}
+		setDataviewResult(results);
+		updateIdColIndex(results);
+		updatePropertyTypes();
 	};
+
+	const debounceUpdateResults = debounce(
+		() => updateResults(),
+		settingsSignal().refreshInterval,
+		true
+	);
 
 	onMount(() => {
 		overrideEditButton({
@@ -135,8 +160,8 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			plugin: props.plugin,
 			source: props.source,
 		});
-		updateResults();
-		registerDataviewEvents(props.plugin, updateResults);
+		debounceUpdateResults();
+		registerDataviewEvents(props.plugin, debounceUpdateResults);
 		props.plugin.app.metadataTypeManager.on(
 			"changed",
 			updatePropertyTypes,
@@ -145,7 +170,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 	});
 
 	onCleanup(() => {
-		unregisterDataviewEvents(props.plugin, updateResults);
+		unregisterDataviewEvents(props.plugin, debounceUpdateResults);
 		props.plugin.app.metadataTypeManager.off("changed", updatePropertyTypes);
 	});
 
@@ -154,8 +179,9 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			when={
 				dataviewResult().successful && dataviewResult().value!.headers.length
 			}
+			fallback={<ErrorBlock results={dataviewResult()} />}
 		>
-			ID: {uid}
+			{/* ID: {uid} */}
 			<BlockContext.Provider
 				value={{
 					plugin: props.plugin,
@@ -201,5 +227,55 @@ export const CodeBlock = (props: CodeBlockProps) => {
 				</div>
 			</BlockContext.Provider>
 		</Show>
+	);
+};
+
+type ErrorBlockProps = {
+	results: DataviewQueryResult;
+};
+const ErrorBlock = (props: ErrorBlockProps) => {
+	const getMsg = () => {
+		const { results } = props;
+		if (results.successful) {
+			const msg = "";
+			// console.error(msg);
+			return msg;
+		}
+		// console.error(results.error);
+		return results.error;
+	};
+
+	return (
+		<Show
+			when={getMsg()}
+			fallback={
+				<div class='dataedit-loading-block'>
+					<Icon
+						iconId='loader-2'
+						class='dataedit-loader'
+					/>
+				</div>
+			}
+		>
+			<DataviewError msg={getMsg()} />
+		</Show>
+	);
+};
+
+type DataviewErrorProps = {
+	msg: string;
+};
+const DataviewError = (props: DataviewErrorProps) => {
+	return (
+		<div class='dataedit-dataview-error'>
+			<span class='dataedit-error-badge'>dataedit</span>
+			<h2>Dataview error</h2>
+			<p>
+				Uh oh! Dataview didn't like that query when we tried passing it over :(
+			</p>
+			<pre>
+				<code>{props.msg}</code>
+			</pre>
+		</div>
 	);
 };

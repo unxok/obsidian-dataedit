@@ -225,6 +225,8 @@ export const overrideEditButton = async (params: {
 		if (!btnEl) return;
 		const newBtn = document.createElement("div");
 		newBtn.className = "edit-block-button";
+		newBtn.setAttribute("data-dataedit-edit-button", "true");
+		btnEl.setAttribute("data-dataedit-edit-button", "false");
 		newBtn.onclick = (e) => {
 			const menu = new Menu()
 				.addItem((item) =>

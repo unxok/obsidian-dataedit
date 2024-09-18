@@ -19,5 +19,6 @@
       ],
       "defaultValue": "in-progress"
     }
-  }
+  },
+  "refreshInterval": 250
 }

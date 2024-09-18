@@ -379,9 +379,58 @@ div.metadata-property-value {
 		cursor: e-resize;
 	}
 
-	/* input[type="range"]::-webkit-slider-runnable-track {
-    background-color: green;
-  } */
+	&-dataview-error {
+		border: 1px solid var(--text-error);
+		border-radius: var(--radius-m);
+		padding: 15px;
+		position: relative;
+
+		& > h2 {
+			color: var(--text-error);
+		}
+
+		& > pre {
+			text-wrap: nowrap;
+		}
+	}
+
+	&-loading-block {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+
+		& .dataedit-loader > svg {
+			animation: spin 1s linear infinite;
+
+			@keyframes spin {
+				0% {
+					transform: rotate(0deg);
+				}
+				100% {
+					transform: rotate(360deg);
+				}
+			}
+		}
+	}
+
+	&-error-badge {
+		background-color: var(--background-primary);
+		border-radius: var(--radius-s);
+		z-index: 5;
+		display: flex;
+		color: var(--text-muted);
+		position: absolute;
+		bottom: var(--size-2-2);
+		/* right: 0; */
+		padding: var(--size-2-2) var(--size-2-3);
+		inset-inline-end: var(--size-2-2);
+	}
+
+	button&-buy-me-coffee {
+		background-color: var(--color-yellow);
+		color: black;
+		font-weight: 500;
+	}
 }
 
 div[data-dataedit-scroll-el="true"] {
