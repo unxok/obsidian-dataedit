@@ -9,8 +9,10 @@ import {
 	createEffect,
 	createSignal,
 	For,
+	Index,
 	JSX,
 	onCleanup,
+	onMount,
 	useContext,
 } from "solid-js";
 import { useBlock } from "../CodeBlock";
@@ -150,20 +152,20 @@ export const Table = (props: {
 							</tr>
 						</thead>
 						<tbody>
-							<For each={props.values}>
+							<Index each={props.values}>
 								{(row, rowIndex) => (
 									<tr>
-										<For each={row}>
+										<Index each={row()}>
 											{(item, itemIndex) => (
 												<td
 													classList={{
 														"dataedit-is-selected":
-															dragContext.draggedIndex === itemIndex(),
-														"bottom": rowIndex() === props.values.length - 1,
+															dragContext.draggedIndex === itemIndex,
+														"bottom": rowIndex === props.values.length - 1,
 														"dataedit-is-dragged-over":
-															dragContext.draggedOverIndex === itemIndex(),
-														"right": dragContext.draggedIndex < itemIndex(),
-														"left": dragContext.draggedIndex > itemIndex(),
+															dragContext.draggedOverIndex === itemIndex,
+														"right": dragContext.draggedIndex < itemIndex,
+														"left": dragContext.draggedIndex > itemIndex,
 													}}
 													style={{
 														"vertical-align": getVertical(),
@@ -171,18 +173,18 @@ export const Table = (props: {
 													}}
 												>
 													<PropertyData
-														property={props.properties[itemIndex()]}
-														value={item}
-														propertyType={props.propertyTypes[itemIndex()]}
-														header={props.headers[itemIndex()]}
-														filePath={getFilePath(rowIndex())}
+														property={props.properties[itemIndex]}
+														value={item()}
+														propertyType={props.propertyTypes[itemIndex]}
+														header={props.headers[itemIndex]}
+														filePath={getFilePath(rowIndex)}
 													/>
 												</td>
 											)}
-										</For>
+										</Index>
 									</tr>
 								)}
-							</For>
+							</Index>
 						</tbody>
 					</table>
 					<div

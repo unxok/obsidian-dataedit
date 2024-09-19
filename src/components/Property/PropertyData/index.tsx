@@ -2,7 +2,7 @@ import { useBlock } from "@/components/CodeBlock";
 import { Markdown } from "@/components/Markdown";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
 import { DataviewPropertyValue, PropertyType } from "@/lib/types";
-import { createEffect, createMemo, Show } from "solid-js";
+import { createEffect, createMemo, onMount, Show } from "solid-js";
 import { PropertySwitch } from "../PropertySwitch";
 import { checkIfDateHasTime } from "@/util/pure";
 import { DateTime } from "luxon";
@@ -57,6 +57,10 @@ export const PropertyData = (props: PropertyDataProps) => {
 		}
 		return dt.toFormat(dateFormat);
 	};
+
+	onMount(() => {
+		console.log("mount");
+	});
 
 	return (
 		<Show

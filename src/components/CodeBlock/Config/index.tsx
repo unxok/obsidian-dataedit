@@ -1,6 +1,7 @@
 import { FileFolderSuggest, PropertySuggest } from "@/classes";
 import { SaveModal } from "@/classes/SaveModal";
 import { setBlockConfig, SetBlockConfigProps } from "@/util/mutation";
+import { toNumber } from "@/util/pure";
 import { App, Modal, Setting } from "obsidian";
 
 export type ToolbarItemName =
@@ -13,6 +14,7 @@ export type CodeBlockConfig = {
 	toolbarOrder: ToolbarItemName[];
 	containerClass: string;
 	pageSize: number;
+	multiTextPerRow: number;
 	verticalAlignment: "top" | "middle" | "bottom";
 	horizontalAlignment: "left" | "center" | "right";
 	typeIcons: boolean;
@@ -36,6 +38,7 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
 	],
 	containerClass: "",
 	pageSize: 10,
+	multiTextPerRow: 3,
 	verticalAlignment: "top",
 	horizontalAlignment: "left",
 	typeIcons: true,
@@ -197,6 +200,24 @@ export class CodeBlockConfigModal extends SaveModal {
 					.setValue(pageSizeParser(form.pageSize).toString())
 					.onChange((v) => {
 						form.pageSize = pageSizeParser(v);
+						this.isChanged = true;
+					})
+					.setPlaceholder("unlimited");
+
+				cmp.inputEl.setAttribute("type", "number");
+				cmp.inputEl.setAttribute("min", "0");
+			});
+
+		new Setting(contentEl)
+			.setName("Multi-select per line limit")
+			.setDesc(
+				"Set the number of items per line within combo-box inputs for list type properties. Leave as 0 to have all be one line."
+			)
+			.addText((cmp) => {
+				cmp
+					.setValue(toNumber(form.multiTextPerRow, 0, 0).toString())
+					.onChange((v) => {
+						form.multiTextPerRow = pageSizeParser(v);
 						this.isChanged = true;
 					})
 					.setPlaceholder("unlimited");

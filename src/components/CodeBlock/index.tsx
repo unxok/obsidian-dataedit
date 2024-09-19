@@ -29,6 +29,7 @@ import { Pagination, Toolbar } from "../Toolbar";
 import { Icon } from "../Icon";
 import { settingsSignal } from "@/classes/DataeditSettingTab";
 import { ComboBoxComponent } from "@/classes/ComboBoxComponent";
+import { createStore } from "solid-js/store";
 
 type CodeBlockProps = {
 	plugin: DataEdit;
@@ -71,12 +72,16 @@ export const CodeBlock = (props: CodeBlockProps) => {
 	const uid = createUniqueId();
 	const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
 	// const [idColIndex, setIdColIndex] = createSignal(0);
-	const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
-		{
-			successful: true,
-			value: { headers: [], values: [], type: "table" },
-		}
-	);
+	// const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
+	// 	{
+	// 		successful: true,
+	// 		value: { headers: [], values: [], type: "table" },
+	// 	}
+	// );
+	const [dataviewResult, setDataviewResult] = createStore<DataviewQueryResult>({
+		successful: true,
+		value: { headers: [], values: [], type: "table" },
+	});
 	const [pagination, setPagination] = createSignal<Pagination>({
 		shownStart: 0,
 		shownEnd: 0,
@@ -246,12 +251,10 @@ export const CodeBlock = (props: CodeBlockProps) => {
 
 	return (
 		<Show
-			when={
-				dataviewResult().successful && dataviewResult().value!.headers.length
-			}
-			fallback={<ErrorBlock results={dataviewResult()} />}
+			when={dataviewResult.successful && dataviewResult.value!.headers.length}
+			fallback={<ErrorBlock results={dataviewResult} />}
 		>
-			<ComboBox />
+			{/* <ComboBox /> */}
 			<BlockContext.Provider
 				value={{
 					plugin: props.plugin,
@@ -269,11 +272,11 @@ export const CodeBlock = (props: CodeBlockProps) => {
 				<div style={{ "overflow-x": "auto", "height": "fit-content" }}>
 					<Table
 						properties={props.propertyNames}
-						headers={dataviewResult().value!.headers}
-						values={dataviewResult().value!.values}
+						headers={dataviewResult.value!.headers}
+						values={dataviewResult.value!.values}
 						propertyTypes={propertyTypes()}
 						// idColIndex={idColIndex()}
-						idColIndex={findIdColIndex(dataviewResult())}
+						idColIndex={findIdColIndex(dataviewResult)}
 					/>
 					<Show when={props.config.showToolbar}>
 						<Toolbar
@@ -351,22 +354,22 @@ const DataviewError = (props: DataviewErrorProps) => {
 	);
 };
 
-const ComboBox = () => {
-	const value = ["apples", "oranges"];
+// const ComboBox = () => {
+// 	const value = ["apples", "oranges"];
 
-	let ref: HTMLDivElement;
-	let cmp: ComboBoxComponent;
+// 	let ref: HTMLDivElement;
+// 	let cmp: ComboBoxComponent;
 
-	onMount(() => {
-		cmp = new ComboBoxComponent(ref).setValue(value).onChange((v) => {
-			console.log("value is: ", v);
-		});
-	});
+// 	onMount(() => {
+// 		cmp = new ComboBoxComponent(ref).setValue(value).onChange((v) => {
+// 			console.log("value is: ", v);
+// 		});
+// 	});
 
-	return (
-		<>
-			<div ref={(r) => (ref = r)}></div>
-			<button onClick={() => console.log(cmp.getValue())}>get value</button>
-		</>
-	);
-};
+// 	return (
+// 		<>
+// 			<div ref={(r) => (ref = r)}></div>
+// 			<button onClick={() => console.log(cmp.getValue())}>get value</button>
+// 		</>
+// 	);
+// };
