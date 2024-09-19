@@ -28,6 +28,7 @@ import { overrideEditButton, setBlockConfig } from "@/util/mutation";
 import { Pagination, Toolbar } from "../Toolbar";
 import { Icon } from "../Icon";
 import { settingsSignal } from "@/classes/DataeditSettingTab";
+import { ComboBoxComponent } from "@/classes/ComboBoxComponent";
 
 type CodeBlockProps = {
 	plugin: DataEdit;
@@ -250,6 +251,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			}
 			fallback={<ErrorBlock results={dataviewResult()} />}
 		>
+			<ComboBox />
 			<BlockContext.Provider
 				value={{
 					plugin: props.plugin,
@@ -346,5 +348,25 @@ const DataviewError = (props: DataviewErrorProps) => {
 				<code>{props.msg}</code>
 			</pre>
 		</div>
+	);
+};
+
+const ComboBox = () => {
+	const value = ["apples", "oranges"];
+
+	let ref: HTMLDivElement;
+	let cmp: ComboBoxComponent;
+
+	onMount(() => {
+		cmp = new ComboBoxComponent(ref).setValue(value).onChange((v) => {
+			console.log("value is: ", v);
+		});
+	});
+
+	return (
+		<>
+			<div ref={(r) => (ref = r)}></div>
+			<button onClick={() => console.log(cmp.getValue())}>get value</button>
+		</>
 	);
 };

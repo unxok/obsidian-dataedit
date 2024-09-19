@@ -618,8 +618,12 @@ class AddColumnModal extends Modal {
 		}
 		const [query, config] = blockSource.split(/\n^---$\n/m);
 		const { tableLine, rest } = getTableLine(query);
-		const newCols = rowData.reduce((acc, { property, alias }) => {
+		const noCurrentCols = tableLine.trim().toLowerCase() === "table";
+		const newCols = rowData.reduce((acc, { property, alias }, index) => {
 			const str = alias ? property + ' AS "' + alias + '"' : property;
+			if (index === 0 && noCurrentCols) {
+				return acc + " " + str;
+			}
 			return acc + ", " + str;
 		}, "");
 		const newTable = tableLine + newCols;
