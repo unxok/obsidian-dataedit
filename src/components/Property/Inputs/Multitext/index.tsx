@@ -272,7 +272,6 @@ export const Combobox = (props: PropertyCommonProps) => {
 				blur: () => {},
 				key: props.property,
 				onChange: async (v) => {
-					console.log("changed");
 					const oldArr = normalize(props.value);
 					const newArr = v as string[];
 					if (oldArr.length === newArr.length) {

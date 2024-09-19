@@ -58,10 +58,6 @@ export const PropertyData = (props: PropertyDataProps) => {
 		return dt.toFormat(dateFormat);
 	};
 
-	onMount(() => {
-		console.log("mount");
-	});
-
 	return (
 		<Show
 			when={!isIdCol() && isEditable()}

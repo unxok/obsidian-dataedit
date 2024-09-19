@@ -167,9 +167,6 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			props.query,
 			props.ctx.sourcePath
 		);
-
-		console.log("results: ", results);
-
 		updateResultLinks(results);
 
 		const defaultEditButton = props.el.parentElement!.querySelector(

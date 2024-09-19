@@ -23,10 +23,6 @@ export type PropertyCommonProps = PropertyDataProps & {
 };
 
 export const PropertySwitch = (props: PropertyCommonProps) => {
-	createEffect(() => {
-		console.log("value updated: ", props.value);
-	});
-
 	return (
 		<Switch
 			// fallback={<div>fallback</div>}
