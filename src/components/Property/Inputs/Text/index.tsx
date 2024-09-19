@@ -1,5 +1,5 @@
 import { useBlock } from "@/components/CodeBlock";
-import { JSXElement, onMount } from "solid-js";
+import { createEffect, JSXElement, onMount } from "solid-js";
 import {
 	AbstractInputSuggest,
 	App,
@@ -18,13 +18,25 @@ export const PropertyText = (
 	const bctx = useBlock();
 	let ref: HTMLDivElement;
 
-	onMount(() => {
+	createEffect(() => {
 		/*
       TODO?
       Trying to make the Suggestion Popover myself is *very* annoying.
       But it turns out, mocking a metadata text editor (which has the suggest built in) works!
       Might need more testing, but this looks good for now.
     */
+
+		if (
+			props.propertyType !== "text" &&
+			props.propertyType !== "multitext" &&
+			props.propertyType !== "tags" &&
+			props.propertyType !== "cssclasses" &&
+			props.propertyType !== "aliases"
+		)
+			return;
+
+		ref.empty();
+
 		bctx.plugin.app.metadataTypeManager.registeredTypeWidgets["text"].render(
 			ref,
 			{
@@ -34,19 +46,26 @@ export const PropertyText = (
 			},
 			{
 				app: bctx.plugin.app,
-				metadataEditor: {} as MetadataEditor,
-				blur: async () => {
-					console.log("blur");
-					const newValue = ref.firstElementChild!.textContent;
-					if (newValue === props.value) return;
-					await props.updateProperty(newValue);
-				},
+				metadataEditor:
+					// @ts-ignore
+					bctx.plugin.app.workspace.activeEditor?.leaf.view.metadataEditor ??
+					({} as MetadataEditor),
+				blur: () => {},
 				key: props.property,
-				onChange: () => {},
+				onChange: async (v) => {
+					if (v === props.value) return;
+					await props.updateProperty(v);
+				},
 				sourcePath: bctx.ctx.sourcePath,
 			}
 		);
 	});
+
+	// createEffect(() => {
+	// 	const el = ref.find("div.metadata-input-longtext.mod-truncate");
+	// 	if (!el) return;
+	// 	el.textContent = props.value as string;
+	// });
 
 	return (
 		<div

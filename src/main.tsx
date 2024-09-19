@@ -42,6 +42,7 @@ import {
 	DataEditSettings,
 	defaultDataEditSettings,
 	setSettingsSignal,
+	settingsSignal,
 } from "./classes/DataeditSettingTab/index.ts";
 
 type PropertyUpdateRecord = {
@@ -524,7 +525,7 @@ export default class DataEdit extends Plugin {
 			const preConfig = parseYaml(configStr) ?? {};
 			// preConfig is not actually type safe... might use zod later
 			const config = {
-				...defaultCodeBlockConfig,
+				...this.settings.defaultConfig,
 				...preConfig,
 			} as CodeBlockConfig;
 

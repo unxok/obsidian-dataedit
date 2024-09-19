@@ -3,15 +3,22 @@ import { PluginSettingTab, App, Setting, debounce } from "obsidian";
 import { DropdownRecord, DropdownWidgetManager } from "@/classes";
 import { createSignal } from "solid-js";
 import { toNumber } from "@/util/pure";
+import {
+	CodeBlockConfig,
+	CodeBlockConfigModal,
+	defaultCodeBlockConfig,
+} from "@/components/CodeBlock/Config";
 
 export type DataEditSettings = {
 	dropdowns: Record<string, DropdownRecord>;
+	defaultConfig: CodeBlockConfig;
 	refreshInterval: number;
 	updatesLimit: number;
 };
 
 export const defaultDataEditSettings: DataEditSettings = {
 	dropdowns: {},
+	defaultConfig: { ...defaultCodeBlockConfig },
 	refreshInterval: 250,
 	updatesLimit: 20,
 };
@@ -56,6 +63,25 @@ export class DataeditSettingTab extends PluginSettingTab {
 			.addButton((cmp) =>
 				cmp.setButtonText("manage").onClick(() => {
 					new DropdownWidgetManager(this.plugin).open();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("Default block config")
+			.setDesc(
+				"Click the button to configure the default options for Dataedit blocks. These defaults will only apply when no configs are set specifically for a given block."
+			)
+			.addButton((cmp) =>
+				cmp.setButtonText("configure").onClick(() => {
+					new CodeBlockConfigModal(
+						this.app,
+						settingsSignal().defaultConfig,
+						async (form) => {
+							await this.updateSettings("defaultConfig", form);
+							// so codeblocks get re-rendered with updated settings
+							this.plugin.devReload();
+						}
+					).open();
 				})
 			);
 

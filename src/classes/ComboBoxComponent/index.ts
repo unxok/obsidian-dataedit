@@ -46,28 +46,26 @@ export class ComboBoxComponent extends ValueComponent<string[]> {
 		this.listeners.change.forEach((func) => func(this.getValue()));
 	}
 
-	updateDom(): void {
-		const { multiSelectEl, inputEl } = this;
-		const data = this.getValue();
-		const pills = Array.from(multiSelectEl.children);
-		data.forEach((value, index) => {
-			const pillEl = pills[index];
-			const pillContent = pillEl?.querySelector(
-				"div.multi-select-pill-content"
-			);
-			if (!pillEl || !pillContent) {
-				// new el needs to be added
-				this.renderPill(multiSelectEl, value, index);
-				return;
-			}
-			// pill hasn't changed
-			if (pillContent.textContent === value) return;
-			// value is different than current
-			pillContent.textContent = value;
-		});
-
-		multiSelectEl.insertAdjacentElement("beforeend", inputEl);
-	}
+	// updateDom(): void {
+	// 	const { multiSelectEl } = this;
+	// 	const data = this.getValue();
+	// 	const pills = Array.from(multiSelectEl.children);
+	// 	data.forEach((value, index) => {
+	// 		const pillEl = pills[index];
+	// 		const pillContent = pillEl?.querySelector(
+	// 			"div.multi-select-pill-content"
+	// 		);
+	// 		if (!pillEl || !pillContent) {
+	// 			// new el needs to be added
+	// 			this.renderPill(multiSelectEl, value, index);
+	// 			return;
+	// 		}
+	// 		// pill hasn't changed
+	// 		if (pillContent.textContent === value) return;
+	// 		// value is different than current
+	// 		pillContent.textContent = value;
+	// 	});
+	// }
 
 	render(): void {
 		const { value, multiSelectEl } = this;
@@ -78,14 +76,16 @@ export class ComboBoxComponent extends ValueComponent<string[]> {
 		const inp = multiSelectEl.createDiv({
 			cls: "multi-select-input",
 			attr: {
-				"contenteditable": "true",
-				"tab-index": "0",
+				contenteditable: "true",
+				tabindex: "0",
 			},
 		});
 
 		this.inputEl = inp;
 
-		inp.addEventListener("blur", () => {
+		// add the value to this.value but don't update metadata
+		// because we want to retain focus in the input
+		const addValue = () => {
 			const data = this.getValue();
 			const value = inp.textContent ?? "";
 			if (!value) {
@@ -94,25 +94,54 @@ export class ComboBoxComponent extends ValueComponent<string[]> {
 			inp.textContent = "";
 			this.renderPill(this.multiSelectEl, value, data.length);
 			data.push(value);
-			this.setValue(data);
-			setTimeout(() => {
-				inp.focus();
-			}, 0);
+			this.value = data;
+		};
+
+		inp.addEventListener("blur", () => {
+			addValue();
+			this.setValue(this.value);
 		});
 
 		multiSelectEl.addEventListener("click", () => {
 			inp.focus();
 		});
 		inp.addEventListener("keydown", (e) => {
-			if (e.key !== "Enter") return;
-			inp.blur();
+			if (e.key !== "Enter" && e.key !== "ArrowLeft") return;
+			// stop a new line or <br /> from being created
+			e.preventDefault();
+			if (e.key === "ArrowLeft") {
+				const sibling = inp.previousElementSibling;
+				if (!sibling || !(sibling instanceof HTMLElement)) return;
+				sibling.focus();
+				return;
+			}
+			addValue();
 		});
 	}
 
 	renderPill(container: HTMLElement, value: string, index: number): void {
 		const pill = container.createDiv({
 			cls: "multi-select-pill",
-			attr: { "tab-index": "0" },
+			attr: { tabindex: "0" },
+		});
+
+		pill.addEventListener("click", (e) => {
+			e.stopPropagation();
+			pill.focus();
+		});
+		pill.addEventListener("keydown", (e) => {
+			if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") {
+				return;
+			}
+			e.stopPropagation();
+			e.preventDefault();
+			const sibling =
+				e.key === "ArrowLeft"
+					? pill.previousElementSibling
+					: pill.nextElementSibling;
+			console.log("sibling: ", sibling);
+			if (!sibling || !(sibling instanceof HTMLElement)) return;
+			sibling.focus();
 		});
 		const content = pill.createDiv({
 			cls: "multi-select-pill-content",

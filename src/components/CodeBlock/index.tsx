@@ -29,7 +29,6 @@ import { Pagination, Toolbar } from "../Toolbar";
 import { Icon } from "../Icon";
 import { settingsSignal } from "@/classes/DataeditSettingTab";
 import { ComboBoxComponent } from "@/classes/ComboBoxComponent";
-import { createStore } from "solid-js/store";
 
 type CodeBlockProps = {
 	plugin: DataEdit;
@@ -72,16 +71,12 @@ export const CodeBlock = (props: CodeBlockProps) => {
 	const uid = createUniqueId();
 	const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
 	// const [idColIndex, setIdColIndex] = createSignal(0);
-	// const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
-	// 	{
-	// 		successful: true,
-	// 		value: { headers: [], values: [], type: "table" },
-	// 	}
-	// );
-	const [dataviewResult, setDataviewResult] = createStore<DataviewQueryResult>({
-		successful: true,
-		value: { headers: [], values: [], type: "table" },
-	});
+	const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
+		{
+			successful: true,
+			value: { headers: [], values: [], type: "table" },
+		}
+	);
 	const [pagination, setPagination] = createSignal<Pagination>({
 		shownStart: 0,
 		shownEnd: 0,
@@ -251,8 +246,10 @@ export const CodeBlock = (props: CodeBlockProps) => {
 
 	return (
 		<Show
-			when={dataviewResult.successful && dataviewResult.value!.headers.length}
-			fallback={<ErrorBlock results={dataviewResult} />}
+			when={
+				dataviewResult().successful && dataviewResult().value!.headers.length
+			}
+			fallback={<ErrorBlock results={dataviewResult()} />}
 		>
 			{/* <ComboBox /> */}
 			<BlockContext.Provider
@@ -272,11 +269,11 @@ export const CodeBlock = (props: CodeBlockProps) => {
 				<div style={{ "overflow-x": "auto", "height": "fit-content" }}>
 					<Table
 						properties={props.propertyNames}
-						headers={dataviewResult.value!.headers}
-						values={dataviewResult.value!.values}
+						headers={dataviewResult().value!.headers}
+						values={dataviewResult().value!.values}
 						propertyTypes={propertyTypes()}
 						// idColIndex={idColIndex()}
-						idColIndex={findIdColIndex(dataviewResult)}
+						idColIndex={findIdColIndex(dataviewResult())}
 					/>
 					<Show when={props.config.showToolbar}>
 						<Toolbar

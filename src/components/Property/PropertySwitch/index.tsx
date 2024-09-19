@@ -2,7 +2,7 @@ import {
 	dataeditDropdownTypePrefix,
 	dataeditTypeKeyPrefix,
 } from "@/lib/constants";
-import { Switch, Match } from "solid-js";
+import { Switch, Match, createEffect } from "solid-js";
 import {
 	PropertyText,
 	PropertyNumber,
@@ -23,6 +23,10 @@ export type PropertyCommonProps = PropertyDataProps & {
 };
 
 export const PropertySwitch = (props: PropertyCommonProps) => {
+	createEffect(() => {
+		console.log("value updated: ", props.value);
+	});
+
 	return (
 		<Switch
 			// fallback={<div>fallback</div>}

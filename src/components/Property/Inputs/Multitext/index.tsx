@@ -10,6 +10,7 @@ import {
 	createMemo,
 	createSignal,
 	For,
+	onCleanup,
 	onMount,
 	Show,
 } from "solid-js";
@@ -17,8 +18,25 @@ import { PropertyText } from "../Text";
 import { Icon } from "@/components/Icon";
 import { PropertyCommonProps } from "../../PropertySwitch";
 import { ComboBoxComponent } from "@/classes/ComboBoxComponent";
+import { Component } from "obsidian";
+import { MetadataEditor } from "obsidian-typings";
 
-export const PropertyMultitext2 = (props: PropertyCommonProps) => {
+export const PropertyMultitext = (props: PropertyCommonProps) => {
+	const {
+		config: { useComboBox },
+	} = useBlock();
+
+	return (
+		<Show
+			when={!!useComboBox}
+			fallback={<Ul {...props} />}
+		>
+			<Combobox {...props} />
+		</Show>
+	);
+};
+
+export const Ul = (props: PropertyCommonProps) => {
 	const bctx = useBlock();
 
 	const valueArr = createMemo(() => {
@@ -129,33 +147,98 @@ export const PropertyMultitext2 = (props: PropertyCommonProps) => {
 	);
 };
 
-export const PropertyMultitext = (props: PropertyCommonProps) => {
+// export const PropertyMultitext3 = (props: PropertyCommonProps) => {
+// 	const bctx = useBlock();
+// 	let ref: HTMLDivElement;
+// 	let component = new Component();
+// 	let cmp: ComboBoxComponent;
+// 	const [basis, setBasis] = createSignal("unset");
+// 	const [gap, setGap] = createSignal("unset");
+
+// 	const normalize = (v: unknown) => {
+// 		const arr: unknown[] = Array.isArray(v) ? v : [v];
+// 		const normalArr = arr
+// 			.map((val) => tryDataviewLinkToMarkdown(val)?.toString() ?? undefined)
+// 			.filter((val) => val !== undefined);
+// 		return normalArr;
+// 	};
+
+// 	const isTag = createMemo(() => {
+// 		return props.propertyType === "tags";
+// 	});
+
+// 	const removeTag = (value: string) => {
+// 		if (value.startsWith("#")) return value.slice(1);
+// 		return value;
+// 	};
+
+// 	const getAlign = () => {
+// 		const align = bctx.config.verticalAlignment;
+// 		if (align === "bottom") return "end";
+// 		if (align === "top") return "start";
+// 		return "center";
+// 	};
+
+// 	onMount(() => {
+// 		const { horizontalAlignment, multiTextPerRow } = bctx.config;
+
+// 		cmp = new ComboBoxComponent(
+// 			ref,
+// 			normalize(props.value as string[])
+// 		).onChange((v) => {
+// 			props.updateProperty(v);
+// 		});
+
+// 		const container = cmp.containerEl.find("div.multi-select-container");
+// 		if (!container) return;
+// 		// container.setAttribute(
+// 		// 	"style",
+// 		// 	`padding: 0px; align-items: ${getAlign()}; justify-content: ${horizontalAlignment}`
+// 		// );
+// 		const perRow = multiTextPerRow;
+// 		const basis = (100 / perRow).toFixed(5) + "%";
+// 		const gap = container.computedStyleMap().get("gap")?.toString();
+// 		setBasis(() => basis);
+// 		setGap(() => gap?.toString() ?? "");
+// 		// pills.forEach((el) => {
+// 		// 	el.setAttribute("style", `flex-basis: calc(${basis} - ${gap})`);
+// 		// 	const content = el.find("div.multi-select-pill-content");
+// 		// 	if (!content) return;
+// 		// 	content.setAttribute("style", "width: 100%;");
+// 		// });
+// 	});
+
+// 	onCleanup(() => {
+// 		component.unload();
+// 	});
+
+// 	return (
+// 		<div
+// 			ref={(r) => (ref = r)}
+// 			class='dataedit-combobox-container'
+// 			style={{
+// 				"padding": 0,
+// 				"align-items": getAlign(),
+// 				"justify-content": bctx.config.horizontalAlignment,
+// 				"--multitext-pill-basis": basis(),
+// 				"--multitext-pill-gap": gap(),
+// 			}}
+// 		></div>
+// 	);
+// };
+
+export const Combobox = (props: PropertyCommonProps) => {
 	const bctx = useBlock();
 	let ref: HTMLDivElement;
-	let cmp: ComboBoxComponent;
-	const [basis, setBasis] = createSignal("unset");
+	// const [basis, setBasis] = createSignal("unset");
+	// const [gap, setGap] = createSignal("unset");
 
-	const valueArr = createMemo(() => {
-		if (Array.isArray(props.value)) {
-			const v = props.value as DataviewPropertyValueArray;
-			return v;
-		}
-		const v = [props.value] as DataviewPropertyValueArray;
-		return v;
-	});
-
-	const normalize = (v: string | string[]) => {
-		if (Array.isArray(v)) return v;
-		return [v];
-	};
-
-	const isTag = createMemo(() => {
-		return props.propertyType === "tags";
-	});
-
-	const removeTag = (value: string) => {
-		if (value.startsWith("#")) return value.slice(1);
-		return value;
+	const normalize = (v: unknown) => {
+		const arr: unknown[] = Array.isArray(v) ? v : [v];
+		const normalArr = arr
+			.map((val) => tryDataviewLinkToMarkdown(val)?.toString() ?? undefined)
+			.filter((val) => val !== undefined);
+		return normalArr;
 	};
 
 	const getAlign = () => {
@@ -166,47 +249,72 @@ export const PropertyMultitext = (props: PropertyCommonProps) => {
 	};
 
 	createEffect(() => {
-		if (!cmp) return;
-		cmp.setValue(normalize(props.value as string[]));
-	});
+		if (!props.propertyType) return;
 
-	onMount(() => {
-		const { horizontalAlignment, multiTextPerRow } = bctx.config;
+		ref.empty();
 
-		cmp = new ComboBoxComponent(
+		bctx.plugin.app.metadataTypeManager.registeredTypeWidgets[
+			props.propertyType
+		].render(
 			ref,
-			normalize(props.value as string[])
-		).onChange((v) => {
-			props.updateProperty(v);
-		});
+			{
+				type: "text",
+				key: props.property,
+				value: normalize(props.value),
+			},
+			{
+				app: bctx.plugin.app,
 
-		const container = cmp.containerEl.find("div.multi-select-container");
-		if (!container) return;
-		// container.setAttribute(
-		// 	"style",
-		// 	`padding: 0px; align-items: ${getAlign()}; justify-content: ${horizontalAlignment}`
-		// );
-		const perRow = multiTextPerRow;
-		const basis = (100 / perRow).toFixed(5) + "%";
-		const gap = container.computedStyleMap().get("gap")?.toString();
-		setBasis(() => basis + "-" + gap);
-		// pills.forEach((el) => {
-		// 	el.setAttribute("style", `flex-basis: calc(${basis} - ${gap})`);
-		// 	const content = el.find("div.multi-select-pill-content");
-		// 	if (!content) return;
-		// 	content.setAttribute("style", "width: 100%;");
-		// });
+				metadataEditor:
+					// @ts-ignore
+					bctx.plugin.app.workspace.activeEditor?.leaf.view.metadataEditor ??
+					({} as MetadataEditor),
+				blur: () => {},
+				key: props.property,
+				onChange: async (v) => {
+					console.log("changed");
+					const oldArr = normalize(props.value);
+					const newArr = v as string[];
+					if (oldArr.length === newArr.length) {
+						const isSame = (v as string[]).every(
+							(s, i) => s === normalize(props.value)[i]
+						);
+						if (isSame) return;
+					}
+					await props.updateProperty(v);
+				},
+				sourcePath: bctx.ctx.sourcePath,
+			}
+		);
+
+		// window.setTimeout(() => {
+		// 	const container = ref.find("div.multi-select-container");
+		// 	const perRow = bctx.config.multiTextPerRow;
+		// 	if (!container || perRow <= 0) {
+		// 		setBasis(() => "unset");
+		// 		setGap(() => "unset");
+		// 		return;
+		// 	}
+		// 	const basis = (100 / perRow).toFixed(5) + "%";
+		// 	const gap = container.computedStyleMap().get("gap")?.toString();
+		// 	setBasis(() => basis);
+		// 	setGap(() => gap?.toString() ?? "");
+		// }, 0);
 	});
 
 	return (
 		<div
 			ref={(r) => (ref = r)}
-			class='dataedit-combobox-container'
+			data-property-key={props.propertyType}
+			class='dataedit-combobox-container metadata-property-value metadata-property'
 			style={{
 				"padding": 0,
 				"align-items": getAlign(),
 				"justify-content": bctx.config.horizontalAlignment,
-				"--test-var": basis(),
+				// "--multitext-pill-basis": basis(),
+				// "--multitext-pill-gap": gap(),
+				// "--max-width":
+				// 	basis() === "unset" && gap() === "unset" ? "300px" : "unset",
 			}}
 		></div>
 	);

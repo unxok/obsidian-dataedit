@@ -295,11 +295,14 @@ export const overrideEditButton = async (params: {
 						.setTitle("Configure")
 						.setIcon("wrench")
 						.onClick(() => {
-							new CodeBlockConfigModal(plugin.app, config, {
-								ctx,
-								el,
-								plugin,
-								source,
+							new CodeBlockConfigModal(plugin.app, config, (form) => {
+								setBlockConfig({
+									ctx,
+									el,
+									plugin,
+									source,
+									newConfig: form,
+								});
 							}).open();
 						})
 				)

@@ -20,5 +20,28 @@
       "defaultValue": "in-progress"
     }
   },
-  "refreshInterval": 250
+  "defaultConfig": {
+    "toolbarOrder": [
+      "results",
+      "pagination",
+      "horizontal-alignment",
+      "vertical-alignment"
+    ],
+    "containerClass": "",
+    "pageSize": 7,
+    "verticalAlignment": "top",
+    "horizontalAlignment": "left",
+    "useComboBox": true,
+    "typeIcons": true,
+    "typeIconLeft": true,
+    "dateLinkDaily": true,
+    "formatDates": false,
+    "currentPage": 0,
+    "showToolbar": true,
+    "frontmatterLinks": "",
+    "defaultFolder": "",
+    "defaultTemplate": ""
+  },
+  "refreshInterval": 250,
+  "updatesLimit": 20
 }

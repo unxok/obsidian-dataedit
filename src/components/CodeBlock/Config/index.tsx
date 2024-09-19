@@ -14,9 +14,10 @@ export type CodeBlockConfig = {
 	toolbarOrder: ToolbarItemName[];
 	containerClass: string;
 	pageSize: number;
-	multiTextPerRow: number;
+	// multiTextPerRow: number;
 	verticalAlignment: "top" | "middle" | "bottom";
 	horizontalAlignment: "left" | "center" | "right";
+	useComboBox: boolean;
 	typeIcons: boolean;
 	typeIconLeft: boolean;
 	dateLinkDaily: boolean;
@@ -38,9 +39,10 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
 	],
 	containerClass: "",
 	pageSize: 10,
-	multiTextPerRow: 3,
+	// multiTextPerRow: 3,
 	verticalAlignment: "top",
 	horizontalAlignment: "left",
+	useComboBox: true,
 	typeIcons: true,
 	typeIconLeft: true,
 	dateLinkDaily: true,
@@ -54,24 +56,29 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
 
 export class CodeBlockConfigModal extends SaveModal {
 	private form: CodeBlockConfig;
-	private setBlockConfigProps: Omit<SetBlockConfigProps, "newConfig">;
+	// private setBlockConfigProps: Omit<SetBlockConfigProps, "newConfig">;
+	private save: (form: CodeBlockConfig) => unknown;
 	constructor(
 		app: App,
 		form: CodeBlockConfig,
-		setBlockConfigProps: Omit<SetBlockConfigProps, "newConfig">
+		// setBlockConfigProps: Omit<SetBlockConfigProps, "newConfig">,
+		save: (form: CodeBlockConfig) => unknown
 	) {
 		super(app);
 		this.form = { ...form };
-		this.setBlockConfigProps = setBlockConfigProps;
+		// this.setBlockConfigProps = setBlockConfigProps;
+		this.save = save;
 	}
 
 	onSave(): void {
 		// this.updateConfig();
-		setBlockConfig({ ...this.setBlockConfigProps, newConfig: this.form });
+		// setBlockConfig({ ...this.setBlockConfigProps, newConfig: this.form });
+		this.save(this.form);
 	}
 
 	updateConfig(): void {
-		setBlockConfig({ ...this.setBlockConfigProps, newConfig: this.form });
+		// setBlockConfig({ ...this.setBlockConfigProps, newConfig: this.form });
+		this.save(this.form);
 		// so confirmation isn't triggered
 		this.isChanged = false;
 		this.close();
@@ -206,25 +213,29 @@ export class CodeBlockConfigModal extends SaveModal {
 
 				cmp.inputEl.setAttribute("type", "number");
 				cmp.inputEl.setAttribute("min", "0");
+				// for styling purposes
+				cmp.inputEl.setAttribute("max", "100");
 			});
 
-		new Setting(contentEl)
-			.setName("Multi-select per line limit")
-			.setDesc(
-				"Set the number of items per line within combo-box inputs for list type properties. Leave as 0 to have all be one line."
-			)
-			.addText((cmp) => {
-				cmp
-					.setValue(toNumber(form.multiTextPerRow, 0, 0).toString())
-					.onChange((v) => {
-						form.multiTextPerRow = pageSizeParser(v);
-						this.isChanged = true;
-					})
-					.setPlaceholder("unlimited");
+		// new Setting(contentEl)
+		// 	.setName("Multi-select per line limit")
+		// 	.setDesc(
+		// 		"Only matters if the toggle is above is on. Set the max number of items per line within combo-box inputs for list type properties. Set as 0 to have them all be one line."
+		// 	)
+		// 	.addText((cmp) => {
+		// 		cmp
+		// 			.setValue(toNumber(form.multiTextPerRow, 0, 0).toString())
+		// 			.onChange((v) => {
+		// 				form.multiTextPerRow = pageSizeParser(v);
+		// 				this.isChanged = true;
+		// 			})
+		// 			.setPlaceholder("unlimited");
 
-				cmp.inputEl.setAttribute("type", "number");
-				cmp.inputEl.setAttribute("min", "0");
-			});
+		// 		cmp.inputEl.setAttribute("type", "number");
+		// 		cmp.inputEl.setAttribute("min", "0");
+		// 		// for styling purposes
+		// 		cmp.inputEl.setAttribute("max", "100");
+		// 	});
 
 		/* dropdowns */
 		// form.verticalAlignment
@@ -267,6 +278,19 @@ export class CodeBlockConfigModal extends SaveModal {
 			);
 
 		/* toggles */
+
+		// form.useComboBox
+		new Setting(contentEl)
+			.setName("Use multi-select for lists")
+			.setDesc(
+				"Turn on to use a multi-select (really it's a combobox) for list property types. Otherwise, a standard vertical list editor will render."
+			)
+			.addToggle((cmp) => {
+				cmp.setValue(form.useComboBox).onChange((b) => {
+					this.form.useComboBox = b;
+					this.isChanged = true;
+				});
+			});
 
 		// form.typeIcons
 		new Setting(contentEl)

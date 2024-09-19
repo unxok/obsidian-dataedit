@@ -440,6 +440,28 @@ div.metadata-property-value {
 		display: inline-flex;
 		align-items: center;
 		max-width: 100%;
+		width: 100%;
+	}
+
+	div&-combobox-container {
+		/* td > & {
+			max-width: 300px;
+		} */
+		& div.multi-select-container {
+			max-width: var(--max-width);
+			padding: 0 !important;
+			align-items: inherit !important;
+			justify-content: inherit !important;
+			& div.multi-select-pill {
+				flex-basis: calc(
+					var(--multitext-pill-basis) - var(--multitext-pill-gap)
+				);
+				/* flex-basis: 33%; */
+				& div.multi-select-pill-content {
+					width: 100% !important;
+				}
+			}
+		}
 	}
 }
 
