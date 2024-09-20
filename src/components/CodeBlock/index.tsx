@@ -51,6 +51,7 @@ export type BlockContext = {
 	dataviewAPI: DataviewAPI;
 	uid: string;
 	hideLastId: boolean;
+	isDynamic: boolean;
 };
 const defaultBlockContext: BlockContext = {
 	plugin: {} as DataEdit,
@@ -62,12 +63,16 @@ const defaultBlockContext: BlockContext = {
 	dataviewAPI: {} as DataviewAPI,
 	uid: "",
 	hideLastId: false,
+	isDynamic: false,
 };
 const BlockContext = createContext<BlockContext>({ ...defaultBlockContext });
 
 export const useBlock = () => useContext(BlockContext);
 
 export const CodeBlock = (props: CodeBlockProps) => {
+	// If generated inside another markdown block like a callout or by something like Dataviewjs, info will be undefined
+	const isDynamic = !props.ctx.getSectionInfo(props.el);
+
 	const uid = createUniqueId();
 	const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
 	// const [idColIndex, setIdColIndex] = createSignal(0);
@@ -261,6 +266,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 					dataviewAPI: props.dataviewAPI,
 					uid: uid,
 					hideLastId: false,
+					isDynamic: isDynamic,
 				}}
 			>
 				<div style={{ "overflow-x": "auto", "height": "fit-content" }}>
@@ -271,8 +277,9 @@ export const CodeBlock = (props: CodeBlockProps) => {
 						propertyTypes={propertyTypes()}
 						// idColIndex={idColIndex()}
 						idColIndex={findIdColIndex(dataviewResult())}
+						isDynamic={isDynamic}
 					/>
-					<Show when={props.config.showToolbar}>
+					<Show when={!isDynamic && props.config.showToolbar}>
 						<Toolbar
 							{...pagination()}
 							app={props.plugin.app}

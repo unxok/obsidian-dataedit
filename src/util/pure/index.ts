@@ -214,3 +214,8 @@ export const checkIfDateHasTime = (dt: DateTime) => {
 	const isTime = dt.hour !== 0 || dt.minute !== 0 || dt.second !== 0;
 	return isTime;
 };
+
+export const splitBlock = (source: string) => {
+	const [query, config] = source.split(/\n^---$\n/m);
+	return [query ?? "", config ?? ""];
+};

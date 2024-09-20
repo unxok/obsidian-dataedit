@@ -13,6 +13,7 @@ import {
 	JSX,
 	onCleanup,
 	onMount,
+	Show,
 	useContext,
 } from "solid-js";
 import { useBlock } from "../CodeBlock";
@@ -25,7 +26,7 @@ import { PropertyHeader } from "../Property/Header";
 import { FileFolderSuggest, PropertySuggest } from "@/classes";
 import { PropertyData } from "../Property/PropertyData";
 import { moveColumn } from "@/util/mutation";
-import { getTableLine } from "@/util/pure";
+import { getTableLine, splitBlock } from "@/util/pure";
 
 type DragContextValue = {
 	draggedIndex: number;
@@ -65,6 +66,7 @@ export const Table = (props: {
 	values: DataviewQueryResultValues;
 	propertyTypes: PropertyType[];
 	idColIndex: number;
+	isDynamic: boolean;
 }) => {
 	const bctx = useBlock();
 	const [dragContext, setDragContext] = createStore<DragContextValue>({
@@ -139,12 +141,14 @@ export const Table = (props: {
 												propertyType={props.propertyTypes[index()]}
 												index={index()}
 											>
-												<ColumnReorderButton
-													property={item}
-													boundsArr={boundsArr()}
-													index={index()}
-													recordBounds={recordBounds}
-												/>
+												<Show when={!props.isDynamic}>
+													<ColumnReorderButton
+														property={item}
+														boundsArr={boundsArr()}
+														index={index()}
+														recordBounds={recordBounds}
+													/>
+												</Show>
 											</PropertyHeader>
 										</th>
 									)}
@@ -187,40 +191,42 @@ export const Table = (props: {
 							</For>
 						</tbody>
 					</table>
-					<div
-						class='dataedit-table-row-btn'
-						aria-label='Add row after'
-						onClick={() => {
-							const modal = new AddRowModal(
-								bctx.plugin.app,
-								bctx.config.defaultFolder,
-								bctx.config.defaultTemplate
-							);
-							modal.open();
-						}}
-					>
-						<Icon iconId='plus' />
-					</div>
-					<div
-						class='dataedit-table-col-btn'
-						aria-label='Add column after'
-						onClick={() => {
-							const { lineStart, lineEnd } =
-								bctx.ctx.getSectionInfo(bctx.el) ?? {};
-							if (!lineStart || !lineEnd) {
-								throw new Error("Could not find position of block");
-							}
-							const modal = new AddColumnModal(
-								bctx.plugin.app,
-								bctx.dataviewAPI,
-								bctx.source,
-								{ start: lineStart, end: lineEnd }
-							);
-							modal.open();
-						}}
-					>
-						<Icon iconId='plus' />
-					</div>
+					<Show when={!props.isDynamic}>
+						<div
+							class='dataedit-table-row-btn'
+							aria-label='Add row after'
+							onClick={() => {
+								const modal = new AddRowModal(
+									bctx.plugin.app,
+									bctx.config.defaultFolder,
+									bctx.config.defaultTemplate
+								);
+								modal.open();
+							}}
+						>
+							<Icon iconId='plus' />
+						</div>
+						<div
+							class='dataedit-table-col-btn'
+							aria-label='Add column after'
+							onClick={() => {
+								const { lineStart, lineEnd } =
+									bctx.ctx.getSectionInfo(bctx.el) ?? {};
+								if (!lineStart || !lineEnd) {
+									throw new Error("Could not find position of block");
+								}
+								const modal = new AddColumnModal(
+									bctx.plugin.app,
+									bctx.dataviewAPI,
+									bctx.source,
+									{ start: lineStart, end: lineEnd }
+								);
+								modal.open();
+							}}
+						>
+							<Icon iconId='plus' />
+						</div>
+					</Show>
 				</div>
 			</div>
 		</DragContext.Provider>
@@ -618,7 +624,8 @@ class AddColumnModal extends Modal {
 			// TODO handle better?
 			throw new Error("No editor for active editor found.");
 		}
-		const [query, config] = blockSource.split(/\n^---$\n/m);
+		const [query, config] = splitBlock(blockSource);
+		console.log("got config: ", config);
 		const { tableLine, rest } = getTableLine(query);
 		const noCurrentCols = tableLine.trim().toLowerCase() === "table";
 		const newCols = rowData.reduce((acc, { property, alias }, index) => {
@@ -629,8 +636,8 @@ class AddColumnModal extends Modal {
 			return acc + ", " + str;
 		}, "");
 		const newTable = tableLine + newCols;
-		const newSource = newTable + rest + "\n---\n" + config;
-		console.log("new source: ", newSource);
+		const configWithSeparator = config ? "\n---\n" + config : "";
+		const newSource = newTable + rest + configWithSeparator;
 		editor.replaceRange(
 			newSource,
 			{ line: start + 1, ch: 0 },

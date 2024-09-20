@@ -9,7 +9,12 @@
 
 import { BlockContext } from "@/components/CodeBlock";
 import { DropdownWidgetManager, ScrollFixer } from "@/classes";
-import { getTableLine, splitTableKeyword, arrayMove } from "../pure";
+import {
+	getTableLine,
+	splitTableKeyword,
+	arrayMove,
+	splitBlock,
+} from "../pure";
 import { REGEX_COMMA_NOT_IN_DOUBLE_QUOTES } from "../regex";
 import {
 	CodeBlockConfig,
@@ -220,7 +225,7 @@ export const overrideEditButton = async (params: {
 		// Have to wait for obsidian to render the usual button
 		await Promise.resolve();
 		const { source, el, plugin, ctx, config } = params;
-		const [queryStr, configStr] = source.split(/\n^---$\n/m);
+		const [queryStr, configStr] = splitBlock(source);
 		const btnEl = el.parentElement!.find("div.edit-block-button");
 		if (!btnEl) return;
 		const newBtn = document.createElement("div");

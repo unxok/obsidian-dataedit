@@ -35,6 +35,7 @@ import {
 	clampNumber,
 	getColumnPropertyNames,
 	getDataviewAPI,
+	splitBlock,
 	toNumber,
 } from "./util/pure/index.ts";
 import { updateMetadataProperty } from "./lib/util.ts";
@@ -58,28 +59,67 @@ export default class DataEdit extends Plugin {
 	propertyUpdates: PropertyUpdateRecord[] = [];
 	// used to track the current position in undo/redo history
 	propertyUpdatesIndex: number = 0;
+	async onload(): Promise<void> {
+		this.registerCodeBlockTester();
+		this.registerCommands();
 
-	onload(): void {
+		await this.loadSettings();
+		this.addSettingTab(new DataeditSettingTab(this.app, this));
+		this.registerDropdowns();
+		this.registerMd();
+		this.registerSlider();
+		this.registerStars();
+		this.registerColor();
+		this.registerToggle();
+		this.registerMdCBP();
+		this.devReload(); // TODO comment out when releasing
+	}
+
+	registerCodeBlockTester(): void {
+		this.registerMarkdownCodeBlockProcessor(
+			"line-number",
+			(source, el, ctx) => {
+				console.log("register called");
+				const initial = ctx.getSectionInfo(el);
+				const str =
+					"initial lines: " + initial?.lineStart + ", " + initial?.lineEnd;
+				el.setAttribute(
+					"style",
+					"display: flex; flex-direction: column; align-items: start; justify-content: start; border: 1px solid var(--interactive-accent); border-radius: var(--radius-m); padding: 5px;"
+				);
+				el.createEl("h5", { text: "Line number codeblock" });
+				el.createDiv({ text: source + str, cls: "clickable-icon" });
+				el.createEl("br");
+				el.createEl("button", { text: "get line numbers" }).addEventListener(
+					"click",
+					() => {
+						const info = ctx.getSectionInfo(el);
+						new Notice("start: " + info?.lineStart + ", end: " + info?.lineEnd);
+					}
+				);
+			}
+		);
+	}
+
+	// registerSettingTab(): void {}
+
+	registerCommands(): void {
 		this.addCommand({
 			id: "manage-dropdowns",
 			name: "Manage dropdowns",
 			callback: () => new DropdownWidgetManager(this).open(),
 		});
-		(async () => {
-			await this.loadSettings();
-			this.addSettingTab(new DataeditSettingTab(this.app, this));
-			this.registerDropdowns();
-			this.registerMd();
-			this.registerSlider();
-			this.registerStars();
-			this.registerColor();
-			this.registerToggle();
-			this.registerMdCBP();
-			this.devReload(); // TODO comment out when releasing
-		})();
+		this.addCommand({
+			id: "undo-update",
+			name: "Undo update",
+			callback: async () => await this.undoUpdate(),
+		});
+		this.addCommand({
+			id: "redo-update",
+			name: "Redo update",
+			callback: async () => await this.redoUpdate(),
+		});
 	}
-
-	registerSettingTab(): void {}
 
 	async loadSettings(): Promise<DataEditSettings> {
 		const s = await this.loadData();
@@ -518,7 +558,7 @@ export default class DataEdit extends Plugin {
 
 	registerMdCBP(): void {
 		this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
-			const [query, configStr = ""] = source.split(/\n^---$\n/m);
+			const [query, configStr] = splitBlock(source);
 
 			const propertyNames = getColumnPropertyNames(source);
 

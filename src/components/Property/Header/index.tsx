@@ -54,6 +54,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
     to edit/delete property when the property is dot notation (file.something, or a nested yaml property)
   */
 	const createMenu = () => {
+		const { isDynamic } = bctx;
 		const { metadataTypeManager } = bctx.plugin.app;
 		const typesObj = { ...metadataTypeManager.registeredTypeWidgets };
 		const customTypes = Object.keys(typesObj).filter((k) =>
@@ -76,6 +77,20 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 
 		typeKeys.push("unknown");
 		menu = new Menu();
+
+		isDynamic &&
+			menu
+				.addItem((item) =>
+					item
+						.setIsLabel(true)
+						.setTitle("Some options disabled")
+						.setIcon("x-circle")
+						.dom.setAttribute(
+							"aria-label",
+							"This block appears to be generated dynamically which restricts some options."
+						)
+				)
+				.addSeparator();
 
 		menu
 			.addItem((item) => {
@@ -101,7 +116,6 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 							.onClick(async () => {
 								if (typeKey === "unknown") {
 									await metadataTypeManager.unsetType(props.property);
-									console.log("should be unset");
 									return;
 								}
 								await metadataTypeManager.setType(props.property, typeKey);
@@ -122,6 +136,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 						);
 						modal.open();
 					})
+					.setDisabled(isDynamic)
 			)
 			.addItem((item) =>
 				item
@@ -155,6 +170,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 							bctx
 						).open();
 					})
+					.setDisabled(isDynamic)
 			)
 			.addItem((item) =>
 				item
