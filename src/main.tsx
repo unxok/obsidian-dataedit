@@ -79,7 +79,7 @@ export default class DataEdit extends Plugin {
 		this.registerMarkdownCodeBlockProcessor(
 			"line-number",
 			(source, el, ctx) => {
-				console.log("register called");
+				// console.log("register called");
 				const initial = ctx.getSectionInfo(el);
 				const str =
 					"initial lines: " + initial?.lineStart + ", " + initial?.lineEnd;
@@ -558,6 +558,8 @@ export default class DataEdit extends Plugin {
 
 	registerMdCBP(): void {
 		this.registerMarkdownCodeBlockProcessor("dataedit", (source, el, ctx) => {
+			// const isReading = el.closest("");
+
 			const [query, configStr] = splitBlock(source);
 
 			const propertyNames = getColumnPropertyNames(source);

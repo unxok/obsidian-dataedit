@@ -181,7 +181,7 @@ export const setBlockConfig = ({
 	source,
 }: SetBlockConfigProps) => {
 	const {
-		app: { workspace },
+		app: { workspace, vault },
 	} = plugin;
 	// turn into yaml text. Always includes a newline character at the end
 	const newConfigStr = stringifyYaml(config);
@@ -207,7 +207,18 @@ export const setBlockConfig = ({
 		{ line: lineStart, ch: 0 },
 		{ line: lineEnd, ch: NaN }
 	);
+
 	scrollFixer.fix();
+};
+
+const checkForReadingMode = (el: HTMLElement) => {
+	const leaf = el.closest("div.workspace-leaf-content[data-mode]");
+	if (!leaf) {
+		console.error("no leaf found");
+		return false;
+	}
+	const mode = leaf.getAttribute("data-mode");
+	return mode === "preview";
 };
 
 /**

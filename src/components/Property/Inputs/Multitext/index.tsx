@@ -227,14 +227,20 @@ export const Ul = (props: PropertyCommonProps) => {
 // 	);
 // };
 
+type MultiSelectComponent = Component & {
+	multiselect: {
+		inputEl: HTMLDivElement;
+		values: string[];
+	};
+};
+
 export const Combobox = (props: PropertyCommonProps) => {
 	const bctx = useBlock();
 	let ref: HTMLDivElement;
-	// const [basis, setBasis] = createSignal("unset");
-	// const [gap, setGap] = createSignal("unset");
+	let component: MultiSelectComponent;
 
 	const normalize = (v: unknown) => {
-		const arr: unknown[] = Array.isArray(v) ? v : [v];
+		const arr: unknown[] = Array.isArray(v) ? [...v] : [v];
 		const normalArr = arr
 			.map((val) => tryDataviewLinkToMarkdown(val)?.toString() ?? undefined)
 			.filter((val) => val !== undefined);
@@ -253,7 +259,7 @@ export const Combobox = (props: PropertyCommonProps) => {
 
 		ref.empty();
 
-		bctx.plugin.app.metadataTypeManager.registeredTypeWidgets[
+		component = bctx.plugin.app.metadataTypeManager.registeredTypeWidgets[
 			props.propertyType
 		].render(
 			ref,
@@ -272,6 +278,8 @@ export const Combobox = (props: PropertyCommonProps) => {
 				blur: () => {},
 				key: props.property,
 				onChange: async (v) => {
+					console.log("onChange");
+
 					const oldArr = normalize(props.value);
 					const newArr = v as string[];
 					if (oldArr.length === newArr.length) {
@@ -280,25 +288,29 @@ export const Combobox = (props: PropertyCommonProps) => {
 						);
 						if (isSame) return;
 					}
+					const inp = document.activeElement;
+					// if we update the property while still inside input, solid will remount causing it to lose focus since it gets replaced with new elements
+					if (
+						inp instanceof HTMLElement &&
+						inp?.classList.contains("multi-select-input")
+					) {
+						return;
+					}
 					await props.updateProperty(v);
 				},
 				sourcePath: bctx.ctx.sourcePath,
 			}
-		);
+		) as MultiSelectComponent;
+		// console.log("got component: ", component);
 
-		// window.setTimeout(() => {
-		// 	const container = ref.find("div.multi-select-container");
-		// 	const perRow = bctx.config.multiTextPerRow;
-		// 	if (!container || perRow <= 0) {
-		// 		setBasis(() => "unset");
-		// 		setGap(() => "unset");
-		// 		return;
-		// 	}
-		// 	const basis = (100 / perRow).toFixed(5) + "%";
-		// 	const gap = container.computedStyleMap().get("gap")?.toString();
-		// 	setBasis(() => basis);
-		// 	setGap(() => gap?.toString() ?? "");
-		// }, 0);
+		component.multiselect.inputEl.addEventListener("blur", async () => {
+			await props.updateProperty(component.multiselect.values);
+		});
+	});
+
+	onCleanup(() => {
+		if (!component) return;
+		component.unload();
 	});
 
 	return (

@@ -4,7 +4,7 @@ import {
 	DataviewQueryResult,
 	PropertyType,
 } from "@/lib/types";
-import { Table } from "@/components/Table";
+import { Cards, Table } from "@/components/Table";
 import { debounce, MarkdownPostProcessorContext, Notice } from "obsidian";
 import {
 	onMount,
@@ -52,6 +52,7 @@ export type BlockContext = {
 	uid: string;
 	hideLastId: boolean;
 	isDynamic: boolean;
+	checkForReading: () => boolean;
 };
 const defaultBlockContext: BlockContext = {
 	plugin: {} as DataEdit,
@@ -64,6 +65,7 @@ const defaultBlockContext: BlockContext = {
 	uid: "",
 	hideLastId: false,
 	isDynamic: false,
+	checkForReading: () => true,
 };
 const BlockContext = createContext<BlockContext>({ ...defaultBlockContext });
 
@@ -219,10 +221,31 @@ export const CodeBlock = (props: CodeBlockProps) => {
 	};
 
 	const debounceUpdateResults = debounce(
-		() => updateResults(),
+		async () => await updateResults(),
 		settingsSignal().refreshInterval,
 		true
 	);
+
+	const checkForReadingMode = () => {
+		const leaf = props.el.closest("div.workspace-leaf-content[data-mode]");
+		if (!leaf) {
+			console.error("no leaf found");
+			return false;
+		}
+		const mode = leaf.getAttribute("data-mode");
+		return mode === "preview";
+		// const leaf = props.el.closest("div.view-content");
+		// if (!leaf) {
+		// 	console.error("no leaf found");
+		// 	return false;
+		// }
+		// const reading = leaf.querySelector("div.markdown-reading-view");
+		// if (!reading) {
+		// 	console.error("no reading view container found");
+		// 	return false;
+		// }
+		// return reading.contains(props.el);
+	};
 
 	onMount(() => {
 		overrideEditButton({
@@ -232,7 +255,9 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			plugin: props.plugin,
 			source: props.source,
 		});
-		debounceUpdateResults();
+		// debounceUpdateResults();
+		updateResults();
+
 		registerDataviewEvents(props.plugin, debounceUpdateResults);
 		props.plugin.app.metadataTypeManager.on(
 			"changed",
@@ -254,6 +279,15 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			fallback={<ErrorBlock results={dataviewResult()} />}
 		>
 			{/* <ComboBox /> */}
+			{/* UID: {uid}
+			<button
+				onClick={() => {
+					const b = checkForReadingMode();
+					new Notice("Is reading mode: " + b);
+				}}
+			>
+				check for reading mode
+			</button> */}
 			<BlockContext.Provider
 				value={{
 					plugin: props.plugin,
@@ -267,10 +301,20 @@ export const CodeBlock = (props: CodeBlockProps) => {
 					uid: uid,
 					hideLastId: false,
 					isDynamic: isDynamic,
+					checkForReading: checkForReadingMode,
 				}}
 			>
 				<div style={{ "overflow-x": "auto", "height": "fit-content" }}>
-					<Table
+					{/* <Table
+						properties={props.propertyNames}
+						headers={dataviewResult().value!.headers}
+						values={dataviewResult().value!.values}
+						propertyTypes={propertyTypes()}
+						// idColIndex={idColIndex()}
+						idColIndex={findIdColIndex(dataviewResult())}
+						isDynamic={isDynamic}
+					/> */}
+					<Cards
 						properties={props.propertyNames}
 						headers={dataviewResult().value!.headers}
 						values={dataviewResult().value!.values}
@@ -284,12 +328,12 @@ export const CodeBlock = (props: CodeBlockProps) => {
 							{...pagination()}
 							app={props.plugin.app}
 							config={props.config}
-							updateBlockConfig={(
+							updateBlockConfig={async (
 								cb: (config: CodeBlockConfig) => CodeBlockConfig
 							) => {
 								const { ctx, el, plugin, source } = props;
 								const newConfig = cb(props.config);
-								setBlockConfig({
+								await setBlockConfig({
 									newConfig,
 									ctx,
 									el,
@@ -297,6 +341,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 									source,
 								});
 							}}
+							checkForReading={checkForReadingMode}
 						/>
 					</Show>
 				</div>

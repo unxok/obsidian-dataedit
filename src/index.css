@@ -6,48 +6,6 @@
 	margin: 0;
 }
 
-/* th:has(div.column-reorder-button) {
-  padding: 0%;
-  border: none;
-  background-color: transparent;
-  height: fit-content;
-  z-index: 1;
-}
-
-th:has(div.column-reorder-button[data-grabbing="true"]) {
-  z-index: 5;
-}
-
-th:has(div.column-reorder-button[data-hidden="true"]) {
-  opacity: 0;
-  z-index: -1;
-} */
-
-/* table.dataedit-table > thead > tr > th,
-table.dataedit-table > tbody > tr > td {
-  white-space: nowrap;
-} */
-
-/* div.metadata-property-value.dataedit:focus-within {
-  background-color: var(--metadata-input-background);
-}
-
-div.metadata-property-value.dataedit {
-  padding-inline-start: 5px;
-} */
-
-/* div.setting-item.dataedit-setting-item {
-  border-bottom: 1px solid var(--background-modifier-border);
-  margin-bottom: 26px;
-  cursor: pointer;
-} */
-
-/* div.dataedit-nested-setting-container {
-  padding-left: 34px;
-  padding-bottom: 16px;
-  background-color: aqua;
-} */
-
 /* METADATA INPUTS */
 div.metadata-property-value {
 	&:has(select.dropdown),
@@ -184,6 +142,7 @@ div.metadata-property-value {
 			padding: 0 !important;
 			font-size: inherit;
 			text-wrap: nowrap;
+			overflow-y: visible;
 		}
 	}
 
@@ -450,8 +409,8 @@ div.metadata-property-value {
 		& div.multi-select-container {
 			max-width: var(--max-width);
 			padding: 0 !important;
-			align-items: inherit !important;
-			justify-content: inherit !important;
+			align-items: inherit;
+			justify-content: inherit;
 			& div.multi-select-pill {
 				flex-basis: calc(
 					var(--multitext-pill-basis) - var(--multitext-pill-gap)
@@ -459,6 +418,41 @@ div.metadata-property-value {
 				/* flex-basis: 33%; */
 				& div.multi-select-pill-content {
 					width: 100% !important;
+				}
+			}
+		}
+	}
+
+	&-card-container {
+		display: flex;
+		gap: 10px;
+		align-items: stretch;
+		justify-content: stretch;
+
+		& .dataedit-card {
+			background-color: var(--background-primary-alt);
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			flex: 1 1 0;
+			align-items: center;
+			justify-content: start;
+			border: var(--border-width) solid var(--background-modifier-border);
+			padding: 12px;
+			border-radius: var(--radius-m);
+
+			& .dataedit-card-row {
+				width: 100%;
+				display: flex;
+				align-items: center;
+				gap: 1ch;
+
+				& .multi-select-container {
+					align-items: center;
+				}
+
+				& div.dataedit-number-buttons-container {
+					display: inline-flex;
 				}
 			}
 		}

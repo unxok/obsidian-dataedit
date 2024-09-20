@@ -1,8 +1,9 @@
 import { useBlock } from "@/components/CodeBlock";
-import { createEffect, JSXElement, onMount } from "solid-js";
+import { createEffect, JSXElement, onCleanup, onMount } from "solid-js";
 import {
 	AbstractInputSuggest,
 	App,
+	Component,
 	HeadingCache,
 	SearchResult,
 	SectionCache,
@@ -17,6 +18,7 @@ export const PropertyText = (
 ) => {
 	const bctx = useBlock();
 	let ref: HTMLDivElement;
+	let component: Component;
 
 	createEffect(() => {
 		/*
@@ -37,7 +39,9 @@ export const PropertyText = (
 
 		ref.empty();
 
-		bctx.plugin.app.metadataTypeManager.registeredTypeWidgets["text"].render(
+		component = bctx.plugin.app.metadataTypeManager.registeredTypeWidgets[
+			"text"
+		].render(
 			ref,
 			{
 				type: "text",
@@ -58,14 +62,13 @@ export const PropertyText = (
 				},
 				sourcePath: bctx.ctx.sourcePath,
 			}
-		);
+		) as Component;
 	});
 
-	// createEffect(() => {
-	// 	const el = ref.find("div.metadata-input-longtext.mod-truncate");
-	// 	if (!el) return;
-	// 	el.textContent = props.value as string;
-	// });
+	onCleanup(() => {
+		if (!component) return;
+		component.unload();
+	});
 
 	return (
 		<div

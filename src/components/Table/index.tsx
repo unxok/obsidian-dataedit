@@ -22,7 +22,7 @@ import { Icon } from "@/components/Icon";
 import { DOMElement } from "solid-js/jsx-runtime";
 import { App, Modal, Notice, SearchComponent, Setting } from "obsidian";
 import { createStore } from "solid-js/store";
-import { PropertyHeader } from "../Property/Header";
+import { PropertyHeader, PropertyHeaderIcon } from "../Property/Header";
 import { FileFolderSuggest, PropertySuggest } from "@/classes";
 import { PropertyData } from "../Property/PropertyData";
 import { moveColumn } from "@/util/mutation";
@@ -210,6 +210,11 @@ export const Table = (props: {
 							class='dataedit-table-col-btn'
 							aria-label='Add column after'
 							onClick={() => {
+								const isReading = bctx.checkForReading();
+								if (isReading) {
+									new Notice("Feature not available in reading mode");
+									return;
+								}
 								const { lineStart, lineEnd } =
 									bctx.ctx.getSectionInfo(bctx.el) ?? {};
 								if (!lineStart || !lineEnd) {
@@ -230,6 +235,96 @@ export const Table = (props: {
 				</div>
 			</div>
 		</DragContext.Provider>
+	);
+};
+
+export const Cards = (props: {
+	properties: string[];
+	headers: string[];
+	values: DataviewQueryResultValues;
+	propertyTypes: PropertyType[];
+	idColIndex: number;
+	isDynamic: boolean;
+}) => {
+	const bctx = useBlock();
+
+	const getAlign = () => {
+		const align = bctx.config.verticalAlignment;
+		if (align === "bottom") return "end";
+		if (align === "middle") return "center";
+		return "start";
+	};
+	const getHorizontal = () => {
+		return bctx.config.horizontalAlignment;
+	};
+
+	const getFilePath = (rowIndex: number) => {
+		const fileColValue = props.values[rowIndex][props.idColIndex];
+
+		let filePath = "";
+		if (checkIfDataviewLink(fileColValue)) {
+			filePath = (fileColValue as DataviewLink).path;
+		}
+		return filePath;
+	};
+
+	const overrideIcon = (property: string, header: string) => {
+		if (
+			property === "file.link" ||
+			header === bctx.dataviewAPI.settings.tableIdColumnName
+		)
+			return "file";
+		if (property === "file.ctime") {
+			return "file-clock";
+		}
+		if (property === "file.mtime") {
+			return "file-edit";
+		}
+		if (property.startsWith("file")) {
+			return "file-type";
+		}
+		return undefined;
+	};
+
+	return (
+		<div data-dataedit-scroll-el={true}>
+			<div>
+				<div class='dataedit-card-container'>
+					<For each={props.values}>
+						{(row, rowIndex) => (
+							<div class='dataedit-card'>
+								<For each={row}>
+									{(item, itemIndex) => (
+										<div
+											class='dataedit-card-row'
+											style={{
+												// "align-items": getAlign(),
+												"justify-content": getHorizontal(),
+											}}
+										>
+											<PropertyHeaderIcon
+												propertyType={props.propertyTypes[itemIndex()]}
+												overrideIcon={overrideIcon(
+													props.properties[itemIndex()],
+													props.headers[itemIndex()]
+												)}
+											/>
+											<PropertyData
+												property={props.properties[itemIndex()]}
+												value={item}
+												propertyType={props.propertyTypes[itemIndex()]}
+												header={props.headers[itemIndex()]}
+												filePath={getFilePath(rowIndex())}
+											/>
+										</div>
+									)}
+								</For>
+							</div>
+						)}
+					</For>
+				</div>
+			</div>
+		</div>
 	);
 };
 
@@ -306,6 +401,13 @@ const ColumnReorderButton = (props: {
 		}
 	) => {
 		e.preventDefault();
+
+		const isReading = bctx.checkForReading();
+		if (isReading) {
+			new Notice("Feature not available in reading mode");
+			return;
+		}
+
 		dragCtx.setContext(() => ({
 			draggedIndex: props.index,
 			draggedOverIndex: props.index,

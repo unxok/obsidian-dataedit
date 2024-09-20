@@ -1,5 +1,5 @@
 import { toNumber } from "@/util/pure";
-import { App, Menu, Modal, TextComponent, Setting } from "obsidian";
+import { App, Menu, Modal, TextComponent, Setting, Notice } from "obsidian";
 import { createMemo, For, Match, Show, Switch } from "solid-js";
 import { CodeBlockConfig, ToolbarItemName } from "../CodeBlock/Config";
 import { HorizontalAlignmentButton } from "./HorizontalAlignmentButton";
@@ -24,6 +24,7 @@ type ToolbarProps = Pagination & {
 	app: App;
 	config: CodeBlockConfig;
 	updateBlockConfig: (cb: (config: CodeBlockConfig) => CodeBlockConfig) => void;
+	checkForReading: () => boolean;
 };
 
 export const Toolbar = (props: ToolbarProps) => {
@@ -43,6 +44,7 @@ export const Toolbar = (props: ToolbarProps) => {
 		const currentPage = trueCurrentPage();
 		const offset = isForward ? 1 : -1;
 		const newPage = currentPage + offset;
+		if (newPage >= props.pageCount || newPage < 0) return;
 		props.updateBlockConfig((prev) => ({ ...prev, currentPage: newPage }));
 	};
 
@@ -119,7 +121,9 @@ export const Toolbar = (props: ToolbarProps) => {
 						<Match when={item === "results"}>
 							<Results
 								resultDivRef={(r) => (pageResultDiv = r)}
-								onClick={(e) => createPageResultMenu(e)}
+								onClick={(e) => {
+									createPageResultMenu(e);
+								}}
 								pageSize={props.config.pageSize}
 								resultCount={props.resultCount}
 							>

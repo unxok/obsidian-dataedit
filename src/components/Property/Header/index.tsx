@@ -21,7 +21,7 @@ export type PropertyHeaderProps = {
 };
 export const PropertyHeader = (props: PropertyHeaderProps) => {
 	const bctx = useBlock();
-	let menu: Menu;
+	// let menu: Menu;
 
 	const isFile = () => {
 		const a = props.property === "file.link";
@@ -54,7 +54,9 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
     to edit/delete property when the property is dot notation (file.something, or a nested yaml property)
   */
 	const createMenu = () => {
-		const { isDynamic } = bctx;
+		const { isDynamic, checkForReading } = bctx;
+		const isReading = checkForReading();
+		const isRestricted = isDynamic || isReading;
 		const { metadataTypeManager } = bctx.plugin.app;
 		const typesObj = { ...metadataTypeManager.registeredTypeWidgets };
 		const customTypes = Object.keys(typesObj).filter((k) =>
@@ -76,9 +78,9 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 		);
 
 		typeKeys.push("unknown");
-		menu = new Menu();
+		const menu = new Menu();
 
-		isDynamic &&
+		isRestricted &&
 			menu
 				.addItem((item) =>
 					item
@@ -87,7 +89,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 						.setIcon("x-circle")
 						.dom.setAttribute(
 							"aria-label",
-							"This block appears to be generated dynamically which restricts some options."
+							"This block appears to be generated dynamically or in reading mode, which restricts some options."
 						)
 				)
 				.addSeparator();
@@ -136,7 +138,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 						);
 						modal.open();
 					})
-					.setDisabled(isDynamic)
+					.setDisabled(isRestricted)
 			)
 			.addItem((item) =>
 				item
@@ -170,7 +172,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 							bctx
 						).open();
 					})
-					.setDisabled(isDynamic)
+					.setDisabled(isRestricted)
 			)
 			.addItem((item) =>
 				item
@@ -186,11 +188,13 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 						).open();
 					})
 			);
+
+		return menu;
 	};
 
-	createEffect(() => {
-		createMenu();
-	});
+	// createEffect(() => {
+	// 	createMenu();
+	// });
 
 	return (
 		<div
@@ -198,9 +202,8 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 				const attr = e.target.getAttribute(
 					"data-dataedit-column-reorder-button"
 				);
-				if (attr !== null) return;
-
-				!isDefaultIdCol() && menu.showAtMouseEvent(e);
+				if (attr !== null || isDefaultIdCol()) return;
+				createMenu().showAtMouseEvent(e);
 			}}
 			classList={{ "dataedit-property-header": !isDefaultIdCol() }}
 			style={{
@@ -216,7 +219,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 			{props.children}
 			<Show when={bctx.config.typeIcons && bctx.config.typeIconLeft}>
 				<PropertyHeaderIcon
-					{...props}
+					propertyType={props.propertyType}
 					overrideIcon={overrideIcon()}
 				/>
 			</Show>
@@ -229,7 +232,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 			/>
 			<Show when={bctx.config.typeIcons && !bctx.config.typeIconLeft}>
 				<PropertyHeaderIcon
-					{...props}
+					propertyType={props.propertyType}
 					overrideIcon={overrideIcon()}
 				/>
 			</Show>
@@ -237,9 +240,10 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 	);
 };
 
-const PropertyHeaderIcon = (
-	props: PropertyHeaderProps & { overrideIcon?: string }
-) => {
+export const PropertyHeaderIcon = (props: {
+	propertyType: PropertyType;
+	overrideIcon?: string;
+}) => {
 	return (
 		<Show
 			when={props.overrideIcon}
