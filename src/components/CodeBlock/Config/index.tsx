@@ -2,7 +2,7 @@ import { FileFolderSuggest, PropertySuggest } from "@/classes";
 import { SaveModal } from "@/classes/SaveModal";
 import { setBlockConfig, SetBlockConfigProps } from "@/util/mutation";
 import { toNumber } from "@/util/pure";
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal, setIcon, Setting } from "obsidian";
 
 export type ToolbarItemName =
 	| "results"
@@ -28,6 +28,12 @@ export type CodeBlockConfig = {
 	defaultTemplate: string;
 	/** Not meant to be modified in modal */
 	currentPage: number;
+	/* Cards */
+	cardsView: boolean;
+	cardsWrap: boolean;
+	cardsWidth: string;
+	cardsMinWidth: string;
+	cardsMaxWidth: string;
 };
 
 export const defaultCodeBlockConfig: CodeBlockConfig = {
@@ -52,6 +58,12 @@ export const defaultCodeBlockConfig: CodeBlockConfig = {
 	frontmatterLinks: "",
 	defaultFolder: "",
 	defaultTemplate: "",
+	// cards
+	cardsView: false,
+	cardsWrap: false,
+	cardsWidth: "fit-content",
+	cardsMinWidth: "unset",
+	cardsMaxWidth: "unset",
 };
 
 export class CodeBlockConfigModal extends SaveModal {
@@ -70,292 +82,347 @@ export class CodeBlockConfigModal extends SaveModal {
 		this.save = save;
 	}
 
+	onOpen(): void {
+		this.setTitle("Configure block");
+		const { contentEl } = this;
+		contentEl
+			.createEl("p")
+			.setText("Modify the configuration options for this block.");
+
+		this.createGeneral();
+		this.createCards();
+		this.createFooter();
+	}
+
 	onSave(): void {
-		// this.updateConfig();
-		// setBlockConfig({ ...this.setBlockConfigProps, newConfig: this.form });
 		this.save(this.form);
 	}
 
 	updateConfig(): void {
-		// setBlockConfig({ ...this.setBlockConfigProps, newConfig: this.form });
 		this.save(this.form);
 		// so confirmation isn't triggered
 		this.isChanged = false;
 		this.close();
 	}
 
-	onOpen(): void {
-		this.setTitle("Configure block");
-		const { contentEl, form } = this;
-		contentEl
-			.createEl("p")
-			.setText("Modify the configuration options for this block.");
+	createSection(
+		name: string,
+		callback: (contentEl: HTMLElement) => void
+	): void {
+		const sectionSetting = new Setting(this.contentEl)
+			.setHeading()
+			.setName(name)
+			.setClass("dataedit-setting-heading-collapsible");
+		const sectionEl = this.contentEl.createDiv({
+			attr: { style: "display: none;" },
+		});
+		const collapseIcon = createDiv();
+		setIcon(collapseIcon, "chevron-right");
+		sectionSetting.infoEl.insertAdjacentElement("afterbegin", collapseIcon);
 
-		// TODO do this
-		// const createToolbarItem = (container: HTMLElement, name: string) => {
-		// 	const el = container.createDiv({
-		// 		cls: "dataedit-config-toolbar-item-container",
-		// 	});
-		// 	const upDownContainer = el.createSpan({
-		// 		cls: "dataedit-config-toolbar-item-container",
-		// 	});
-		// 	const up = upDownContainer.createSpan({ cls: "clickable-icon" });
-		// 	setIcon(up, "chevron-up");
-		// 	const down = upDownContainer.createSpan({ cls: "clickable-icon" });
-		// 	setIcon(down, "chevron-down");
-		// 	el.createSpan({ text: toFirstUpperCase(name) });
-		// 	const x = el.createSpan({ cls: "clickable-icon" });
-		// 	setIcon(x, "cross");
-		// };
+		sectionSetting.settingEl.addEventListener("click", () => {
+			const isHidden = sectionEl.style.display === "none";
+			if (isHidden) {
+				setIcon(collapseIcon, "chevron-down");
+				return (sectionEl.style.display = "block");
+			}
+			setIcon(collapseIcon, "chevron-right");
+			sectionEl.style.display = "none";
+		});
 
-		// const toolbarSetting = new Setting(contentEl).setName("Toolbar").setDesc("Use the buttons");
-		// const toolbarItemContainer = toolbarSetting.controlEl.createEl("table", {
-		// 	cls: "dataedit-nested-setting-container",
-		// });
-		// form.toolbarOrder.forEach((v) =>
-		// 	createToolbarItem(toolbarItemContainer, v)
-		// );
+		callback(sectionEl);
+	}
 
-		/* search */
+	createGeneral(): void {
+		const { form } = this;
+		this.createSection("General", (contentEl) => {
+			/* search */
 
-		new Setting(contentEl)
-			.setName("Default folder")
-			.setDesc(
-				"The full path to the default folder to use when creating new notes from the block."
-			)
-			.addSearch((cmp) => {
-				cmp
-					.setValue(form.defaultFolder)
-					.setPlaceholder("path/to/folder")
-					.onChange((v) => {
-						form.defaultFolder = v;
+			new Setting(contentEl)
+				.setName("Default folder")
+				.setDesc(
+					"The full path to the default folder to use when creating new notes from the block."
+				)
+				.addSearch((cmp) => {
+					cmp
+						.setValue(form.defaultFolder)
+						.setPlaceholder("path/to/folder")
+						.onChange((v) => {
+							form.defaultFolder = v;
+							this.isChanged = true;
+						});
+
+					new FileFolderSuggest(this.app, cmp, "folders");
+				});
+
+			new Setting(contentEl)
+				.setName("Default template")
+				.setDesc(
+					"The full path to the default template to use when creating new notes from the block."
+				)
+				.addSearch((cmp) => {
+					cmp
+						.setValue(form.defaultTemplate)
+						.setPlaceholder("path/to/template.md")
+						.onChange((v) => {
+							form.defaultTemplate = v;
+							this.isChanged = true;
+						});
+
+					new FileFolderSuggest(this.app, cmp, "files");
+				});
+
+			/* text */
+			new Setting(contentEl)
+				.setName("Container CSS class")
+				.setDesc(
+					"Append the code block container (div.block-language-dataedit) with additional CSS classes. To add multiple classes, just separate each name with a space."
+				)
+				.addText((cmp) =>
+					cmp
+						.setValue(form.containerClass)
+						.setPlaceholder("cls-one clsTwo")
+						.onChange((v) => {
+							form.containerClass = v;
+							this.isChanged = true;
+						})
+				);
+
+			new Setting(contentEl)
+				.setName("Frontmatter links property name")
+				.setDesc(
+					"If not blank, the block will update this note's frontmatter with links to all files returned in the query. The property it update's will be what you set here."
+				)
+				.addSearch((cmp) => {
+					cmp.setValue(form.frontmatterLinks).onChange((v) => {
+						form.frontmatterLinks = v;
 						this.isChanged = true;
 					});
 
-				new FileFolderSuggest(this.app, cmp, "folders");
-			});
+					new PropertySuggest(this.app, cmp);
+				})
+				.then((s) => {
+					s.descEl.createEl("br");
+					s.descEl.createEl("br");
+					s.descEl.createDiv({
+						attr: { style: "color: var(--text-error)" },
+						text: "Warning: If you have two blocks in the same note with the same property name for this setting, it will cause an inifinite loop and crash Obsidian!",
+					});
+				});
+			const pageSizeParser = (v: unknown) => {
+				const possibleNaN = Number(v);
+				const possibleFloat = Number.isNaN(possibleNaN) ? 0 : possibleNaN;
+				const integer = Math.floor(possibleFloat);
+				if (integer < 0) return 0;
+				return integer;
+			};
 
-		new Setting(contentEl)
-			.setName("Default template")
-			.setDesc(
-				"The full path to the default template to use when creating new notes from the block."
-			)
-			.addSearch((cmp) => {
-				cmp
-					.setValue(form.defaultTemplate)
-					.setPlaceholder("path/to/template.md")
-					.onChange((v) => {
-						form.defaultTemplate = v;
+			new Setting(contentEl)
+				.setName("Page size")
+				.setDesc(
+					"Set the number of results that will display per page. Set to zero to have no limit and to hide pagination controls."
+				)
+				.addText((cmp) => {
+					cmp
+						.setValue(pageSizeParser(form.pageSize).toString())
+						.onChange((v) => {
+							form.pageSize = pageSizeParser(v);
+							this.isChanged = true;
+						})
+						.setPlaceholder("unlimited");
+
+					cmp.inputEl.setAttribute("type", "number");
+					cmp.inputEl.setAttribute("min", "0");
+					// for styling purposes
+					cmp.inputEl.setAttribute("max", "100");
+				});
+
+			/* dropdowns */
+			// form.verticalAlignment
+			new Setting(contentEl)
+				.setName("Vertical alignment")
+				.setDesc("Set the vertical alignment of text")
+				.addDropdown((cmp) =>
+					cmp
+						.addOptions({
+							// value: label
+							top: "top",
+							middle: "middle",
+							bottom: "bottom",
+						} as Record<CodeBlockConfig["verticalAlignment"], string>)
+						.setValue(this.form.verticalAlignment)
+						.onChange((v) => {
+							this.form.verticalAlignment =
+								v as CodeBlockConfig["verticalAlignment"];
+							this.isChanged = true;
+						})
+				);
+			// form.horizontalAlignment
+			new Setting(contentEl)
+				.setName("Horizontal alignment")
+				.setDesc("Set the horizontal alignment of text.")
+				.addDropdown((cmp) =>
+					cmp
+						.addOptions({
+							// value: label
+							left: "left",
+							center: "center",
+							right: "right",
+						} as Record<CodeBlockConfig["horizontalAlignment"], string>)
+						.setValue(this.form.horizontalAlignment)
+						.onChange((v) => {
+							this.form.horizontalAlignment =
+								v as CodeBlockConfig["horizontalAlignment"];
+							this.isChanged = true;
+						})
+				);
+
+			/* toggles */
+
+			// form.useComboBox
+			new Setting(contentEl)
+				.setName("Use multi-select for lists")
+				.setDesc(
+					"Turn on to use a multi-select (really it's a combobox) for list property types. Otherwise, a standard vertical list editor will render."
+				)
+				.addToggle((cmp) => {
+					cmp.setValue(form.useComboBox).onChange((b) => {
+						this.form.useComboBox = b;
 						this.isChanged = true;
 					});
-
-				new FileFolderSuggest(this.app, cmp, "files");
-			});
-
-		/* text */
-		new Setting(contentEl)
-			.setName("Container CSS class")
-			.setDesc(
-				"Append the code block container (div.block-language-dataedit) with additional CSS classes. To add multiple classes, just separate each name with a space."
-			)
-			.addText((cmp) =>
-				cmp
-					.setValue(form.containerClass)
-					.setPlaceholder("cls-one clsTwo")
-					.onChange((v) => {
-						form.containerClass = v;
-						this.isChanged = true;
-					})
-			);
-
-		new Setting(contentEl)
-			.setName("Frontmatter links property name")
-			.setDesc(
-				"If not blank, the block will update this note's frontmatter with links to all files returned in the query. The property it update's will be what you set here."
-			)
-			.addSearch((cmp) => {
-				cmp.setValue(form.frontmatterLinks).onChange((v) => {
-					form.frontmatterLinks = v;
-					this.isChanged = true;
 				});
 
-				new PropertySuggest(this.app, cmp);
-			})
-			.then((s) => {
-				s.descEl.createEl("br");
-				s.descEl.createEl("br");
-				s.descEl.createDiv({
-					attr: { style: "color: var(--text-error)" },
-					text: "Warning: If you have two blocks in the same note with the same property name for this setting, it will cause an inifinite loop and crash Obsidian!",
-				});
-			});
-		const pageSizeParser = (v: unknown) => {
-			const possibleNaN = Number(v);
-			const possibleFloat = Number.isNaN(possibleNaN) ? 0 : possibleNaN;
-			const integer = Math.floor(possibleFloat);
-			if (integer < 0) return 0;
-			return integer;
-		};
-
-		new Setting(contentEl)
-			.setName("Page size")
-			.setDesc(
-				"Set the number of results that will display per page. Set to zero to have no limit and to hide pagination controls."
-			)
-			.addText((cmp) => {
-				cmp
-					.setValue(pageSizeParser(form.pageSize).toString())
-					.onChange((v) => {
-						form.pageSize = pageSizeParser(v);
+			// form.typeIcons
+			new Setting(contentEl)
+				.setName("Show property type icons")
+				.setDesc(
+					"Turn on to display an icon corresponding with the property's type."
+				)
+				.addToggle((cmp) =>
+					cmp.setValue(form.typeIcons).onChange((b) => {
+						form.typeIcons = b;
 						this.isChanged = true;
 					})
-					.setPlaceholder("unlimited");
+				);
 
-				cmp.inputEl.setAttribute("type", "number");
-				cmp.inputEl.setAttribute("min", "0");
-				// for styling purposes
-				cmp.inputEl.setAttribute("max", "100");
-			});
-
-		// new Setting(contentEl)
-		// 	.setName("Multi-select per line limit")
-		// 	.setDesc(
-		// 		"Only matters if the toggle is above is on. Set the max number of items per line within combo-box inputs for list type properties. Set as 0 to have them all be one line."
-		// 	)
-		// 	.addText((cmp) => {
-		// 		cmp
-		// 			.setValue(toNumber(form.multiTextPerRow, 0, 0).toString())
-		// 			.onChange((v) => {
-		// 				form.multiTextPerRow = pageSizeParser(v);
-		// 				this.isChanged = true;
-		// 			})
-		// 			.setPlaceholder("unlimited");
-
-		// 		cmp.inputEl.setAttribute("type", "number");
-		// 		cmp.inputEl.setAttribute("min", "0");
-		// 		// for styling purposes
-		// 		cmp.inputEl.setAttribute("max", "100");
-		// 	});
-
-		/* dropdowns */
-		// form.verticalAlignment
-		new Setting(contentEl)
-			.setName("Vertical alignment")
-			.setDesc("Set the vertical alignment of text")
-			.addDropdown((cmp) =>
-				cmp
-					.addOptions({
-						// value: label
-						top: "top",
-						middle: "middle",
-						bottom: "bottom",
-					} as Record<CodeBlockConfig["verticalAlignment"], string>)
-					.setValue(this.form.verticalAlignment)
-					.onChange((v) => {
-						this.form.verticalAlignment =
-							v as CodeBlockConfig["verticalAlignment"];
+			// form.showToolbar
+			new Setting(contentEl)
+				.setName("Show toolbar")
+				.setDesc(
+					"You can also toggle visibility from the block config popup menu"
+				)
+				.addToggle((cmp) =>
+					cmp.setValue(form.showToolbar).onChange((b) => {
+						form.showToolbar = b;
 						this.isChanged = true;
 					})
-			);
-		// form.horizontalAlignment
-		new Setting(contentEl)
-			.setName("Horizontal alignment")
-			.setDesc("Set the horizontal alignment of text.")
-			.addDropdown((cmp) =>
-				cmp
-					.addOptions({
-						// value: label
-						left: "left",
-						center: "center",
-						right: "right",
-					} as Record<CodeBlockConfig["horizontalAlignment"], string>)
-					.setValue(this.form.horizontalAlignment)
-					.onChange((v) => {
-						this.form.horizontalAlignment =
-							v as CodeBlockConfig["horizontalAlignment"];
+				);
+
+			// form.typeIconLeft
+			new Setting(contentEl)
+				.setName("Property type icon on left")
+				.setDesc(
+					"Turn on to display type icons to the left of the header text. Turn off to display on the right."
+				)
+				.addToggle((cmp) =>
+					cmp.setValue(form.typeIconLeft).onChange((b) => {
+						form.typeIconLeft = b;
 						this.isChanged = true;
 					})
-			);
+				);
 
-		/* toggles */
+			// form.dateLinkDaily
+			new Setting(contentEl)
+				.setName("Link to daily note for dates")
+				.setDesc(
+					"Turn on to show an icon with a link to the dialy note for date properties."
+				)
+				.addToggle((cmp) =>
+					cmp.setValue(form.dateLinkDaily).onChange((b) => {
+						form.dateLinkDaily = b;
+						this.isChanged = true;
+					})
+				);
 
-		// form.useComboBox
-		new Setting(contentEl)
-			.setName("Use multi-select for lists")
-			.setDesc(
-				"Turn on to use a multi-select (really it's a combobox) for list property types. Otherwise, a standard vertical list editor will render."
-			)
-			.addToggle((cmp) => {
-				cmp.setValue(form.useComboBox).onChange((b) => {
-					this.form.useComboBox = b;
-					this.isChanged = true;
-				});
-			});
+			// form.formatDates
+			new Setting(contentEl)
+				.setName("Format dates from Dataview")
+				.setDesc(
+					"Turn on to format date and datetime properties according to your settings in the Dataview plugin when not actively editing the property."
+				)
+				.addToggle((cmp) =>
+					cmp.setValue(form.formatDates).onChange((b) => {
+						form.formatDates = b;
+						this.isChanged = true;
+					})
+				);
+		});
+	}
 
-		// form.typeIcons
-		new Setting(contentEl)
-			.setName("Show property type icons")
-			.setDesc(
-				"Turn on to display an icon corresponding with the property's type."
-			)
-			.addToggle((cmp) =>
-				cmp.setValue(form.typeIcons).onChange((b) => {
-					form.typeIcons = b;
-					this.isChanged = true;
-				})
-			);
+	createCards(): void {
+		const { form } = this;
+		this.createSection("Cards", (contentEl) => {
+			new Setting(contentEl)
+				.setName("Cards view")
+				.setDesc("Turn on to display cards rather than the default table view.")
+				.addToggle((cmp) =>
+					cmp.setValue(form.cardsView).onChange((b) => {
+						form.cardsView = b;
+						this.isChanged = true;
+					})
+				);
 
-		// form.showToolbar
-		new Setting(contentEl)
-			.setName("Show toolbar")
-			.setDesc(
-				"You can also toggle visibility from the block config popup menu"
-			)
-			.addToggle((cmp) =>
-				cmp.setValue(form.showToolbar).onChange((b) => {
-					form.showToolbar = b;
-					this.isChanged = true;
-				})
-			);
+			new Setting(contentEl)
+				.setName("Wrap lines")
+				.setDesc(
+					"Turn on to to allow the row of cards to wrap to new lines if needed. Otherwise it will always be on one line with a scrollbar if needed."
+				)
+				.addToggle((cmp) =>
+					cmp.setValue(form.cardsWrap).onChange((b) => {
+						form.cardsWrap = b;
+						this.isChanged = true;
+					})
+				);
 
-		// form.typeIconLeft
-		new Setting(contentEl)
-			.setName("Property type icon on left")
-			.setDesc(
-				"Turn on to display type icons to the left of the header text. Turn off to display on the right."
-			)
-			.addToggle((cmp) =>
-				cmp.setValue(form.typeIconLeft).onChange((b) => {
-					form.typeIconLeft = b;
-					this.isChanged = true;
-				})
-			);
+			new Setting(contentEl)
+				.setName("Card width")
+				.setDesc(
+					"Set any valid CSS value for width to be set in the style attribute of every card. Leave blank to not set width in the style attribute at all."
+				)
+				.addText((cmp) =>
+					cmp.setValue(form.cardsWidth).onChange((v) => {
+						form.cardsWidth = v;
+						this.isChanged = true;
+					})
+				);
 
-		// form.dateLinkDaily
-		new Setting(contentEl)
-			.setName("Link to daily note for dates")
-			.setDesc(
-				"Turn on to show an icon with a link to the dialy note for date properties."
-			)
-			.addToggle((cmp) =>
-				cmp.setValue(form.dateLinkDaily).onChange((b) => {
-					form.dateLinkDaily = b;
-					this.isChanged = true;
-				})
-			);
+			new Setting(contentEl)
+				.setName("Card min width")
+				.setDesc(
+					"Set any valid CSS value for min-width to be set in the style attribute of every card. Leave blank to not set min-width in the style attribute at all."
+				)
+				.addText((cmp) =>
+					cmp.setValue(form.cardsMinWidth).onChange((v) => {
+						form.cardsMinWidth = v;
+						this.isChanged = true;
+					})
+				);
+			new Setting(contentEl)
+				.setName("Card max width")
+				.setDesc(
+					"Set any valid CSS value for max-width to be set in the style attribute of every card. Leave blank to not set max-width in the style attribute at all."
+				)
+				.addText((cmp) =>
+					cmp.setValue(form.cardsMaxWidth).onChange((v) => {
+						form.cardsMaxWidth = v;
+						this.isChanged = true;
+					})
+				);
+		});
+	}
 
-		// form.formatDates
-		new Setting(contentEl)
-			.setName("Format dates from Dataview")
-			.setDesc(
-				"Turn on to format date and datetime properties according to your settings in the Dataview plugin when not actively editing the property."
-			)
-			.addToggle((cmp) =>
-				cmp.setValue(form.formatDates).onChange((b) => {
-					form.formatDates = b;
-					this.isChanged = true;
-				})
-			);
+	createFooter(): void {
+		const { contentEl } = this;
 
 		/* footer buttons */
 		new Setting(contentEl)

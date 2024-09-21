@@ -1,3 +1,5 @@
+import { AddColumnModal } from "./AddColumnModal";
+import { AddRowModal } from "./AddRowModal";
 import { ColumnEditModal } from "./ColumnEditModal";
 import { ColumnRemoveModal } from "./ColumnRemoveModal";
 import { DataeditSettingTab } from "./DataeditSettingTab";
@@ -26,6 +28,8 @@ export {
 	DataeditSettingTab,
 	ScrollFixer,
 	// SaveModal // for some reason, importing from this file will cause an error "Cannot access 'SaveModal' before intialization"
+	AddRowModal,
+	AddColumnModal,
 };
 
 export type { DropdownRecord, DropdownRecordKey };

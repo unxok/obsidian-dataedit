@@ -18,6 +18,7 @@ export type PropertyHeaderProps = {
 	propertyType: PropertyType;
 	index: number;
 	children?: JSXElement;
+	hideText?: boolean;
 };
 export const PropertyHeader = (props: PropertyHeaderProps) => {
 	const bctx = useBlock();
@@ -198,6 +199,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 
 	return (
 		<div
+			aria-label={props.property}
 			onClick={(e) => {
 				const attr = e.target.getAttribute(
 					"data-dataedit-column-reorder-button"
@@ -223,13 +225,15 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 					overrideIcon={overrideIcon()}
 				/>
 			</Show>
-			<Markdown
-				app={bctx.plugin.app}
-				markdown={props.header}
-				sourcePath={bctx.ctx.sourcePath}
-				class='no-p-margin'
-				style={{ "text-wrap": "nowrap" }}
-			/>
+			<Show when={!props.hideText}>
+				<Markdown
+					app={bctx.plugin.app}
+					markdown={props.header}
+					sourcePath={bctx.ctx.sourcePath}
+					class='no-p-margin'
+					style={{ "text-wrap": "nowrap" }}
+				/>
+			</Show>
 			<Show when={bctx.config.typeIcons && !bctx.config.typeIconLeft}>
 				<PropertyHeaderIcon
 					propertyType={props.propertyType}

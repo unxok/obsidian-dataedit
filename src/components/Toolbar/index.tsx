@@ -6,6 +6,9 @@ import { HorizontalAlignmentButton } from "./HorizontalAlignmentButton";
 import { VerticalAlignmentButton } from "./VerticalAlignmentButton";
 import { Pagination } from "./Pagination";
 import { Results } from "./Results";
+import { Icon } from "../Icon";
+import { AddColumnModal, AddRowModal } from "@/classes";
+import { useBlock } from "../CodeBlock";
 
 export type Pagination = {
 	/**
@@ -159,6 +162,50 @@ export const Toolbar = (props: ToolbarProps) => {
 					</Switch>
 				)}
 			</For>
+			<AddNoteButton />
+			<AddColButton />
 		</div>
+	);
+};
+
+const AddNoteButton = () => {
+	const {
+		plugin: { app },
+		config: { defaultFolder, defaultTemplate },
+	} = useBlock();
+	return (
+		<Icon
+			iconId='file-plus'
+			class='clickable-icon'
+			onClick={() => {
+				new AddRowModal(app, defaultFolder, defaultTemplate).open();
+			}}
+		></Icon>
+	);
+};
+
+const AddColButton = () => {
+	const {
+		plugin: { app },
+		el,
+		ctx,
+		dataviewAPI,
+		source,
+	} = useBlock();
+	return (
+		<Icon
+			iconId='plus-square'
+			class='clickable-icon'
+			onClick={() => {
+				const info = ctx.getSectionInfo(el);
+
+				if (!info) {
+					new Notice("This block cannot do this feature");
+					return;
+				}
+				const { lineStart: start, lineEnd: end } = info;
+				new AddColumnModal(app, dataviewAPI, source, { start, end }).open();
+			}}
+		></Icon>
 	);
 };

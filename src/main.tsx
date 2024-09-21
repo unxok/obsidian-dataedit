@@ -13,6 +13,9 @@ import {
 	ColorComponent,
 	ToggleComponent,
 	View,
+	ItemView,
+	WorkspaceLeaf,
+	ViewStateResult,
 } from "obsidian";
 import { CodeBlock } from "./components/CodeBlock";
 import {
@@ -61,6 +64,7 @@ export default class DataEdit extends Plugin {
 	propertyUpdatesIndex: number = 0;
 	async onload(): Promise<void> {
 		this.registerCodeBlockTester();
+		this.registerTestView();
 		this.registerCommands();
 
 		await this.loadSettings();
@@ -101,6 +105,33 @@ export default class DataEdit extends Plugin {
 		);
 	}
 
+	registerTestView(): void {
+		this.registerView(TEST_VIEW, (leaf) => new TestView(leaf));
+
+		this.addRibbonIcon("star", "uwu test view", () => this.activateTestView());
+	}
+
+	async activateTestView(): Promise<void> {
+		const {
+			app: { workspace },
+		} = this;
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(TEST_VIEW);
+
+		if (leaves.length > 0) {
+			leaf = leaves[0];
+		} else {
+			leaf = workspace.getRightLeaf(false);
+		}
+		await leaf?.setViewState({
+			type: TEST_VIEW,
+			active: true,
+			state: { fizz: "buzz" },
+		});
+
+		await leaf?.view.setState({ foo: "bar" }, { history: true });
+	}
+
 	// registerSettingTab(): void {}
 
 	registerCommands(): void {
@@ -122,7 +153,11 @@ export default class DataEdit extends Plugin {
 	}
 
 	async loadSettings(): Promise<DataEditSettings> {
-		const s = await this.loadData();
+		const s = (await this.loadData()) as Record<string, unknown>;
+		s.defaultConfig =
+			s.defaultConfig && typeof s.defaultConfig === "object"
+				? { ...defaultCodeBlockConfig, ...s.defaultConfig }
+				: { ...defaultCodeBlockConfig };
 		const settings = { ...defaultDataEditSettings, ...s };
 		this.settings = settings;
 		setSettingsSignal(() => settings);
@@ -608,5 +643,45 @@ export default class DataEdit extends Plugin {
 			mdr.register(dispose);
 			ctx.addChild(mdr);
 		});
+	}
+}
+
+const TEST_VIEW = "test-view";
+class TestView extends ItemView {
+	state: Record<string, unknown> = { hello: "world" };
+	constructor(leaf: WorkspaceLeaf) {
+		super(leaf);
+	}
+
+	getViewType(): string {
+		return TEST_VIEW;
+	}
+
+	getDisplayText(): string {
+		return "uwu";
+	}
+
+	async setState(state: unknown, result: unknown): Promise<void> {
+		console.log("set state called: ", state);
+		// console.trace();
+		this.state = state as Record<string, unknown>;
+	}
+
+	getState(): typeof this.state {
+		return { ...this.state };
+	}
+
+	protected async onOpen(): Promise<void> {
+		const { contentEl } = this;
+		contentEl.empty();
+		contentEl.createEl("h3", { text: "uwu?" });
+		contentEl
+			.createEl("button", { text: "get state" })
+			.addEventListener("click", () => {
+				console.log(this.getState());
+			});
+
+		console.log(this.getState());
+		console.log(this);
 	}
 }

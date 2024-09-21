@@ -63,6 +63,7 @@ export const PropertyData = (props: PropertyDataProps) => {
 			when={!isIdCol() && isEditable()}
 			fallback={
 				<Markdown
+					data-dataedit-id-col={true}
 					app={bctx.plugin.app}
 					markdown={tryFormat(props.value)}
 					sourcePath={bctx.ctx.sourcePath}

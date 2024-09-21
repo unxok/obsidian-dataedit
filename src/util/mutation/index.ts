@@ -190,11 +190,9 @@ export const setBlockConfig = ({
 	// remove the ', file.link' we added if so
 	// const query = hideFileCol ? preQuery.slice(0, -11) : preQuery;
 	const query = source.split("\n---\n")[0];
-	let newCodeBlockText = "```dataedit\n" + query;
+	let newCodeBlockText = query;
 	if (config) {
-		newCodeBlockText += "\n---\n" + newConfigStr + "```";
-	} else {
-		newCodeBlockText += "\n```";
+		newCodeBlockText += "\n---\n" + newConfigStr;
 	}
 	const editor = workspace.activeEditor?.editor;
 	if (!editor) {
@@ -204,8 +202,8 @@ export const setBlockConfig = ({
 	const scrollFixer = new ScrollFixer(el);
 	editor.replaceRange(
 		newCodeBlockText,
-		{ line: lineStart, ch: 0 },
-		{ line: lineEnd, ch: NaN }
+		{ line: lineStart + 1, ch: 0 },
+		{ line: lineEnd - 1, ch: NaN }
 	);
 
 	scrollFixer.fix();
@@ -264,7 +262,8 @@ export const overrideEditButton = async (params: {
 								.setIcon("code")
 								.onClick(async () => {
 									await navigator.clipboard.writeText(
-										"```dataedit\n" + source + "\n```"
+										// "```dataedit\n" + source + "\n```"
+										ctx.getSectionInfo(el)?.text ?? ""
 									);
 									new Notice("Copied block text to clipboard!");
 								})
@@ -306,7 +305,7 @@ export const overrideEditButton = async (params: {
 						})
 				)
 				.addSeparator()
-				.addItem((item) =>
+				.addItem((item) => {
 					item
 						.setTitle("Configure")
 						.setIcon("wrench")
@@ -320,8 +319,9 @@ export const overrideEditButton = async (params: {
 									newConfig: form,
 								});
 							}).open();
-						})
-				)
+						});
+					newBtn.ondblclick = () => item.dom.click();
+				})
 				.addItem((item) =>
 					item
 						.setTitle(config.showToolbar ? "Hide toolbar" : "Show toolbar")

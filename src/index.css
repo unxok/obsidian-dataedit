@@ -142,7 +142,7 @@ div.metadata-property-value {
 			padding: 0 !important;
 			font-size: inherit;
 			text-wrap: nowrap;
-			overflow-y: visible;
+			/* overflow-y: visible; */
 		}
 	}
 
@@ -292,12 +292,16 @@ div.metadata-property-value {
 	}
 
 	&-property-header {
-		border-radius: var(--clickable-icon-radius);
-		padding: 0 var(--size-2-3);
+		table & {
+			border-radius: var(--clickable-icon-radius);
+			padding: 0 var(--size-2-3);
+			&:hover {
+				background-color: var(--background-modifier-hover);
+			}
+		}
 		&:hover {
 			opacity: var(--icon-opacity-hover);
 			color: var(--icon-color-hover);
-			background-color: var(--background-modifier-hover);
 			cursor: var(--cursor);
 		}
 	}
@@ -423,23 +427,58 @@ div.metadata-property-value {
 		}
 	}
 
+	&-setting-heading-collapsible {
+		border-radius: var(--radius-s);
+		margin-bottom: 0.5rem;
+		&:hover {
+			cursor: pointer;
+			background-color: var(--interactive-accent);
+		}
+		& div.setting-item-info {
+			display: flex;
+			align-items: center;
+			gap: 0.25ch;
+
+			& div.setting-item-name {
+				vertical-align: middle;
+			}
+		}
+
+		& div:has(> svg) {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+	}
+
 	&-card-container {
 		display: flex;
 		gap: 10px;
 		align-items: stretch;
 		justify-content: stretch;
+		/* flex-wrap: wrap; */
+
+		& div[data-dataedit-id-col] {
+			font-size: 1.125rem;
+		}
 
 		& .dataedit-card {
 			background-color: var(--background-primary-alt);
 			display: flex;
 			flex-direction: column;
 			gap: 8px;
-			flex: 1 1 0;
+			/* flex: 1 1 0; */
 			align-items: center;
 			justify-content: start;
 			border: var(--border-width) solid var(--background-modifier-border);
 			padding: 12px;
 			border-radius: var(--radius-m);
+			--width: 200px;
+			/* width: var(--width);
+			min-width: var(--width);
+			max-width: var(--width); */
+			overflow-x: scroll;
+			overflow-y: scroll;
 
 			& .dataedit-card-row {
 				width: 100%;

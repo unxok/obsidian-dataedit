@@ -4,7 +4,7 @@ import {
 	DataviewQueryResult,
 	PropertyType,
 } from "@/lib/types";
-import { Cards, Table } from "@/components/Table";
+import { Table } from "@/components/CodeBlock/Table";
 import { debounce, MarkdownPostProcessorContext, Notice } from "obsidian";
 import {
 	onMount,
@@ -14,6 +14,8 @@ import {
 	useContext,
 	onCleanup,
 	createUniqueId,
+	Match,
+	Switch,
 } from "solid-js";
 import {
 	getIdColumnIndex,
@@ -29,6 +31,7 @@ import { Pagination, Toolbar } from "../Toolbar";
 import { Icon } from "../Icon";
 import { settingsSignal } from "@/classes/DataeditSettingTab";
 import { ComboBoxComponent } from "@/classes/ComboBoxComponent";
+import { Cards } from "./Cards";
 
 type CodeBlockProps = {
 	plugin: DataEdit;
@@ -305,24 +308,37 @@ export const CodeBlock = (props: CodeBlockProps) => {
 				}}
 			>
 				<div style={{ "overflow-x": "auto", "height": "fit-content" }}>
-					{/* <Table
-						properties={props.propertyNames}
-						headers={dataviewResult().value!.headers}
-						values={dataviewResult().value!.values}
-						propertyTypes={propertyTypes()}
-						// idColIndex={idColIndex()}
-						idColIndex={findIdColIndex(dataviewResult())}
-						isDynamic={isDynamic}
-					/> */}
-					<Cards
-						properties={props.propertyNames}
-						headers={dataviewResult().value!.headers}
-						values={dataviewResult().value!.values}
-						propertyTypes={propertyTypes()}
-						// idColIndex={idColIndex()}
-						idColIndex={findIdColIndex(dataviewResult())}
-						isDynamic={isDynamic}
-					/>
+					<Show
+						when={props.config.cardsView}
+						fallback={
+							<Table
+								properties={props.propertyNames}
+								headers={dataviewResult().value!.headers}
+								values={dataviewResult().value!.values}
+								propertyTypes={propertyTypes()}
+								// idColIndex={idColIndex()}
+								idColIndex={findIdColIndex(dataviewResult())}
+								isDynamic={isDynamic}
+							/>
+						}
+					>
+						<Cards
+							properties={props.propertyNames}
+							headers={dataviewResult().value!.headers}
+							values={dataviewResult().value!.values}
+							propertyTypes={propertyTypes()}
+							// idColIndex={idColIndex()}
+							idColIndex={findIdColIndex(dataviewResult())}
+							isDynamic={isDynamic}
+							cardStyle={{
+								"width": props.config.cardsWidth,
+								"min-width": props.config.cardsMinWidth,
+								"max-width": props.config.cardsMaxWidth,
+							}}
+							cardsWrap={props.config.cardsWrap}
+						/>
+					</Show>
+
 					<Show when={!isDynamic && props.config.showToolbar}>
 						<Toolbar
 							{...pagination()}
