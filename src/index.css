@@ -64,7 +64,7 @@ div.metadata-property-value {
 					justify-content: start;
 					align-items: center;
 					& div.metadata-input-longtext.mod-truncate {
-						text-wrap: nowrap;
+						/* text-wrap: nowrap; */
 					}
 				}
 				& div.cm-active.cm-line {
@@ -93,7 +93,7 @@ div.metadata-property-value {
 
 	&-formatted-date {
 		display: inline-block;
-		text-wrap: nowrap;
+		/* text-wrap: nowrap; */
 	}
 
 	&-setting-content {
@@ -141,7 +141,7 @@ div.metadata-property-value {
 		& div.metadata-input-longtext.mod-truncate {
 			padding: 0 !important;
 			font-size: inherit;
-			text-wrap: nowrap;
+			/* text-wrap: nowrap; */
 			/* overflow-y: visible; */
 		}
 	}
