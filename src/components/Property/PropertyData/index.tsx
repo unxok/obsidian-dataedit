@@ -1,16 +1,20 @@
 import { useBlock } from "@/components/CodeBlock";
 import { Markdown } from "@/components/Markdown";
 import { COMPLEX_PROPERTY_PLACEHOLDER } from "@/lib/constants";
-import { DataviewPropertyValue, PropertyType } from "@/lib/types";
-import { createEffect, createMemo, onMount, Show } from "solid-js";
+import { DataviewAPI, DataviewPropertyValue, PropertyType } from "@/lib/types";
+import { createEffect, createMemo, onCleanup, onMount, Show } from "solid-js";
 import { PropertySwitch } from "../PropertySwitch";
 import { checkIfDateHasTime } from "@/util/pure";
 import { DateTime } from "luxon";
+import { MetadataEditor, PropertyWidget } from "obsidian-typings";
+import { MarkdownRenderChild } from "obsidian";
+import { tryDataviewLinkToMarkdown } from "@/lib/util";
 
 export type PropertyDataProps = {
 	property: string;
 	value: DataviewPropertyValue;
 	propertyType: PropertyType;
+	propertyTypeWidget: PropertyWidget<unknown>;
 	header: string;
 	filePath: string;
 };
@@ -72,10 +76,97 @@ export const PropertyData = (props: PropertyDataProps) => {
 				/>
 			}
 		>
-			<PropertySwitch
+			{/* <PropertySwitch
+				{...props}
+				updateProperty={updateProperty}
+			/> */}
+			<Editable
 				{...props}
 				updateProperty={updateProperty}
 			/>
 		</Show>
 	);
+};
+
+const Editable = (
+	props: PropertyDataProps & {
+		updateProperty: (value: unknown) => Promise<void>;
+	}
+) => {
+	const {
+		plugin: { app },
+		ctx,
+		dataviewAPI,
+	} = useBlock();
+	let ref: HTMLDivElement;
+	let mdrc: MarkdownRenderChild;
+
+	onMount(() => {
+		mdrc = new MarkdownRenderChild(ref);
+		ctx.addChild(mdrc);
+	});
+
+	onCleanup(() => {
+		mdrc.unload();
+	});
+
+	createEffect(() => {
+		if (!mdrc || !ref) return;
+		const {
+			propertyTypeWidget,
+			property,
+			propertyType,
+			value,
+			updateProperty,
+		} = props;
+		if (!propertyTypeWidget) return;
+		ref.empty();
+
+		const normal = normalizeValue(value, dataviewAPI);
+
+		propertyTypeWidget.render(
+			ref,
+			{
+				key: property,
+				type: propertyType,
+				value: normal,
+			},
+			{
+				app: app,
+				blur: () => console.log("blur called"),
+				key: property,
+				// @ts-ignore
+				onChange: async (value: unknown) => await updateProperty(value),
+				sourcePath: ctx.sourcePath,
+				metadataEditor: {
+					register: (cb) => {
+						mdrc.register(cb);
+					},
+				} as MetadataEditor,
+			}
+		);
+	});
+
+	return (
+		<div
+			class='metadata-property'
+			data-property-key={props.property}
+		>
+			<div
+				ref={(r) => (ref = r)}
+				class='dataedit-property-editable-container metadata-property-value'
+			></div>
+		</div>
+	);
+};
+
+const normalizeValue = (value: unknown, dv: DataviewAPI) => {
+	if (dv.luxon.DateTime.isDateTime(value)) {
+		const isTime = checkIfDateHasTime(value);
+		if (isTime) {
+			return value.toFormat("yyyy-MM-dd'T'hh:mm");
+		}
+		return value.toFormat("YYYY-MM-DD");
+	}
+	return tryDataviewLinkToMarkdown(value);
 };

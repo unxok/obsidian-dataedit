@@ -55,8 +55,6 @@ export class AddColumnModal extends Modal {
 				setting.settingEl.remove();
 			});
 		});
-
-		console.log("setting made");
 	}
 
 	onOpen(): void {
@@ -123,7 +121,6 @@ export class AddColumnModal extends Modal {
 			throw new Error("No editor for active editor found.");
 		}
 		const [query, config] = splitBlock(blockSource);
-		console.log("got config: ", config);
 		const { tableLine, rest } = getTableLine(query);
 		const noCurrentCols = tableLine.trim().toLowerCase() === "table";
 		const newCols = rowData.reduce((acc, { property, alias }, index) => {

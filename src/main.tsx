@@ -69,12 +69,12 @@ export default class DataEdit extends Plugin {
 
 		await this.loadSettings();
 		this.addSettingTab(new DataeditSettingTab(this.app, this));
-		this.registerDropdowns();
-		this.registerMd();
-		this.registerSlider();
-		this.registerStars();
-		this.registerColor();
-		this.registerToggle();
+		// this.registerDropdowns();
+		// this.registerMd();
+		// this.registerSlider();
+		// this.registerStars();
+		// this.registerColor();
+		// this.registerToggle();
 		this.registerMdCBP();
 		this.devReload(); // TODO comment out when releasing
 	}
@@ -442,17 +442,6 @@ export default class DataEdit extends Plugin {
 			icon: "m-square",
 			name: () => "Markdown",
 			render: (el, data, ctx) => {
-				// const cmp = new ColorComponent(el).onChange(async (v) => {
-				//   await this.updateProperty(
-				//     data.key,
-				//     v,
-				//     ctx.sourcePath,
-				//     data.value,
-				//     undefined,
-				//     true,
-				//   );
-				// });
-
 				const container = el.createDiv({
 					cls: "dataedit-property-markdown-div",
 				});

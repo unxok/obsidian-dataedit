@@ -1,5 +1,4 @@
 import {
-	DataviewAPI,
 	DataviewLink,
 	DataviewQueryResultValues,
 	PropertyType,
@@ -9,10 +8,8 @@ import {
 	createEffect,
 	createSignal,
 	For,
-	Index,
 	JSX,
 	onCleanup,
-	onMount,
 	Show,
 	useContext,
 } from "solid-js";
@@ -20,18 +17,13 @@ import { useBlock } from "..";
 import { checkIfDataviewLink } from "@/lib/util";
 import { Icon } from "@/components/Icon";
 import { DOMElement } from "solid-js/jsx-runtime";
-import { App, Modal, Notice, SearchComponent, Setting } from "obsidian";
+import { Notice } from "obsidian";
 import { createStore } from "solid-js/store";
-import { PropertyHeader, PropertyHeaderIcon } from "../../Property/Header";
-import {
-	AddColumnModal,
-	AddRowModal,
-	FileFolderSuggest,
-	PropertySuggest,
-} from "@/classes";
+import { PropertyHeader } from "../../Property/Header";
+import { AddColumnModal, AddRowModal } from "@/classes";
 import { PropertyData } from "../../Property/PropertyData";
 import { moveColumn } from "@/util/mutation";
-import { getTableLine, splitBlock } from "@/util/pure";
+import { PropertyWidget } from "obsidian-typings";
 
 type DragContextValue = {
 	draggedIndex: number;
@@ -70,6 +62,7 @@ export const Table = (props: {
 	headers: string[];
 	values: DataviewQueryResultValues;
 	propertyTypes: PropertyType[];
+	propertyTypeWidgets: PropertyWidget<unknown>[];
 	idColIndex: number;
 	isDynamic: boolean;
 }) => {
@@ -86,6 +79,13 @@ export const Table = (props: {
 	};
 	const getHorizontal = () => {
 		return bctx.config.horizontalAlignment;
+	};
+
+	const getJustify = () => {
+		const hor = getHorizontal();
+		if (hor === "left") return "start";
+		if (hor === "right") return "end";
+		return "center";
 	};
 
 	const getFilePath = (rowIndex: number) => {
@@ -135,6 +135,7 @@ export const Table = (props: {
 											style={{
 												"vertical-align": getVertical(),
 												"text-align": getHorizontal(),
+												"justify-content": getJustify(),
 												// ensure that column reorder buttons are able to style correctly
 												"position": "relative",
 												"overflow": "visible",
@@ -179,12 +180,16 @@ export const Table = (props: {
 													style={{
 														"vertical-align": getVertical(),
 														"text-align": getHorizontal(),
+														"justify-content": getJustify(),
 													}}
 												>
 													<PropertyData
 														property={props.properties[itemIndex()]}
 														value={item}
 														propertyType={props.propertyTypes[itemIndex()]}
+														propertyTypeWidget={
+															props.propertyTypeWidgets[itemIndex()]
+														}
 														header={props.headers[itemIndex()]}
 														filePath={getFilePath(rowIndex())}
 													/>

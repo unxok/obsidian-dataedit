@@ -11,12 +11,14 @@ import {
 import { checkIfDataviewLink } from "@/lib/util";
 import { createEffect, For, Show } from "solid-js";
 import { useBlock } from "..";
+import { PropertyWidget } from "obsidian-typings";
 
 export const Cards = (props: {
 	properties: string[];
 	headers: string[];
 	values: DataviewQueryResultValues;
 	propertyTypes: PropertyType[];
+	propertyTypeWidgets: PropertyWidget<unknown>[];
 	idColIndex: number;
 	isDynamic: boolean;
 	cardStyle: { "width": string; "min-width": string; "max-width": string };
@@ -99,6 +101,9 @@ export const Cards = (props: {
 												property={props.properties[itemIndex()]}
 												value={item}
 												propertyType={props.propertyTypes[itemIndex()]}
+												propertyTypeWidget={
+													props.propertyTypeWidgets[itemIndex()]
+												}
 												header={props.headers[itemIndex()]}
 												filePath={getFilePath(rowIndex())}
 											/>

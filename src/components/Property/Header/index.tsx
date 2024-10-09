@@ -79,6 +79,9 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 		);
 
 		typeKeys.push("unknown");
+
+		const typeWidgets = metadataTypeManager.registeredTypeWidgets;
+
 		const menu = new Menu();
 
 		isRestricted &&
@@ -98,36 +101,63 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 		menu
 			.addItem((item) => {
 				const submenu = item
+					.setSection("type")
 					.setTitle("Property type")
 					.setIcon("menu")
 					.setSubmenu();
-				typeKeys.forEach((k) => {
-					const {
-						icon,
-						name,
-						type: typeKey,
-					} = typesObj[k] ?? {
-						icon: "file-question",
-						name: () => "Unset",
-						type: "unknown",
-					};
-					submenu.addItem((sub) =>
-						sub
-							.setTitle(name())
-							.setIcon(icon)
-							.setChecked(typeKey === props.propertyType)
-							.onClick(async () => {
-								if (typeKey === "unknown") {
-									await metadataTypeManager.unsetType(props.property);
-									return;
-								}
-								await metadataTypeManager.setType(props.property, typeKey);
-							})
-					);
-				});
+				Object.values(metadataTypeManager.registeredTypeWidgets)
+					.toSorted((a, b) => a.name().localeCompare(b.name()))
+					.forEach(({ name, icon, type }) => {
+						submenu.addItem((sub) =>
+							sub
+								.setTitle(name())
+								.setIcon(icon)
+								.setChecked(props.propertyType === type)
+								.onClick(
+									async () =>
+										await metadataTypeManager.setType(props.property, type)
+								)
+						);
+					});
+				submenu.addItem((sub) =>
+					sub
+						.setTitle("Unknown")
+						.setIcon("file-question")
+						.setChecked(props.propertyType === "unknown")
+						.onClick(
+							async () => await metadataTypeManager.unsetType(props.property)
+						)
+				);
+				// typeKeys.forEach((k) => {
+				// 	const {
+				// 		icon,
+				// 		name,
+				// 		type: typeKey,
+				// 	} = typesObj[k] ?? {
+				// 		icon: "file-question",
+				// 		name: () => "Unset",
+				// 		type: "unknown",
+				// 	};
+				// 	submenu.addItem((sub) =>
+				// 		sub
+				// 			.setTitle(name())
+				// 			.setIcon(icon)
+				// 			.setChecked(typeKey === props.propertyType)
+				// 			.onClick(async () => {
+				// 				if (typeKey === "unknown") {
+				// 					await metadataTypeManager.unsetType(props.property);
+				// 					return;
+				// 				}
+				// 				await metadataTypeManager.setType(props.property, typeKey);
+				// 			})
+				// 	);
+				// }
+				//);
 			})
+			.addSeparator()
 			.addItem((item) =>
 				item
+					.setSection("edit")
 					.setTitle("Edit column")
 					.setIcon("pencil")
 					.onClick(() => {
@@ -143,6 +173,7 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 			)
 			.addItem((item) =>
 				item
+					.setSection("edit")
 					.setTitle("Edit property")
 					.setIcon("pen-box")
 					.onClick(() => {
@@ -157,12 +188,22 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 			)
 			.addSeparator()
 			.addItem((item) =>
-				item.setTitle("Copy property").setIcon("clipboard-type")
+				item
+					.setSection("clipboard")
+					.setTitle("Copy property")
+					.setIcon("clipboard-type")
 			)
-			.addItem((item) => item.setTitle("Copy alias").setIcon("clipboard-list"))
+			.addItem((item) =>
+				item
+					.setSection("clipboard")
+					.setTitle("Copy alias")
+					.setIcon("clipboard-list")
+			)
 			.addSeparator()
 			.addItem((item) =>
 				item
+					.setSection("destructive")
+					.setWarning(true)
 					.setTitle("Remove column")
 					.setIcon("cross")
 					.onClick(() => {
@@ -174,21 +215,22 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 						).open();
 					})
 					.setDisabled(isRestricted)
-			)
-			.addItem((item) =>
-				item
-					.setTitle("Delete property")
-					.setIcon("trash")
-					.setWarning(true)
-					.onClick(() => {
-						new PropertyDeleteModal(
-							props.index,
-							props.property,
-							props.header,
-							bctx
-						).open();
-					})
 			);
+		// .addItem((item) =>
+		// 	item
+		// 		.setSection("destructive")
+		// 		.setTitle("Delete property")
+		// 		.setIcon("trash")
+		// 		.setWarning(true)
+		// 		.onClick(() => {
+		// 			new PropertyDeleteModal(
+		// 				props.index,
+		// 				props.property,
+		// 				props.header,
+		// 				bctx
+		// 			).open();
+		// 		})
+		// );
 
 		return menu;
 	};
@@ -205,7 +247,13 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 					"data-dataedit-column-reorder-button"
 				);
 				if (attr !== null || isDefaultIdCol()) return;
-				createMenu().showAtMouseEvent(e);
+				const menu = createMenu();
+				bctx.plugin.app.workspace.trigger(
+					"file-property-menu",
+					menu,
+					props.property
+				);
+				menu.showAtMouseEvent(e);
 			}}
 			classList={{ "dataedit-property-header": !isDefaultIdCol() }}
 			style={{

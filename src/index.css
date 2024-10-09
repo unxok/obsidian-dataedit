@@ -496,6 +496,34 @@ div.metadata-property-value {
 			}
 		}
 	}
+
+	& .metadata-input-longtext {
+		padding: 0;
+		text-align: inherit;
+		font-size: initial;
+		& * {
+			justify-content: inherit;
+		}
+	}
+
+	& div.dataedit-property-editable-container.metadata-property-value {
+		display: inline-flex;
+		padding: 0;
+		min-height: unset;
+
+		& input[type="date"],
+		& input[type="datetime-local"],
+		& input[type="text"],
+		& input[type="search"],
+		& input[type="email"],
+		& input[type="password"],
+		& input[type="number"] {
+			padding-right: 0;
+			padding-top: 0;
+			padding-bottom: 0;
+			height: fit-content;
+		}
+	}
 }
 
 div[data-dataedit-scroll-el="true"] {

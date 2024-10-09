@@ -14,8 +14,6 @@ import {
 	useContext,
 	onCleanup,
 	createUniqueId,
-	Match,
-	Switch,
 } from "solid-js";
 import {
 	getIdColumnIndex,
@@ -30,8 +28,8 @@ import { overrideEditButton, setBlockConfig } from "@/util/mutation";
 import { Pagination, Toolbar } from "../Toolbar";
 import { Icon } from "../Icon";
 import { settingsSignal } from "@/classes/DataeditSettingTab";
-import { ComboBoxComponent } from "@/classes/ComboBoxComponent";
 import { Cards } from "./Cards";
+import { PropertyWidget } from "obsidian-typings";
 
 type CodeBlockProps = {
 	plugin: DataEdit;
@@ -80,6 +78,9 @@ export const CodeBlock = (props: CodeBlockProps) => {
 
 	const uid = createUniqueId();
 	const [propertyTypes, setPropertyTypes] = createSignal<PropertyType[]>([]);
+	const [propertyTypeWidgets, setPropertyTypeWidgets] = createSignal<
+		PropertyWidget<unknown>[]
+	>([]);
 	// const [idColIndex, setIdColIndex] = createSignal(0);
 	const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
 		{
@@ -100,6 +101,15 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			props.propertyNames,
 			props.plugin.app.metadataCache
 		);
+		const widgets = props.propertyNames.map((p) => {
+			const { metadataTypeManager } = props.plugin.app;
+			const type = metadataTypeManager.getAssignedType(p) ?? "text";
+			return (
+				metadataTypeManager.registeredTypeWidgets[type] ??
+				metadataTypeManager.registeredTypeWidgets["text"]
+			);
+		});
+		setPropertyTypeWidgets(() => widgets);
 		setPropertyTypes(() => arr);
 	};
 
@@ -316,6 +326,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 								headers={dataviewResult().value!.headers}
 								values={dataviewResult().value!.values}
 								propertyTypes={propertyTypes()}
+								propertyTypeWidgets={propertyTypeWidgets()}
 								// idColIndex={idColIndex()}
 								idColIndex={findIdColIndex(dataviewResult())}
 								isDynamic={isDynamic}
@@ -327,6 +338,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 							headers={dataviewResult().value!.headers}
 							values={dataviewResult().value!.values}
 							propertyTypes={propertyTypes()}
+							propertyTypeWidgets={propertyTypeWidgets()}
 							// idColIndex={idColIndex()}
 							idColIndex={findIdColIndex(dataviewResult())}
 							isDynamic={isDynamic}
