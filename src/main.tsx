@@ -63,8 +63,8 @@ export default class DataEdit extends Plugin {
 	// used to track the current position in undo/redo history
 	propertyUpdatesIndex: number = 0;
 	async onload(): Promise<void> {
-		this.registerCodeBlockTester();
-		this.registerTestView();
+		// this.registerCodeBlockTester();
+		// this.registerTestView();
 		this.registerCommands();
 
 		await this.loadSettings();

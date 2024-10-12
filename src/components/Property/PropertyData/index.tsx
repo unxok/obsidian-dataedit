@@ -170,3 +170,5 @@ const normalizeValue = (value: unknown, dv: DataviewAPI) => {
 	}
 	return tryDataviewLinkToMarkdown(value);
 };
+
+

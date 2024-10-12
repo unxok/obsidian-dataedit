@@ -143,6 +143,7 @@ export type DataviewAPI = {
 };
 
 export type PropertyType =
+	| string
 	| "text"
 	| "number"
 	| "multitext"

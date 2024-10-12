@@ -14,6 +14,7 @@ import {
 	useContext,
 	onCleanup,
 	createUniqueId,
+	createEffect,
 } from "solid-js";
 import {
 	getIdColumnIndex,
@@ -101,16 +102,18 @@ export const CodeBlock = (props: CodeBlockProps) => {
 			props.propertyNames,
 			props.plugin.app.metadataCache
 		);
+		const types: string[] = [];
 		const widgets = props.propertyNames.map((p) => {
 			const { metadataTypeManager } = props.plugin.app;
 			const type = metadataTypeManager.getAssignedType(p) ?? "text";
-			return (
+			types.push(type);
+			const widget =
 				metadataTypeManager.registeredTypeWidgets[type] ??
-				metadataTypeManager.registeredTypeWidgets["text"]
-			);
+				metadataTypeManager.registeredTypeWidgets["text"];
+			return widget;
 		});
 		setPropertyTypeWidgets(() => widgets);
-		setPropertyTypes(() => arr);
+		setPropertyTypes(() => types);
 	};
 
 	// TODO pretty sure this doesn't need to be a signal since if this ever changes, obsidian will have rerendered the block
