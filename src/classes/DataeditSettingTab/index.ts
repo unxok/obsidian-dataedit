@@ -14,6 +14,7 @@ export type DataEditSettings = {
 	defaultConfig: CodeBlockConfig;
 	refreshInterval: number;
 	updatesLimit: number;
+	warningRemoveColumn: boolean;
 };
 
 export const defaultDataEditSettings: DataEditSettings = {
@@ -21,6 +22,7 @@ export const defaultDataEditSettings: DataEditSettings = {
 	defaultConfig: { ...defaultCodeBlockConfig },
 	refreshInterval: 250,
 	updatesLimit: 20,
+	warningRemoveColumn: true,
 };
 
 export const [settingsSignal, setSettingsSignal] =
@@ -54,17 +56,6 @@ export class DataeditSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName("Dropdowns")
-			.setDesc(
-				"Click the button to open the Dropdown Manager where you can add, edit, and delete custom dropdown configurations for use in frontmatter properties and Dataedit blocks."
-			)
-			.addButton((cmp) =>
-				cmp.setButtonText("manage").onClick(() => {
-					new DropdownWidgetManager(this.plugin).open();
-				})
-			);
 
 		new Setting(containerEl)
 			.setName("Default block config")
@@ -124,6 +115,21 @@ export class DataeditSettingTab extends PluginSettingTab {
 					text: "While the default is 20, I'm guessing you can have a pretty high limit without noticing any performance issues (I haven't tested it yet).",
 				});
 			});
+
+		new Setting(containerEl).setHeading().setName("Warnings");
+
+		new Setting(containerEl)
+			.setName("Confirm column removal")
+			.setDesc(
+				"Whether you want to get prompted to confirm removing a column from a table."
+			)
+			.addToggle((cmp) =>
+				cmp
+					.setValue(settingsSignal().warningRemoveColumn)
+					.onChange((b) =>
+						this.debouncedUpdateSettings("warningRemoveColumn", b)
+					)
+			);
 
 		new Setting(containerEl).setHeading().setName("Resources");
 

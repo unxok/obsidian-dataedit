@@ -79,6 +79,13 @@ export default class DataEdit extends Plugin {
 		this.devReload(); // TODO comment out when releasing
 	}
 
+	async updateSettings(
+		cb: (prev: DataEditSettings) => Promise<DataEditSettings>
+	): Promise<void> {
+		const s = await cb(this.settings);
+		await this.saveSettings(s);
+	}
+
 	registerCodeBlockTester(): void {
 		this.registerMarkdownCodeBlockProcessor(
 			"line-number",

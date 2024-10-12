@@ -40,8 +40,14 @@
     "showToolbar": true,
     "frontmatterLinks": "",
     "defaultFolder": "",
-    "defaultTemplate": ""
+    "defaultTemplate": "",
+    "cardsView": false,
+    "cardsWrap": false,
+    "cardsWidth": "fit-content",
+    "cardsMinWidth": "unset",
+    "cardsMaxWidth": "unset"
   },
   "refreshInterval": 250,
-  "updatesLimit": 20
+  "updatesLimit": 20,
+  "warningRemoveColumn": false
 }

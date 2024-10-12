@@ -3,7 +3,7 @@ import { Markdown } from "@/components/Markdown";
 import { useBlock } from "@/components/CodeBlock";
 import { dataeditTypeKeyPrefix } from "@/lib/constants";
 import { PropertyType } from "@/lib/types";
-import { Menu } from "obsidian";
+import { App, Menu, Plugin } from "obsidian";
 import { JSXElement, Show, createEffect, createMemo } from "solid-js";
 import {
 	ColumnEditModal,
@@ -11,6 +11,7 @@ import {
 	ColumnRemoveModal,
 	PropertyDeleteModal,
 } from "@/classes";
+import { renameColumn } from "@/util/mutation";
 
 export type PropertyHeaderProps = {
 	header: string;
@@ -41,6 +42,8 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 		if (props.property.startsWith("file")) {
 			return "file-type";
 		}
+		const custom = getBetterPropertiesIcon(bctx.plugin.app, props.property);
+		if (custom) return custom;
 		return undefined;
 	};
 
@@ -207,6 +210,16 @@ export const PropertyHeader = (props: PropertyHeaderProps) => {
 					.setTitle("Remove column")
 					.setIcon("cross")
 					.onClick(() => {
+						if (!bctx.plugin.settings.warningRemoveColumn) {
+							renameColumn({
+								propertyName: props.property,
+								alias: props.header,
+								index: props.index,
+								blockContext: bctx,
+								remove: true,
+							});
+							return;
+						}
 						new ColumnRemoveModal(
 							props.index,
 							props.property,
@@ -315,4 +328,34 @@ const PropertyIcon = (props: { propertyType: PropertyType }) => {
 	});
 
 	return <Icon iconId={iconId()} />;
+};
+
+type BetterProperties = Plugin & {
+	settings: {
+		propertySettings: Record<
+			string,
+			| undefined
+			| {
+					general: {
+						customIcon: string;
+					};
+			  }
+		>;
+	};
+};
+
+/**
+ * TODO make a proper implementation...
+ * ideally BetterProperties should have its types published on npm
+ */
+const getBetterPropertiesIcon = (app: App, propertyName: string) => {
+	const bp = app.plugins.getPlugin(
+		"better-properties"
+	) as BetterProperties | null;
+	if (!bp) return null;
+	const settings = bp.settings.propertySettings[propertyName.toLowerCase()];
+	if (!settings) return null;
+	const { customIcon } = settings.general;
+	if (!customIcon) return null;
+	return customIcon;
 };
