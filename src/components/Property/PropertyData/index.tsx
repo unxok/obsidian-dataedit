@@ -107,6 +107,7 @@ const Editable = (
 	});
 
 	onCleanup(() => {
+		if (!mdrc) return;
 		mdrc.unload();
 	});
 
@@ -170,5 +171,3 @@ const normalizeValue = (value: unknown, dv: DataviewAPI) => {
 	}
 	return tryDataviewLinkToMarkdown(value);
 };
-
-

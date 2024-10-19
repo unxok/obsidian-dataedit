@@ -24,7 +24,7 @@ import {
 	unregisterDataviewEvents,
 } from "@/lib/util";
 import { CodeBlockConfig } from "./Config";
-import DataEdit from "@/main";
+import DataEdit, { ensureFileCol } from "@/main";
 import { overrideEditButton, setBlockConfig } from "@/util/mutation";
 import { Pagination, Toolbar } from "../Toolbar";
 import { Icon } from "../Icon";
@@ -83,12 +83,13 @@ export const CodeBlock = (props: CodeBlockProps) => {
 		PropertyWidget<unknown>[]
 	>([]);
 	// const [idColIndex, setIdColIndex] = createSignal(0);
-	const [dataviewResult, setDataviewResult] = createSignal<DataviewQueryResult>(
-		{
-			successful: true,
-			value: { headers: [], values: [], type: "table" },
-		}
-	);
+	const [dataviewResult, setDataviewResult] = createSignal<
+		DataviewQueryResult & { shouldHide: boolean }
+	>({
+		successful: true,
+		value: { headers: [], values: [], type: "table" },
+		shouldHide: false,
+	});
 	const [pagination, setPagination] = createSignal<Pagination>({
 		shownStart: 0,
 		shownEnd: 0,
@@ -98,10 +99,10 @@ export const CodeBlock = (props: CodeBlockProps) => {
 
 	const updatePropertyTypes = () => {
 		// registerDropdownType();
-		const arr = getPropertyTypes(
-			props.propertyNames,
-			props.plugin.app.metadataCache
-		);
+		// const arr = getPropertyTypes(
+		// 	props.propertyNames,
+		// 	props.plugin.app.metadataCache
+		// );
 		const types: string[] = [];
 		const widgets = props.propertyNames.map((p) => {
 			const { metadataTypeManager } = props.plugin.app;
@@ -186,10 +187,8 @@ export const CodeBlock = (props: CodeBlockProps) => {
 	// for now it doesn't matter since these props should never actually change without obsidian causing a rerender automatically
 	const updateResults = async () => {
 		const { pageSize, currentPage: preCurrentPage } = props.config;
-		const results = await props.dataviewAPI.query(
-			props.query,
-			props.ctx.sourcePath
-		);
+		const { query, shouldHide } = ensureFileCol(props.query);
+		const results = await props.dataviewAPI.query(query, props.ctx.sourcePath);
 		updateResultLinks(results);
 
 		const defaultEditButton = props.el.parentElement!.querySelector(
@@ -231,7 +230,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 				results.value.values = paginated;
 			}
 		}
-		setDataviewResult(results);
+		setDataviewResult(() => ({ ...results, shouldHide }));
 		// updateIdColIndex(results);
 		updatePropertyTypes();
 	};
@@ -333,6 +332,7 @@ export const CodeBlock = (props: CodeBlockProps) => {
 								// idColIndex={idColIndex()}
 								idColIndex={findIdColIndex(dataviewResult())}
 								isDynamic={isDynamic}
+								hideFileCol={dataviewResult().shouldHide}
 							/>
 						}
 					>

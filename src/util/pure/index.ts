@@ -62,7 +62,7 @@ export const arrayMove = (arr: any[], from: number, to: number) => {
  * @tutorial
  * ```ts
  * getTableLine('TABLE col1, col2 as "alias" FROM #tag...')
- * // {tableLine: "TABLE col1, col2 as "alias", rest: "FROM #tag..."}
+ * // {tableLine: 'TABLE col1, col2 as "alias" ', rest: 'FROM #tag...'}
  * ```
  */
 export const getTableLine = (query: string) => {
@@ -218,4 +218,14 @@ export const checkIfDateHasTime = (dt: DateTime) => {
 export const splitBlock = (source: string) => {
 	const [query, config] = source.split(/\n^---$\n/m);
 	return [query ?? "", config ?? ""];
+};
+
+export const findKeyInsensitive = (
+	key: string,
+	obj: Record<string, unknown>
+) => {
+	const found = Object.keys(obj).find(
+		(k) => k.toLowerCase() === key.toLowerCase()
+	);
+	return found ?? null;
 };

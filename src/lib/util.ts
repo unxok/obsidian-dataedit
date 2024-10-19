@@ -1,123 +1,114 @@
+import { MetadataCache, Notice, Plugin, TFile, Vault } from "obsidian";
 import {
-  MetadataCache,
-  Notice,
-  Plugin,
-  TFile,
-  Vault,
-} from "obsidian";
-import {
-  DataArray,
-  DataviewAPI,
-  DataviewLink,
-  DataviewPropertyValueNotLink,
-  PropertyInfo,
-  PropertyType,
+	DataArray,
+	DataviewAPI,
+	DataviewLink,
+	DataviewPropertyValueNotLink,
+	PropertyInfo,
+	PropertyType,
 } from "./types";
 import { DateTime } from "luxon";
-import { checkIfDateHasTime } from "@/util/pure";
-
-
-
+import { checkIfDateHasTime, findKeyInsensitive } from "@/util/pure";
 
 export const getValueType: (
-  value: unknown,
-  property: string,
-  luxon: DataviewAPI["luxon"],
+	value: unknown,
+	property: string,
+	luxon: DataviewAPI["luxon"]
 ) => PropertyType = (value, property, luxon) => {
-  const t = typeof value;
-  if (t === "string") return "text";
-  if (t === "number") return "number";
-  if (t === "boolean") return "checkbox";
-  if (t === "object") {
-    // console.log("object value: ", value);
-    if (Array.isArray(value)) {
-      return property === "tags" ? "tags" : "multitext";
-    }
-    if (luxon.DateTime.isDateTime(value)) {
-      const dt = value as unknown as DateTime;
-      const isTime = checkIfDateHasTime(dt);
-      return isTime ? "datetime" : "date";
-    }
-    return "text";
-  }
-  throw new Error("Failed to get property value type");
+	const t = typeof value;
+	if (t === "string") return "text";
+	if (t === "number") return "number";
+	if (t === "boolean") return "checkbox";
+	if (t === "object") {
+		// console.log("object value: ", value);
+		if (Array.isArray(value)) {
+			return property === "tags" ? "tags" : "multitext";
+		}
+		if (luxon.DateTime.isDateTime(value)) {
+			const dt = value as unknown as DateTime;
+			const isTime = checkIfDateHasTime(dt);
+			return isTime ? "datetime" : "date";
+		}
+		return "text";
+	}
+	throw new Error("Failed to get property value type");
 };
 
 export const getPropertyTypes: (
-  properties: string[],
-  metadataCache: MetadataCache,
+	properties: string[],
+	metadataCache: MetadataCache
 ) => PropertyType[] = (properties, metadataCache) => {
-  // Private API
-  const infos = metadataCache.getAllPropertyInfos() as Record<
-    string,
-    PropertyInfo
-  >;
-  const infosKeys = Object.keys(infos);
-  return properties.map((p) => {
-    const found = infosKeys.find((k) => infos[k].name === p);
-    if (!found) return "unknown";
-    return infos[found].type as PropertyType;
-  });
+	// Private API
+	const infos = metadataCache.getAllPropertyInfos() as Record<
+		string,
+		PropertyInfo
+	>;
+	const infosKeys = Object.keys(infos);
+	return properties.map((p) => {
+		const found = infosKeys.find((k) => infos[k].name === p);
+		if (!found) return "unknown";
+		return infos[found].type as PropertyType;
+	});
 };
 
 export const registerDataviewEvents = (
-  plugin: Plugin,
-  callback: () => unknown,
+	plugin: Plugin,
+	callback: () => unknown
 ) => {
-  // plugin.app.metadataCache.on("dataview:index-ready" as "changed", callback);
+	// plugin.app.metadataCache.on("dataview:index-ready" as "changed", callback);
 
-  plugin.app.metadataCache.on(
-    "dataview:metadata-change" as "changed",
-    callback,
-  );
+	plugin.app.metadataCache.on(
+		"dataview:metadata-change" as "changed",
+		callback
+	);
 };
 
 export const unregisterDataviewEvents = (
-  plugin: Plugin,
-  callback: () => unknown,
+	plugin: Plugin,
+	callback: () => unknown
 ) => {
-  // plugin.app.metadataCache.off("dataview:index-ready" as "changed", callback);
+	// plugin.app.metadataCache.off("dataview:index-ready" as "changed", callback);
 
-  plugin.app.metadataCache.off(
-    "dataview:metadata-change" as "changed",
-    callback,
-  );
+	plugin.app.metadataCache.off(
+		"dataview:metadata-change" as "changed",
+		callback
+	);
 };
 
 export const getIdColumnIndex = (
-  headers: string[],
-  tableIdColumnName: string,
+	headers: string[],
+	tableIdColumnName: string
 ) => {
-  const i = headers.findIndex(
-    (h) =>
-      h.toLowerCase() === tableIdColumnName.toLowerCase() || h === "file.link",
-  );
-  if (i === -1) {
-    // console.error("Couldn't find ID column index");
-    return 0;
-  }
-  return i;
+	const i = headers.findIndex(
+		(h) =>
+			h.toLowerCase() === tableIdColumnName.toLowerCase() || h === "file.link"
+	);
+	if (i === -1) {
+		// console.error("Couldn't find ID column index");
+		return 0;
+	}
+	return i;
 };
 
 export const checkIfDataviewLink = (val: unknown) => {
-  if (!val) return false;
-  if (typeof val !== "object") return false;
-  if (!val.hasOwnProperty("type")) return false;
-  // if ((val as { type: unknown }).type !== "file") return false;
-  if (typeof (val as Record<string, any>)?.markdown !== "function")
-    return false;
-  return true;
+	if (!val) return false;
+	if (typeof val !== "object") return false;
+	if (!val.hasOwnProperty("type")) return false;
+	// if ((val as { type: unknown }).type !== "file") return false;
+	if (typeof (val as Record<string, any>)?.markdown !== "function")
+		return false;
+	return true;
 };
 
 export const tryDataviewLinkToMarkdown = (val: unknown) => {
-  if (!checkIfDataviewLink(val)) return val as DataviewPropertyValueNotLink;
-  return (val as DataviewLink).markdown();
+	if (!checkIfDataviewLink(val)) return val as DataviewPropertyValueNotLink;
+	return (val as DataviewLink).markdown();
 };
 
 export const tryDataviewArrayToArray = <T>(val: T) => {
-  if (typeof val !== "object") return val;
-  if (!val?.hasOwnProperty("array")) return val;
-  return ({ ...val } as unknown as DataArray<T>).array() as T;
+	if (typeof val !== "object") return val;
+	if (!val?.hasOwnProperty("array")) return val;
+	return ({ ...val } as unknown as DataArray<T>).array() as T;
 };
 
 /*
@@ -174,64 +165,68 @@ export const tryDataviewArrayToArray = <T>(val: T) => {
 //   return ["File", ...cols];
 // };
 
-
 /**
  * Updates a frontmatter or inline property
  */
 export const updateMetadataProperty = async (
-  property: string,
-  newValue: unknown,
-  filePath: string,
-  plugin: Plugin,
-  // TODO `el` is not needed
-  el: HTMLElement | null,
-  oldValue: unknown,
-  itemIndex?: number,
+	property: string,
+	newValue: unknown,
+	filePath: string,
+	plugin: Plugin,
+	// TODO `el` is not needed
+	el: HTMLElement | null,
+	oldValue: unknown,
+	itemIndex?: number
 ) => {
-  const value = tryDataviewLinkToMarkdown(newValue);
-  const {
-    app: { fileManager, vault },
-  } = plugin;
-  // const scrollFixer = new ScrollFixer(el);
-  const file = vault.getFileByPath(filePath);
-  if (!file) {
-    throw new Error(
-      "Tried updating frontmatter property but couldn't find file",
-    );
-  }
-  let fmUpdated = false;
-  await fileManager.processFrontMatter(file, (fm: Record<string, any>) => {
-    if (!fm.hasOwnProperty(property)) {
-      // nested (object)
-      if (property.includes(".")) {
-        assignDotPropertyValue(fm, property, value);
-        return (fmUpdated = true);
-      }
-      // might be inline
-      return;
-    }
-    fm[property] = value;
-    return (fmUpdated = true);
-  });
+	const value = tryDataviewLinkToMarkdown(newValue);
+	const {
+		app: { fileManager, vault },
+	} = plugin;
+	// const scrollFixer = new ScrollFixer(el);
+	const file = vault.getFileByPath(filePath);
+	if (!file) {
+		throw new Error(
+			"Tried updating frontmatter property but couldn't find file"
+		);
+	}
+	let fmUpdated = false;
+	await fileManager.processFrontMatter(file, (fm: Record<string, any>) => {
+		if (fm.hasOwnProperty(property)) {
+			fm[property] = value;
+			return (fmUpdated = true);
+		}
+		const insensitiveProperty = findKeyInsensitive(property, fm);
+		if (insensitiveProperty) {
+			fm[insensitiveProperty] = value;
+			return (fmUpdated = true);
+		}
+		// nested (object)
+		if (property.includes(".")) {
+			assignDotPropertyValue(fm, property, value);
+			return (fmUpdated = true);
+		}
+		// might be inline
+		return;
+	});
 
-  if (fmUpdated) return; //scrollFixer.fix();
+	if (fmUpdated) return; //scrollFixer.fix();
 
-  const inlineUpdated = await tryUpdateInlineProperty(
-    property,
-    value,
-    oldValue,
-    file,
-    vault,
-    itemIndex,
-  );
-  if (inlineUpdated) return; //scrollFixer.fix();
+	const inlineUpdated = await tryUpdateInlineProperty(
+		property,
+		value,
+		oldValue,
+		file,
+		vault,
+		itemIndex
+	);
+	if (inlineUpdated) return; //scrollFixer.fix();
 
-  // property is not in frontmatter nor inline
-  await fileManager.processFrontMatter(file, (fm) => {
-    fm[property] = value;
-  });
+	// property is not in frontmatter nor inline
+	await fileManager.processFrontMatter(file, (fm) => {
+		fm[property] = value;
+	});
 
-  // scrollFixer.fix();
+	// scrollFixer.fix();
 };
 
 /**
@@ -249,132 +244,132 @@ export const updateMetadataProperty = async (
  * ```
  */
 export const assignDotPropertyValue = (
-  obj: Record<string, unknown>,
-  property: string,
-  value: unknown,
+	obj: Record<string, unknown>,
+	property: string,
+	value: unknown
 ) => {
-  const keys = property.split(".");
-  let current = obj;
+	const keys = property.split(".");
+	let current = obj;
 
-  keys.forEach((key, index) => {
-    if (index === keys.length - 1) {
-      current[key] = value;
-    } else {
-      if (!current[key] || typeof current[key] !== "object") {
-        current[key] = {};
-      }
-      current = current[key] as Record<string, unknown>;
-    }
-  });
+	keys.forEach((key, index) => {
+		if (index === keys.length - 1) {
+			current[key] = value;
+		} else {
+			if (!current[key] || typeof current[key] !== "object") {
+				current[key] = {};
+			}
+			current = current[key] as Record<string, unknown>;
+		}
+	});
 };
 
 type InlinePropertyValue =
-  | string
-  | number
-  | boolean
-  | null
-  | (string | number)[]
-  | undefined;
+	| string
+	| number
+	| boolean
+	| null
+	| (string | number)[]
+	| undefined;
 
 export const parseLinesForInlineFields = (lines: (string | null)[]) => {
-  const reg = new RegExp(/[\[\(]?([^\n\r\(\[]*)::[ ]*([^\)\]\n\r]*)[\]\)]?/gm);
-  return lines.reduce<
-    {
-      key: string;
-      value: InlinePropertyValue;
-      line: number;
-      match: string;
-    }[]
-  >((prev, curr, index) => {
-    let matches = reg.exec(curr ?? "");
-    if (!matches) {
-      return prev;
-    }
-    const key = matches[1].trim();
-    const oldVal = matches[2].trim();
-    return [
-      ...prev,
-      {
-        key: key,
-        value: oldVal,
-        line: index,
-        match: matches[0],
-      },
-    ];
-  }, []);
+	const reg = new RegExp(/[\[\(]?([^\n\r\(\[]*)::[ ]*([^\)\]\n\r]*)[\]\)]?/gm);
+	return lines.reduce<
+		{
+			key: string;
+			value: InlinePropertyValue;
+			line: number;
+			match: string;
+		}[]
+	>((prev, curr, index) => {
+		let matches = reg.exec(curr ?? "");
+		if (!matches) {
+			return prev;
+		}
+		const key = matches[1].trim();
+		const oldVal = matches[2].trim();
+		return [
+			...prev,
+			{
+				key: key,
+				value: oldVal,
+				line: index,
+				match: matches[0],
+			},
+		];
+	}, []);
 };
 
 export const splitYamlAndContent = (content: string) => {
-  const lines: (string | null)[] = content.split("\n");
-  const yaml = [];
-  if (lines[0] === "---") {
-    const lastYamlDashesIndex = lines.findIndex(
-      (l, i) => l === "---" && i !== 0,
-    );
-    if (
-      lastYamlDashesIndex !== -1 &&
-      lines[lastYamlDashesIndex + 1] !== undefined
-    ) {
-      // this ends up being cheaper than array.slice() when
-      // lines can be a very large array of very large strings
-      for (let j = 0; j < lastYamlDashesIndex + 1; j++) {
-        yaml.push(lines[j]);
-        lines[j] = null;
-      }
-    }
-  }
-  return { yaml, lines };
+	const lines: (string | null)[] = content.split("\n");
+	const yaml = [];
+	if (lines[0] === "---") {
+		const lastYamlDashesIndex = lines.findIndex(
+			(l, i) => l === "---" && i !== 0
+		);
+		if (
+			lastYamlDashesIndex !== -1 &&
+			lines[lastYamlDashesIndex + 1] !== undefined
+		) {
+			// this ends up being cheaper than array.slice() when
+			// lines can be a very large array of very large strings
+			for (let j = 0; j < lastYamlDashesIndex + 1; j++) {
+				yaml.push(lines[j]);
+				lines[j] = null;
+			}
+		}
+	}
+	return { yaml, lines };
 };
 
 const tryUpdateInlineProperty = async (
-  property: string,
-  value: unknown,
-  previousValue: unknown,
-  file: TFile,
-  vault: Vault,
-  itemIndex?: number,
+	property: string,
+	value: unknown,
+	previousValue: unknown,
+	file: TFile,
+	vault: Vault,
+	itemIndex?: number
 ) => {
-  if (value?.toString().includes("\n")) {
-    new Notice("Inline properties cannot contain new lines!", 5000);
-    return true;
-  }
-  const content = await vault.read(file);
-  const { yaml, lines } = splitYamlAndContent(content);
-  const parsedFields = parseLinesForInlineFields(lines);
-  const foundInline = parsedFields.find(
-    (f) => f.value === previousValue?.toString(),
-  );
-  if (!foundInline) {
-    const isNameMatchedInline = parsedFields.some((f) => f.key === property);
-    if (isNameMatchedInline) {
-      // plus button was clicked for list value
-      // you can't really add a inline programmatically
-      // because they are defined arbitrarily in the note
-      new Notice(
-        "Inline fields found for property, so you can't use the plus button",
-      );
-      // so frontmatter isn't updated
-      return true;
-    }
-    return false;
-  }
-  const newValue = Array.isArray(value) ? value[itemIndex ?? 0] : value;
-  // console.log("found: ", foundInline);
-  const newFieldValue = foundInline.match.replaceAll(
-    previousValue?.toString() ?? "",
-    newValue,
-  );
-  lines[foundInline.line] =
-    lines[foundInline.line]?.replaceAll(foundInline.match, newFieldValue) ??
-    null;
-  let finalContent = "";
-  for (let m = 0; m < lines.length; m++) {
-    const v = lines[m];
-    if (v === null) continue;
-    finalContent += "\n" + v;
-  }
-  await vault.modify(file, yaml.join("\n") + finalContent);
-  return true;
+	if (value?.toString().includes("\n")) {
+		new Notice("Inline properties cannot contain new lines!", 5000);
+		return true;
+	}
+	const content = await vault.read(file);
+	const { yaml, lines } = splitYamlAndContent(content);
+	const parsedFields = parseLinesForInlineFields(lines);
+	const foundInline = parsedFields.find(
+		(f) => f.value === previousValue?.toString()
+	);
+	if (!foundInline) {
+		const isNameMatchedInline = parsedFields.some((f) => f.key === property);
+		if (isNameMatchedInline) {
+			// plus button was clicked for list value
+			// you can't really add a inline programmatically
+			// because they are defined arbitrarily in the note
+			new Notice(
+				"Inline fields found for property, so you can't use the plus button"
+			);
+			// so frontmatter isn't updated
+			return true;
+		}
+		return false;
+	}
+	const newValue = Array.isArray(value) ? value[itemIndex ?? 0] : value;
+	// console.log("found: ", foundInline);
+	const newFieldValue = foundInline.match.replaceAll(
+		previousValue?.toString() ?? "",
+		newValue
+	);
+	lines[foundInline.line] =
+		lines[foundInline.line]?.replaceAll(foundInline.match, newFieldValue) ??
+		null;
+	let finalContent = "";
+	for (let m = 0; m < lines.length; m++) {
+		const v = lines[m];
+		if (v === null) continue;
+		finalContent += "\n" + v;
+	}
+	await vault.modify(file, yaml.join("\n") + finalContent);
+	return true;
 };
 
 // export const getExistingProperties = (app: App) => {
@@ -446,8 +441,6 @@ const tryUpdateInlineProperty = async (
 //     return { query, config: defaultDataEditBlockConfig };
 //   }
 // };
-
-
 
 // TODO fix scroll issue
 // export const updateBlockConfig = (
@@ -547,10 +540,10 @@ const tryUpdateInlineProperty = async (
 // };
 
 export const ensureFileLinkColumn = (source: string) => {
-  if (!source.toLowerCase().startsWith("table without id"))
-    return { source, hide: false };
-  const lines = source.split("\n");
-  if (lines[0].includes("file.link")) return { source, hide: false };
-  lines[0] += ", file.link";
-  return { source: lines.join("\n"), hide: true };
+	if (!source.toLowerCase().startsWith("table without id"))
+		return { source, hide: false };
+	const lines = source.split("\n");
+	if (lines[0].includes("file.link")) return { source, hide: false };
+	lines[0] += ", file.link";
+	return { source: lines.join("\n"), hide: true };
 };

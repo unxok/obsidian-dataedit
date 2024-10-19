@@ -65,6 +65,7 @@ export const Table = (props: {
 	propertyTypeWidgets: PropertyWidget<unknown>[];
 	idColIndex: number;
 	isDynamic: boolean;
+	hideFileCol: boolean;
 }) => {
 	const bctx = useBlock();
 	const [dragContext, setDragContext] = createStore<DragContextValue>({
@@ -129,35 +130,37 @@ export const Table = (props: {
 						<thead>
 							<tr>
 								<For each={props.properties}>
-									{(item, index) => (
-										<th
-											classList={getThClassList(index())}
-											style={{
-												"vertical-align": getVertical(),
-												"text-align": getHorizontal(),
-												"justify-content": getJustify(),
-												// ensure that column reorder buttons are able to style correctly
-												"position": "relative",
-												"overflow": "visible",
-											}}
-										>
-											<PropertyHeader
-												header={props.headers[index()]}
-												property={item}
-												propertyType={props.propertyTypes[index()]}
-												index={index()}
+									{(item, index) =>
+										!(props.hideFileCol && index() === props.idColIndex) && (
+											<th
+												classList={getThClassList(index())}
+												style={{
+													"vertical-align": getVertical(),
+													"text-align": getHorizontal(),
+													"justify-content": getJustify(),
+													// ensure that column reorder buttons are able to style correctly
+													"position": "relative",
+													"overflow": "visible",
+												}}
 											>
-												<Show when={!props.isDynamic}>
-													<ColumnReorderButton
-														property={item}
-														boundsArr={boundsArr()}
-														index={index()}
-														recordBounds={recordBounds}
-													/>
-												</Show>
-											</PropertyHeader>
-										</th>
-									)}
+												<PropertyHeader
+													header={props.headers[index()]}
+													property={item}
+													propertyType={props.propertyTypes[index()]}
+													index={index()}
+												>
+													<Show when={!props.isDynamic}>
+														<ColumnReorderButton
+															property={item}
+															boundsArr={boundsArr()}
+															index={index()}
+															recordBounds={recordBounds}
+														/>
+													</Show>
+												</PropertyHeader>
+											</th>
+										)
+									}
 								</For>
 							</tr>
 						</thead>
@@ -166,35 +169,39 @@ export const Table = (props: {
 								{(row, rowIndex) => (
 									<tr>
 										<For each={row}>
-											{(item, itemIndex) => (
-												<td
-													classList={{
-														"dataedit-is-selected":
-															dragContext.draggedIndex === itemIndex(),
-														"bottom": rowIndex() === props.values.length - 1,
-														"dataedit-is-dragged-over":
-															dragContext.draggedOverIndex === itemIndex(),
-														"right": dragContext.draggedIndex < itemIndex(),
-														"left": dragContext.draggedIndex > itemIndex(),
-													}}
-													style={{
-														"vertical-align": getVertical(),
-														"text-align": getHorizontal(),
-														"justify-content": getJustify(),
-													}}
-												>
-													<PropertyData
-														property={props.properties[itemIndex()]}
-														value={item}
-														propertyType={props.propertyTypes[itemIndex()]}
-														propertyTypeWidget={
-															props.propertyTypeWidgets[itemIndex()]
-														}
-														header={props.headers[itemIndex()]}
-														filePath={getFilePath(rowIndex())}
-													/>
-												</td>
-											)}
+											{(item, itemIndex) =>
+												!(
+													props.hideFileCol && itemIndex() === props.idColIndex
+												) && (
+													<td
+														classList={{
+															"dataedit-is-selected":
+																dragContext.draggedIndex === itemIndex(),
+															"bottom": rowIndex() === props.values.length - 1,
+															"dataedit-is-dragged-over":
+																dragContext.draggedOverIndex === itemIndex(),
+															"right": dragContext.draggedIndex < itemIndex(),
+															"left": dragContext.draggedIndex > itemIndex(),
+														}}
+														style={{
+															"vertical-align": getVertical(),
+															"text-align": getHorizontal(),
+															"justify-content": getJustify(),
+														}}
+													>
+														<PropertyData
+															property={props.properties[itemIndex()]}
+															value={item}
+															propertyType={props.propertyTypes[itemIndex()]}
+															propertyTypeWidget={
+																props.propertyTypeWidgets[itemIndex()]
+															}
+															header={props.headers[itemIndex()]}
+															filePath={getFilePath(rowIndex())}
+														/>
+													</td>
+												)
+											}
 										</For>
 									</tr>
 								)}
